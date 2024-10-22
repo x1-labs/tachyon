@@ -438,7 +438,10 @@ impl AccountsHashVerifier {
             )
             .unwrap()); // unwrap here will never fail since check_hash = false
 
-        trace!("compute accounts_package.expected_capitalization and lamports {} {} for slot {}", accounts_package.expected_capitalization, lamports, slot);
+        trace!(
+            "compute accounts_package.expected_capitalization and lamports {} {} for slot {}",
+            accounts_package.expected_capitalization, lamports, slot
+        );
 
         if accounts_package.expected_capitalization != lamports {
             trace!("accounts_package.expected_capitalization need recalc as values are not the same");
@@ -467,14 +470,17 @@ impl AccountsHashVerifier {
                     &sorted_storages,
                     HashStats::default(),
                 );
-            trace!("after recalc compute accounts_package.expected_capitalization and lamports {} {} for slot {}", accounts_package.expected_capitalization, lamports, slot);
+            trace!(
+                "after recalc compute accounts_package.expected_capitalization and lamports {} {} for slot {}",
+                accounts_package.expected_capitalization, lamports, slot
+            );
         }
-/*
-        assert_eq!(
-            accounts_package.expected_capitalization, lamports,
-            "accounts hash capitalization mismatch"
-        );
-*/
+
+        // TODO: re-enable this assert once we have a better understanding of the issue and repair it.
+        // assert_eq!(
+        //     accounts_package.expected_capitalization, lamports,
+        //     "accounts hash capitalization mismatch"
+        // );
         if let Some(expected_hash) = accounts_package.accounts_hash_for_testing {
             assert_eq!(expected_hash, accounts_hash);
         };
