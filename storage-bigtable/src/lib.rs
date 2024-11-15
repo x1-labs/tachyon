@@ -398,6 +398,7 @@ pub struct LedgerStorageConfig {
     pub instance_name: String,
     pub app_profile_id: String,
     pub max_message_size: usize,
+    pub skip_vote_txs: bool,
 }
 
 impl Default for LedgerStorageConfig {
@@ -409,6 +410,7 @@ impl Default for LedgerStorageConfig {
             instance_name: DEFAULT_INSTANCE_NAME.to_string(),
             app_profile_id: DEFAULT_APP_PROFILE_ID.to_string(),
             max_message_size: DEFAULT_MAX_MESSAGE_SIZE,
+            skip_vote_txs: false,
         }
     }
 }
@@ -445,6 +447,7 @@ impl LedgerStorageStats {
 pub struct LedgerStorage {
     connection: bigtable::BigTableConnection,
     stats: Arc<LedgerStorageStats>,
+    skip_vote_txs: bool,
 }
 
 impl LedgerStorage {
@@ -478,6 +481,7 @@ impl LedgerStorage {
                 LedgerStorageConfig::default().max_message_size,
             )?,
             stats,
+            skip_vote_txs: false,
         })
     }
 
@@ -490,6 +494,7 @@ impl LedgerStorage {
             app_profile_id,
             credential_type,
             max_message_size,
+            skip_vote_txs,
         } = config;
         let connection = bigtable::BigTableConnection::new(
             instance_name.as_str(),
@@ -500,7 +505,7 @@ impl LedgerStorage {
             max_message_size,
         )
         .await?;
-        Ok(Self { stats, connection })
+        Ok(Self { stats, connection, skip_vote_txs })
     }
 
     pub async fn new_with_stringified_credential(credential: String) -> Result<Self> {
@@ -955,6 +960,19 @@ impl LedgerStorage {
             let index = index as u32;
             let signature = transaction.signatures[0];
             let memo = extract_and_fmt_memos(transaction_with_meta);
+
+            // Skip any transaction that involves the vote program or system variables
+            if self.skip_vote_txs && transaction_with_meta
+                .account_keys()
+                .iter()
+                .any(|key| key == &solana_sdk::vote::program::id() || is_sysvar_id(key))
+            {
+                trace!(
+                    "Skipping transaction with vote/system program references to save resources: {:?}",
+                    signature
+                );
+                continue;
+            }
 
             for address in transaction_with_meta.account_keys().iter() {
                 // Historical note that previously only a set of sysvar ids were

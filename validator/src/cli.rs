@@ -1035,6 +1035,12 @@ pub fn app<'a>(version: &'a str, default_args: &'a DefaultArgs) -> App<'a, 'a> {
                 .help("Max encoding and decoding message size used in Bigtable Grpc client"),
         )
         .arg(
+            Arg::with_name("rpc_bigtable_skip_vote_txs")
+                .long("rpc-bigtable-skip-vote-txs")
+                .takes_value(false)
+                .help("Skip vote txs in Bigtable upload indexed TXs"),
+        )
+        .arg(
             Arg::with_name("rpc_pubsub_worker_threads")
                 .long("rpc-pubsub-worker-threads")
                 .takes_value(true)
