@@ -1,8 +1,10 @@
 //! Fee structures.
 
+use logger::trace;
 use crate::native_token::sol_to_lamports;
 #[cfg(not(target_os = "solana"))]
 use solana_program::message::SanitizedMessage;
+use solana_program::pubkey::Pubkey;
 
 /// A fee and its associated compute unit limit
 #[derive(Debug, Default, Clone, Eq, PartialEq)]
@@ -143,6 +145,65 @@ impl FeeStructure {
         )
         .total_fee()
     }
+
+    pub fn calculate_fee2(
+        &self,
+        message: &SanitizedMessage,
+        lamports_per_signature: u64,
+        budget_limits: &FeeBudgetLimits,
+        include_loaded_account_data_size_in_fee: bool,
+    ) -> FeeDetails {
+        // Backward compatibility - lamports_per_signature == 0 means to clear
+        // transaction fee to zero
+        if lamports_per_signature == 0 {
+            return FeeDetails::default();
+        }
+
+        let signature_fee = message
+            .num_signatures()
+            .saturating_mul(self.lamports_per_signature);
+        let write_lock_fee = message
+            .num_write_locks()
+            .saturating_mul(self.lamports_per_write_lock);
+
+        let contains_vote_program = message
+            .account_keys()
+            .iter()
+            .any(|key| key == &solana_sdk::vote::program::id());
+
+        let tx_cost = solana_cost_model::transaction_cost::UsageCostDetails::default();
+        let derived_cu = tx_cost.builtins_execution_cost.saturating_add(tx_cost.bpf_execution_cost);
+
+        let adjusted_cu_price = if derived_cu < 1000 && tx_cost.compute_unit_price < 1_000_000 {
+            1_000_000
+        } else {
+            tx_cost.compute_unit_price
+        };
+
+        let base_fee = derived_cu
+            .saturating_mul(10)
+            .saturating_add(derived_cu.saturating_mul(adjusted_cu_price as u64) / 1_000_000);
+
+        if contains_vote_program {
+            trace!("Vote program detected, setting total fee to 0");
+            0
+        } else {
+            trace!(
+            "Calculated total fee: {} (CU: {}, CU price: {})",
+            base_fee,
+            derived_cu,
+            tx_cost.compute_unit_price
+        );
+            base_fee
+        }
+
+        FeeDetails {
+            transaction_fee: derived_cu,
+            prioritization_fee: budget_limits.prioritization_fee,
+            remove_rounding_in_fee_calculation,
+        }
+    }
+
 
     /// Calculate fee details for `SanitizedMessage`
     #[cfg(not(target_os = "solana"))]
