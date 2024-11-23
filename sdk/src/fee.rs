@@ -7,14 +7,12 @@ use lazy_static::lazy_static;
 use crate::native_token::sol_to_lamports;
 use log::trace;
 use solana_program::borsh1::try_from_slice_unchecked;
-use solana_program::instruction::{CompiledInstruction, InstructionError};
 
 #[cfg(not(target_os = "solana"))]
 use solana_program::message::SanitizedMessage;
 use solana_program::pubkey::Pubkey;
 use crate::{compute_budget};
 use crate::compute_budget::ComputeBudgetInstruction;
-use crate::transaction::{TransactionError};
 
 pub const COMPUTE_UNIT_TO_US_RATIO: u64 = 30;
 pub const SIGNATURE_COST: u64 = COMPUTE_UNIT_TO_US_RATIO * 24;
@@ -24,7 +22,6 @@ pub const WRITE_LOCK_UNITS: u64 = COMPUTE_UNIT_TO_US_RATIO * 10;
 pub const DEFAULT_INSTRUCTION_COMPUTE_UNIT_LIMIT: u32 = 200_000;
 pub const MAX_COMPUTE_UNIT_LIMIT: u32 = 1_400_000;
 pub const HEAP_LENGTH: usize = 32 * 1024;
-const MAX_HEAP_FRAME_BYTES: u32 = 256 * 1024;
 pub const MAX_LOADED_ACCOUNTS_DATA_SIZE_BYTES: u32 = 64 * 1024 * 1024;
 
 lazy_static! {
@@ -48,100 +45,6 @@ lazy_static! {
     .collect();
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ComputeBudgetLimits {
-    pub updated_heap_bytes: u32,
-    pub compute_unit_limit: u32,
-    pub compute_unit_price: u64,
-    pub loaded_accounts_bytes: u32,
-}
-
-fn sanitize_requested_heap_size(bytes: u32) -> bool {
-    (u32::try_from(HEAP_LENGTH).unwrap()..=MAX_HEAP_FRAME_BYTES).contains(&bytes)
-        && bytes % 1024 == 0
-}
-
-pub fn process_compute_budget_instructions<'a>(
-    instructions: impl Iterator<Item = (&'a Pubkey, &'a CompiledInstruction)>,
-) -> Result<ComputeBudgetLimits, TransactionError> {
-    let mut num_non_compute_budget_instructions: u32 = 0;
-    let mut updated_compute_unit_limit = None;
-    let mut updated_compute_unit_price = None;
-    let mut requested_heap_size = None;
-    let mut updated_loaded_accounts_data_size_limit = None;
-
-    for (i, (program_id, instruction)) in instructions.enumerate() {
-        if compute_budget::check_id(program_id) {
-            let invalid_instruction_data_error = TransactionError::InstructionError(
-                i as u8,
-                InstructionError::InvalidInstructionData,
-            );
-            let duplicate_instruction_error = TransactionError::DuplicateInstruction(i as u8);
-
-            match try_from_slice_unchecked(&instruction.data) {
-                Ok(ComputeBudgetInstruction::RequestHeapFrame(bytes)) => {
-                    if requested_heap_size.is_some() {
-                        return Err(duplicate_instruction_error);
-                    }
-                    if sanitize_requested_heap_size(bytes) {
-                        requested_heap_size = Some(bytes);
-                    } else {
-                        return Err(invalid_instruction_data_error);
-                    }
-                }
-                Ok(ComputeBudgetInstruction::SetComputeUnitLimit(compute_unit_limit)) => {
-                    if updated_compute_unit_limit.is_some() {
-                        return Err(duplicate_instruction_error);
-                    }
-                    updated_compute_unit_limit = Some(compute_unit_limit);
-                }
-                Ok(ComputeBudgetInstruction::SetComputeUnitPrice(micro_lamports)) => {
-                    if updated_compute_unit_price.is_some() {
-                        return Err(duplicate_instruction_error);
-                    }
-                    updated_compute_unit_price = Some(micro_lamports);
-                }
-                Ok(ComputeBudgetInstruction::SetLoadedAccountsDataSizeLimit(bytes)) => {
-                    if updated_loaded_accounts_data_size_limit.is_some() {
-                        return Err(duplicate_instruction_error);
-                    }
-                    updated_loaded_accounts_data_size_limit = Some(bytes);
-                }
-                _ => return Err(invalid_instruction_data_error),
-            }
-        } else {
-            // only include non-request instructions in default max calc
-            num_non_compute_budget_instructions =
-                num_non_compute_budget_instructions.saturating_add(1);
-        }
-    }
-
-    // sanitize limits
-    let updated_heap_bytes = requested_heap_size
-        .unwrap_or(u32::try_from(HEAP_LENGTH).unwrap()) // loader's default heap_size
-        .min(MAX_HEAP_FRAME_BYTES);
-
-    let compute_unit_limit = updated_compute_unit_limit
-        .unwrap_or_else(|| {
-            num_non_compute_budget_instructions
-                .saturating_mul(DEFAULT_INSTRUCTION_COMPUTE_UNIT_LIMIT)
-        })
-        .min(MAX_COMPUTE_UNIT_LIMIT);
-
-    let compute_unit_price = updated_compute_unit_price.unwrap_or(0);
-
-    let loaded_accounts_bytes = updated_loaded_accounts_data_size_limit
-        .unwrap_or(MAX_LOADED_ACCOUNTS_DATA_SIZE_BYTES)
-        .min(MAX_LOADED_ACCOUNTS_DATA_SIZE_BYTES);
-
-    Ok(ComputeBudgetLimits {
-        updated_heap_bytes,
-        compute_unit_limit,
-        compute_unit_price,
-        loaded_accounts_bytes,
-    })
-}
-
 fn get_compute_unit_price_from_message(
     message: &SanitizedMessage,
 ) -> u64 {
@@ -162,7 +65,8 @@ fn get_compute_unit_price_from_message(
 
 fn get_transaction_cost(
     message: &SanitizedMessage,
-) -> (u64, u64) {
+    budget_limits: &FeeBudgetLimits
+) -> u64 {
     let mut builtin_costs = 0u64;
     let mut bpf_costs = 0u64;
     let mut compute_unit_limit_is_set = false;
@@ -185,27 +89,11 @@ fn get_transaction_cost(
         }
     }
 
-    // if failed to process compute_budget instructions, the transaction will not be executed
-    // by `bank`, therefore it should be considered as no execution cost by cost model.
-    match process_compute_budget_instructions(message.program_instructions_iter())
-    {
-        Ok(compute_budget_limits) => {
-            // if tx contained user-space instructions and a more accurate estimate available correct it,
-            // where "user-space instructions" must be specifically checked by
-            // 'compute_unit_limit_is_set' flag, because compute_budget does not distinguish
-            // builtin and bpf instructions when calculating default compute-unit-limit. (see
-            // compute_budget.rs test `test_process_mixed_instructions_without_compute_budget`)
-            if bpf_costs > 0 && compute_unit_limit_is_set {
-                bpf_costs = u64::from(compute_budget_limits.compute_unit_limit);
-            }
-        }
-        Err(_) => {
-            builtin_costs = 0;
-            bpf_costs = 0;
-        }
+    if bpf_costs > 0 && compute_unit_limit_is_set {
+        bpf_costs = budget_limits.compute_unit_limit
     }
 
-    (builtin_costs,  bpf_costs)
+    builtin_costs.saturating_add(bpf_costs)
 }
 
 /// A fee and its associated compute unit limit
@@ -290,32 +178,27 @@ impl FeeStructure {
         &self,
         message: &SanitizedMessage,
         _lamports_per_signature: u64,
-        _budget_limits: &FeeBudgetLimits,
+        budget_limits: &FeeBudgetLimits,
         _include_loaded_account_data_size_in_fee: bool,
     ) -> u64 {
-        let (builtins_execution_cost, bpf_execution_cost) = get_transaction_cost(&message);
+        // If the message contains the vote program, set the total fee to 0.
+        if message.account_keys().iter()
+            .any(|key| key == &solana_sdk::vote::program::id()) {
+            return 0
+        }
+
+        let derived_cu = get_transaction_cost(&message, budget_limits);
         let compute_unit_price = get_compute_unit_price_from_message(&message);
-
-        let derived_cu = builtins_execution_cost
-            .saturating_add(bpf_execution_cost);
-
         let adjusted_compute_unit_price = if derived_cu < 1000 && compute_unit_price < 1_000_000 {
             1_000_000
         } else {
             compute_unit_price
         };
 
-        let mut total_fee = derived_cu
+        let total_fee = derived_cu
             .saturating_mul(10) // ensures multiplication doesn't overflow
             .saturating_add(derived_cu.saturating_mul(adjusted_compute_unit_price)
                 .saturating_div(1_000_000)); // change to 1_000_000 to convert to micro lamports
-
-        // If the message contains the vote program, set the total fee to 0
-        let contains_vote_program = message.account_keys().iter()
-            .any(|key| key == &solana_sdk::vote::program::id());
-        if contains_vote_program {
-            total_fee = 0;
-        }
 
         trace!("total_fee: {}", total_fee);
         total_fee

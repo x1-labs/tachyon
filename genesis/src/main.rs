@@ -15,7 +15,7 @@ use {
         },
     },
     solana_entry::poh::compute_hashes_per_tick,
-    solana_genesis::{Base64Account},
+    solana_genesis::Base64Account,
     solana_ledger::{blockstore::create_new_ledger, blockstore_options::LedgerColumnOptions},
     solana_sdk::{
         account::{Account, AccountSharedData, ReadableAccount, WritableAccount},
