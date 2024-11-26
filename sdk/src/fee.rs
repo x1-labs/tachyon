@@ -473,13 +473,7 @@ impl FeeDetails {
     }
 
     pub fn total_fee(&self) -> u64 {
-        let total_fee = self.transaction_fee;
-        if self.remove_rounding_in_fee_calculation {
-            total_fee
-        } else {
-            // backward compatible behavior
-            (total_fee as f64).round() as u64
-        }
+        self.transaction_fee
     }
 
     pub fn accumulate(&mut self, fee_details: &FeeDetails) {
@@ -574,26 +568,17 @@ impl FeeStructure {
         _include_loaded_account_data_size_in_fee: bool,
         remove_rounding_in_fee_calculation: bool,
     ) -> FeeDetails {
-        // Backward compatibility - lamports_per_signature == 0 means to clear
-        // transaction fee to zero
-        if lamports_per_signature == 0 {
-            return FeeDetails::default();
-        }
+        trace!("Calculating fee with lamports_per_signature: {} and self.lamports_per_signature {} ", lamports_per_signature, self.lamports_per_signature);
+        trace!("Dump message: {:?}", message);
+        trace!("Dump keys: {:?}", message.account_keys());
 
-        if message
-            .account_keys()
-            .iter()
-            .any(|key| key == &solana_sdk::vote::program::id()) {
-            trace!("Vote program detected, setting total fee to 0");
-            return FeeDetails::default();
-        }
+        let vote_program_id = &solana_sdk::vote::program::id();
+        let contains_vote_program = message.account_keys().iter().any(|key| key == vote_program_id);
 
         let mut tx_cost = UsageCostDetails::default();
-        // TODO: remove these? They are not used.
         get_signature_cost_from_message(&mut tx_cost, &message);
-        get_write_lock_cost(&mut tx_cost, message, &FeatureSet::default()); // TODO: this is a default featureSet. Should it be?
-
-        get_transaction_cost(&mut tx_cost, message, &FeatureSet::default()); // TODO: this is a default featureSet. Should it be?
+        get_write_lock_cost(&mut tx_cost, message, &FeatureSet::default());
+        get_transaction_cost(&mut tx_cost, message, &FeatureSet::default());
         get_compute_unit_price_from_message(&mut tx_cost, &message);
 
         let derived_cu = tx_cost.builtins_execution_cost.saturating_add(tx_cost.bpf_execution_cost);
@@ -604,12 +589,20 @@ impl FeeStructure {
             tx_cost.compute_unit_price
         };
 
-        let base_fee = derived_cu
+        let mut total_fee = derived_cu
             .saturating_mul(10)
             .saturating_add(derived_cu.saturating_mul(adjusted_cu_price as u64) / 1_000_000);
 
+        // If the message contains the vote program, set the total fee to 0
+        if contains_vote_program {
+            trace!("Vote program detected, setting total_fee to 0");
+            total_fee = 0;
+        } else {
+            trace!("Calculated total_fee: {} with compute units: {} compute unit price {}", total_fee, derived_cu, tx_cost.compute_unit_price);
+        }
+
         FeeDetails {
-            transaction_fee: base_fee,
+            transaction_fee: total_fee,
             prioritization_fee: budget_limits.prioritization_fee,
             remove_rounding_in_fee_calculation,
         }
