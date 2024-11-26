@@ -596,7 +596,6 @@ impl FeeStructure {
         get_transaction_cost(&mut tx_cost, message, &FeatureSet::default()); // TODO: this is a default featureSet. Should it be?
         get_compute_unit_price_from_message(&mut tx_cost, &message);
 
-        let tx_cost = UsageCostDetails::default();
         let derived_cu = tx_cost.builtins_execution_cost.saturating_add(tx_cost.bpf_execution_cost);
 
         let adjusted_cu_price = if derived_cu < 1000 && tx_cost.compute_unit_price < 1_000_000 {
