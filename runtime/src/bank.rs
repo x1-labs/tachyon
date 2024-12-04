@@ -101,6 +101,7 @@ use {
         cost_tracker::CostTracker,
     },
     solana_fee::calculate_fee,
+    solana_inline_spl::token,
     solana_lattice_hash::lt_hash::LtHash,
     solana_measure::{meas_dur, measure::Measure, measure_time, measure_us},
     solana_program_runtime::{
@@ -204,7 +205,6 @@ use {
     },
     solana_nonce_account::{get_system_account_kind, SystemAccountKind},
     solana_program_runtime::{loaded_programs::ProgramCacheForTxBatch, sysvar_cache::SysvarCache},
-    solana_sdk::nonce,
     solana_svm::program_loader::load_program_with_pubkey,
 };
 
@@ -6566,6 +6566,19 @@ impl Bank {
                     self.accounts_lt_hash.get_mut().unwrap().0.checksum(),
                 );
             }
+        }
+
+        if new_feature_activations.contains(&feature_set::enable_native_mint_wrap_account::id()) {
+            self.store_account_and_update_capitalization(
+                 &token::native_mint::id(),
+                 &solana_sdk::account::AccountSharedData::from(Account {
+                    owner: token::id(),
+                    data: token::native_mint::ACCOUNT_DATA.to_vec(),
+                    lamports: sol_to_lamports(1.0),
+                    executable: false,
+                    rent_epoch: 1,
+               }),
+            );
         }
 
         if new_feature_activations.contains(&feature_set::raise_block_limits_to_50m::id())
