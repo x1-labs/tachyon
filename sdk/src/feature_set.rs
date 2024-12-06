@@ -793,6 +793,10 @@ pub mod enable_native_mint_wrap_account {
     solana_sdk::declare_id!("BeCY6VL4CKQR2QUwe9w3iRtNMN91FMW1sXbRzwfc3WYc");
 }
 
+pub mod deactivate_canceled_partitioned_epoch_reward {
+    solana_sdk::declare_id!("3sioPumDoSRarqzp442ETGUvTCLADgU9eFzKJj375B23");
+}
+
 lazy_static! {
     /// Map of feature identifiers to user-visible description
     pub static ref FEATURE_NAMES: HashMap<Pubkey, &'static str> = [
@@ -986,6 +990,7 @@ lazy_static! {
         (deprecate_unused_legacy_vote_plumbing::id(), "Deprecate unused legacy vote tx plumbing"),
         (chained_merkle_conflict_duplicate_proofs::id(), "generate duplicate proofs for chained merkle root conflicts"),
         (enable_native_mint_wrap_account::id(), "enable the native mint wrap account"),
+        (deactivate_canceled_partitioned_epoch_reward::id(), "deactivate canceled partitioned epoch reward"),
         /*************** ADD NEW FEATURES HERE ***************/
     ]
     .iter()
