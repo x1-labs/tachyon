@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-
+set -x
 set -e
 here=$(dirname "$0")
 
@@ -12,10 +12,10 @@ partitions=$(
   cat <<EOF
 {
   "name": "partitions",
-  "command": "ci/docker-run-default-image.sh ci/stable/run-partition.sh",
-  "timeout_in_minutes": 25,
+  "command": "ci/stable/run-partition.sh",
+  "timeout_in_minutes": 30,
   "agent": "$agent",
-  "parallelism": 5,
+  "parallelism": 2,
   "retry": 3
 }
 EOF
@@ -25,8 +25,8 @@ local_cluster_partitions=$(
   cat <<EOF
 {
   "name": "local-cluster",
-  "command": "ci/docker-run-default-image.sh ci/stable/run-local-cluster-partially.sh",
-  "timeout_in_minutes": 15,
+  "command": "ci/stable/run-local-cluster-partially.sh",
+  "timeout_in_minutes": 30,
   "agent": "$agent",
   "parallelism": 10,
   "retry": 3
@@ -38,7 +38,7 @@ localnet=$(
   cat <<EOF
 {
   "name": "localnet",
-  "command": "ci/docker-run-default-image.sh ci/stable/run-localnet.sh",
+  "command": "ci/stable/run-localnet.sh",
   "timeout_in_minutes": 30,
   "agent": "$agent"
 }
