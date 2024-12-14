@@ -6,13 +6,19 @@
 set -e
 cd "$(dirname "$0")"/..
 
+source ci/env.sh
+
 output_file=${1:-/dev/stderr}
 
 if [[ -n $CI_PULL_REQUEST ]]; then
-  # filter pr number from ci branch.
-  [[ $CI_BRANCH =~ pull/([0-9]+)/head ]]
-  pr_number=${BASH_REMATCH[1]}
-  echo "get affected files from PR: $pr_number"
+	if [[ -n $BUILDKITE_PULL_REQUEST ]]; then
+		pr_number=$BUILDKITE_PULL_REQUEST
+	else
+		# filter pr number from ci branch.
+		[[ $CI_BRANCH =~ pull/([0-9]+)/head ]]
+		pr_number=${BASH_REMATCH[1]}
+	fi
+	echo "get affected files from PR: $pr_number"
 
   # get affected files
   readarray -t affected_files < <(gh pr diff --name-only "$pr_number")
@@ -101,7 +107,6 @@ affects_other_than() {
   return 1 # not affected
 }
 
-
 start_pipeline() {
   echo "# $*" > "$output_file"
   echo "steps:" >> "$output_file"
@@ -118,6 +123,43 @@ command_step() {
 EOF
 }
 
+docker_command_step() {
+  cat >> "$output_file" <<EOF
+  - name: "$1"
+    command: "$2"
+    plugins:
+      - docker#v5.12.0:
+          image: "$3"
+          workdir: /solana
+          propagate-environment: true
+          propagate-uid-gid: true
+          environment:
+            - "RUSTC_WRAPPER=/usr/local/cargo/bin/sccache"
+            - BUILDKITE_AGENT_ACCESS_TOKEN
+            - AWS_SECRET_ACCESS_KEY
+            - AWS_ACCESS_KEY_ID
+            - SCCACHE_BUCKET
+            - SCCACHE_REGION
+            - SCCACHE_S3_KEY_PREFIX
+            - BUILDKITE_PARALLEL_JOB
+            - BUILDKITE_PARALLEL_JOB_COUNT
+            - CI
+            - CI_BRANCH
+            - CI_BASE_BRANCH
+            - CI_TAG
+            - CI_BUILD_ID
+            - CI_COMMIT
+            - CI_JOB_ID
+            - CI_PULL_REQUEST
+            - CI_REPO_SLUG
+            - CRATES_IO_TOKEN
+            - THREADS_OVERRIDE
+    timeout_in_minutes: $4
+    artifact_paths: "log-*.txt"
+    agents:
+      queue: "${5:-solana}"
+EOF
+}
 
 trigger_secondary_step() {
   cat  >> "$output_file" <<"EOF"
@@ -140,10 +182,11 @@ wait_step() {
 }
 
 all_test_steps() {
-  command_step checks1 "ci/docker-run-default-image.sh ci/test-checks.sh" 20 check
-  command_step checks2 "ci/docker-run-default-image.sh ci/test-dev-context-only-utils.sh check-bins" 15 check
-  command_step checks3 "ci/docker-run-default-image.sh ci/test-dev-context-only-utils.sh check-all-targets" 30 check
-  command_step miri "ci/docker-run-default-image.sh ci/test-miri.sh" 5 check
+  . ci/rust-version.sh
+  docker_command_step checks1 "ci/test-checks.sh" "$ci_docker_image" 20 check
+  docker_command_step checks2 "ci/test-dev-context-only-utils.sh check-bins" "$ci_docker_image" 20 check
+  docker_command_step checks3 "ci/test-dev-context-only-utils.sh check-all-targets" "$ci_docker_image" 30 check
+  docker_command_step miri "ci/test-miri.sh" "$ci_docker_image" 5 check
   wait_step
 
   # Full test suite
@@ -157,7 +200,7 @@ all_test_steps() {
              ^ci/rust-version.sh \
              ^ci/test-docs.sh \
       ; then
-    command_step doctest "ci/docker-run-default-image.sh ci/test-docs.sh" 15
+    docker_command_step doctest "ci/test-docs.sh" "$ci_docker_image" 15
   else
     annotate --style info --context test-docs \
       "Docs skipped as no .rs files were modified"
@@ -183,7 +226,32 @@ all_test_steps() {
              cargo-test-sbf$ \
       ; then
     cat >> "$output_file" <<"EOF"
-  - command: "ci/docker-run-default-image.sh ci/test-stable-sbf.sh"
+  - command: "ci/test-stable-sbf.sh"
+    plugins:
+      - docker#v5.12.0:
+          image: "$ci_docker_image"
+          workdir: /solana
+          propagate-environment: true
+          propagate-uid-gid: true
+          environment:
+            - "RUSTC_WRAPPER=/usr/local/cargo/bin/sccache"
+            - AWS_SECRET_ACCESS_KEY
+            - AWS_ACCESS_KEY_ID
+            - SCCACHE_BUCKET
+            - SCCACHE_REGION
+            - SCCACHE_S3_KEY_PREFIX
+            - BUILDKITE_PARALLEL_JOB
+            - BUILDKITE_PARALLEL_JOB_COUNT
+            - CI
+            - CI_BRANCH
+            - CI_BASE_BRANCH
+            - CI_TAG
+            - CI_BUILD_ID
+            - CI_COMMIT
+            - CI_JOB_ID
+            - CI_PULL_REQUEST
+            - CI_REPO_SLUG
+            - CRATES_IO_TOKEN
     name: "stable-sbf"
     timeout_in_minutes: 35
     artifact_paths: "sbf-dumps.tar.bz2"
@@ -227,7 +295,7 @@ EOF
              ^ci/test-stable.sh \
              ^sdk/ \
       ; then
-    command_step wasm "ci/docker-run-default-image.sh ci/test-wasm.sh" 20
+    docker_command_step wasm "ci/test-wasm.sh" "$ci_docker_image" 20
   else
     annotate --style info \
       "wasm skipped as no relevant files were modified"
@@ -259,7 +327,7 @@ EOF
              ^ci/test-coverage.sh \
              ^scripts/coverage.sh \
       ; then
-    command_step coverage "ci/docker-run-default-image.sh ci/test-coverage.sh" 80
+    docker_command_step coverage "ci/test-coverage.sh" "$ci_docker_image" 80
   else
     annotate --style info --context test-coverage \
       "Coverage skipped as no .rs files were modified"
@@ -297,7 +365,7 @@ pull_or_push_steps() {
 
     if [ -z "$diff_other_than_version_bump" ]; then
       echo "Diff only contains version bump."
-      command_step checks "ci/docker-run-default-image.sh ci/test-checks.sh" 20
+      docker_command_step checks "ci/test-checks.sh" "$ci_docker_image" 20
       exit 0
     fi
   fi
