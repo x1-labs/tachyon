@@ -2,15 +2,6 @@
 #[cfg(not(target_env = "msvc"))]
 use jemallocator::Jemalloc;
 use {
-    agave_validator::{
-        admin_rpc_service,
-        admin_rpc_service::{load_staked_nodes_overrides, StakedNodesOverrides},
-        bootstrap,
-        cli::{self, app, warn_for_deprecated_arguments, DefaultArgs},
-        dashboard::Dashboard,
-        ledger_lockfile, lock_ledger, new_spinner_progress_bar, println_name_value,
-        redirect_stderr_to_file,
-    },
     clap::{crate_name, value_t, value_t_or_exit, values_t, values_t_or_exit, ArgMatches},
     console::style,
     crossbeam_channel::unbounded,
@@ -84,6 +75,15 @@ use {
         str::FromStr,
         sync::{Arc, RwLock},
         time::{Duration, SystemTime},
+    },
+    tachyon_validator::{
+        admin_rpc_service,
+        admin_rpc_service::{load_staked_nodes_overrides, StakedNodesOverrides},
+        bootstrap,
+        cli::{self, app, warn_for_deprecated_arguments, DefaultArgs},
+        dashboard::Dashboard,
+        ledger_lockfile, lock_ledger, new_spinner_progress_bar, println_name_value,
+        redirect_stderr_to_file,
     },
 };
 
@@ -921,7 +921,7 @@ pub fn main() {
         let logfile = matches
             .value_of("logfile")
             .map(|s| s.into())
-            .unwrap_or_else(|| format!("agave-validator-{}.log", identity_keypair.pubkey()));
+            .unwrap_or_else(|| format!("tachyon-validator-{}.log", identity_keypair.pubkey()));
 
         if logfile == "-" {
             None
