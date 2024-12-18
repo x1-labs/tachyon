@@ -27,7 +27,7 @@ Release channels have their own copy of this changelog:
     * Add global `--skip-preflight` option for skipping preflight checks on all transactions sent through RPC. This flag, along with `--use-rpc`, can improve success rate with program deployments using the public RPC nodes.
     * Add new command `solana feature revoke` for revoking pending feature activations. When a feature is activated, `solana feature revoke <feature-keypair> <cluster>` can be used to deallocate and reassign the account to the System program, undoing the operation. This can only be done before the feature becomes active.
     * Add new variant to `--block-production-method` for `central-scheduler-greedy`. This is a simplified scheduler that has much better performance than the more strict `central-scheduler` variant.
-  * Unhide `--accounts-db-access-storages-method` for agave-validator and agave-ledger-tool and change default to `file`
+  * Unhide `--accounts-db-access-storages-method` for tachyon-validator and agave-ledger-tool and change default to `file`
   * Remove tracer stats from banking-trace. `banking-trace` directory should be cleared when restarting on v2.2 for first time. It will not break if not cleared, but the file will be a mix of new/old format. (#4043)
   * Add `--snapshot-zstd-compression-level` to set the compression level when archiving snapshots with zstd.
   * Deprecate `--tower-storage` and all `--etcd-*` arguments
@@ -45,7 +45,7 @@ Release channels have their own copy of this changelog:
     * removed the unreleased `redelegate` instruction processor and CLI commands (#2213)
   * Banks-client:
     * relax functions to use `&self` instead of `&mut self` (#2591)
-  * `agave-validator`:
+  * `tachyon-validator`:
     * Remove the deprecated value of `fifo` for `--rocksdb-shred-compaction` (#3451)
 * Changes
   * SDK:
@@ -75,7 +75,7 @@ This is equivalent to writing:
 ```rust
 solana_pubkey::declare_id!("MyProgram1111111111111111111111111111111111");
 ```
-  * `agave-validator`: Update PoH speed check to compare against current hash rate from a Bank (#2447)
+  * `tachyon-validator`: Update PoH speed check to compare against current hash rate from a Bank (#2447)
   * `solana-test-validator`: Add `--clone-feature-set` flag to mimic features from a target cluster (#2480)
   * `solana-genesis`: the `--cluster-type` parameter now clones the feature set from the target cluster (#2587)
   * `unified-scheduler` as default option for `--block-verification-method` (#2653)
@@ -95,7 +95,7 @@ solana_pubkey::declare_id!("MyProgram1111111111111111111111111111111111");
     getFeeCalculatorForBlockhash, getFeeRateGovernor, getSnapshotSlot getStakeActivation
   * Deprecated methods are removed from `RpcClient` and `RpcClient::nonblocking`
   * `solana-client`: deprecated re-exports removed; please import `solana-connection-cache`, `solana-quic-client`, or `solana-udp-client` directly
-  * Deprecated arguments removed from `agave-validator`:
+  * Deprecated arguments removed from `tachyon-validator`:
     * `--enable-rpc-obsolete_v1_7` (#1886)
     * `--accounts-db-caching-enabled` (#2063)
     * `--accounts-db-index-hashing` (#2063)

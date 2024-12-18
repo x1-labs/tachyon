@@ -11,13 +11,13 @@ if [[ -z $CI ]]; then
   $solana_genesis --version
   $solana_faucet --version
   $solana_cli --version
-  $agave_validator --version
+  $tachyon_validator --version
   $solana_ledger_tool --version
 fi
 
 rm -rf config/run/init-completed config/ledger
 
-# Sanity-check that agave-validator can successfully terminate itself without relying on
+# Sanity-check that tachyon-validator can successfully terminate itself without relying on
 # process::exit() by extending the timeout...
 # Also the banking_tracer thread needs some extra time to flush due to
 # unsynchronized and buffered IO.
@@ -52,7 +52,7 @@ while [[ $latest_slot -le $((snapshot_slot + 1)) ]]; do
   latest_slot=$($solana_cli --url http://localhost:8899 slot --commitment processed)
 done
 
-$agave_validator --ledger config/ledger exit --force || true
+$tachyon_validator --ledger config/ledger exit --force || true
 
 wait $pid
 

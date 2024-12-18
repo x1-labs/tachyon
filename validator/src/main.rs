@@ -2,13 +2,6 @@
 #[cfg(not(any(target_env = "msvc", target_os = "freebsd")))]
 use jemallocator::Jemalloc;
 use {
-    agave_validator::{
-        admin_rpc_service,
-        admin_rpc_service::{load_staked_nodes_overrides, StakedNodesOverrides},
-        bootstrap,
-        cli::{self, app, warn_for_deprecated_arguments, DefaultArgs},
-        commands, ledger_lockfile, lock_ledger, redirect_stderr_to_file,
-    },
     clap::{crate_name, value_t, value_t_or_exit, values_t, values_t_or_exit, ArgMatches},
     crossbeam_channel::unbounded,
     log::*,
@@ -81,6 +74,13 @@ use {
         str::FromStr,
         sync::{Arc, RwLock},
         time::Duration,
+    },
+    tachyon_validator::{
+        admin_rpc_service,
+        admin_rpc_service::{load_staked_nodes_overrides, StakedNodesOverrides},
+        bootstrap,
+        cli::{self, app, warn_for_deprecated_arguments, DefaultArgs},
+        commands, ledger_lockfile, lock_ledger, redirect_stderr_to_file,
     },
 };
 
@@ -255,7 +255,7 @@ pub fn main() {
         let logfile = matches
             .value_of("logfile")
             .map(|s| s.into())
-            .unwrap_or_else(|| format!("agave-validator-{}.log", identity_keypair.pubkey()));
+            .unwrap_or_else(|| format!("tachyon-validator-{}.log", identity_keypair.pubkey()));
 
         if logfile == "-" {
             None

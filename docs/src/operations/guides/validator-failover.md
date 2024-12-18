@@ -35,7 +35,7 @@ In this guide, the main identity is renamed to `staked-identity.json` for clarit
 You can certainly name your main identity file however you'd like; just make sure it is specified as an authorized voter as shown below:
 
 ```
-exec /home/sol/bin/agave-validator \
+exec /home/sol/bin/tachyon-validator \
     --identity /home/sol/identity.json \
     --vote-account /home/sol/vote.json \
     --authorized-voter /home/sol/staked-identity.json \
@@ -80,8 +80,8 @@ If you have done this - great! You're ready to transition!
 #!/bin/bash
 
 # example script of the above steps - change specifics such as user / IP / ledger path
-agave-validator -l /mnt/ledger wait-for-restart-window --min-idle-time 2 --skip-new-snapshot-check
-agave-validator -l /mnt/ledger set-identity /home/sol/unstaked-identity.json
+tachyon-validator -l /mnt/ledger wait-for-restart-window --min-idle-time 2 --skip-new-snapshot-check
+tachyon-validator -l /mnt/ledger set-identity /home/sol/unstaked-identity.json
 ln -sf /home/sol/unstaked-identity.json /home/sol/identity.json
 scp /mnt/ledger/tower-1_9-$(solana-keygen pubkey /home/sol/staked-identity.json).bin <user>@<IP>/mnt/ledger
 ```
@@ -96,9 +96,9 @@ scp /mnt/ledger/tower-1_9-$(solana-keygen pubkey /home/sol/staked-identity.json)
 #!/bin/bash
 
 # example script of the above steps
-agave-validator -l /mnt/ledger set-identity --require-tower /home/sol/staked-identity.json
+tachyon-validator -l /mnt/ledger set-identity --require-tower /home/sol/staked-identity.json
 ln -sf /home/sol/staked-identity.json /home/sol/identity.json
 ```
 
 ### Verification
-Verify identities transitioned successfully using either `agave-validator monitor` or `solana catchup --our-localhost 8899`
+Verify identities transitioned successfully using either `tachyon-validator monitor` or `solana catchup --our-localhost 8899`

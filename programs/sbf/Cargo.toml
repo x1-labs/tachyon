@@ -73,7 +73,7 @@ solana-transaction-status = { path = "../../transaction-status", version = "=2.2
 solana-type-overrides = { path = "../../type-overrides", version = "=2.2.12" }
 solana-vote = { path = "../../vote", version = "=2.2.12" }
 solana-vote-program = { path = "../../programs/vote", version = "=2.2.12" }
-agave-validator = { path = "../../validator", version = "=2.2.12" }
+tachyon-validator = { path = "../../validator", version = "=2.2.12" }
 solana-zk-sdk = "=2.2.1"
 thiserror = "1.0"
 
@@ -105,7 +105,6 @@ frozen-abi = []
 [dev-dependencies]
 agave-feature-set = { workspace = true }
 agave-reserved-account-keys = { workspace = true }
-agave-validator = { workspace = true }
 bincode = { workspace = true }
 borsh = { workspace = true }
 byteorder = { workspace = true }
@@ -146,6 +145,7 @@ solana-transaction-status = { workspace = true }
 solana-type-overrides = { workspace = true }
 solana-vote = { workspace = true }
 solana-vote-program = { workspace = true }
+tachyon-validator = { workspace = true }
 
 [[bench]]
 name = "bpf_loader"

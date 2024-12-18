@@ -109,7 +109,7 @@ else
     solana-keygen
     solana-log-analyzer
     solana-net-shaper
-    agave-validator
+    tachyon-validator
     rbpf-cli
   )
   DCOU_BINS=(
