@@ -1,5 +1,4 @@
 use {
-    agave_validator::test_validator::*,
     solana_runtime::{
         bank::Bank,
         bank_client::BankClient,
@@ -14,6 +13,7 @@ use {
         sysvar::{clock, slot_history},
         transaction::{SanitizedTransaction, Transaction},
     },
+    tachyon_validator::test_validator::*,
 };
 
 #[test]
