@@ -30,9 +30,9 @@ if [[ -n $USE_INSTALL || ! -f "$SOLANA_ROOT"/Cargo.toml ]]; then
     if [[ -z $program ]]; then
       printf "solana"
     else
-      if [[ $program == "validator" ]]; then
+      if [[ $program == "validator" || $program == "ledger-tool" ]]; then
         printf "tachyon-%s" "$program"
-      elif [[ $program == "ledger-tool" || $program == "watchtower" || $program == "install" ]]; then
+      elif [[ $program == "watchtower" || $program == "install" ]]; then
         printf "agave-%s" "$program"
       else
         printf "solana-%s" "$program"
@@ -46,9 +46,9 @@ else
     if [[ -z $program ]]; then
       crate="cli"
       program="solana"
-    elif [[ $program == "validator" ]]; then
+    elif [[ $program == "validator" || $program == "ledger-tool" ]]; then
       program="tachyon-$program"
-    elif [[ $program == "ledger-tool" || $program == "watchtower" || $program == "install" ]]; then
+    elif [[ $program == "watchtower" || $program == "install" ]]; then
       program="agave-$program"
     else
       program="solana-$program"
