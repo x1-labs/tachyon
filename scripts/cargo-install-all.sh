@@ -108,7 +108,7 @@ else
     solana-gossip
     agave-install
     solana-keygen
-    agave-ledger-tool
+    tachyon-ledger-tool
     solana-log-analyzer
     solana-net-shaper
     tachyon-validator
