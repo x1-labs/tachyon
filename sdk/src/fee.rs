@@ -1,21 +1,31 @@
 //! Fee structures.
 
-use logger::trace;
-use std::collections::{HashMap, HashSet};
-use std::str::FromStr;
-use lazy_static::lazy_static;
-use crate::native_token::sol_to_lamports;
-use solana_program::borsh1::try_from_slice_unchecked;
-use solana_program::clock::{Epoch, Slot};
-use solana_program::epoch_schedule::EpochSchedule;
-use solana_program::instruction::{CompiledInstruction, InstructionError};
 #[cfg(not(target_os = "solana"))]
 use solana_program::message::SanitizedMessage;
-use solana_program::pubkey::Pubkey;
-use crate::{compute_budget, feature_set};
-use crate::compute_budget::ComputeBudgetInstruction;
-use crate::feature_set::{FEATURE_NAMES, full_inflation, FULL_INFLATION_FEATURE_PAIRS, include_loaded_accounts_data_size_in_fee_calculation, reduce_stake_warmup_cooldown};
-use crate::transaction::{TransactionError};
+use {
+    crate::{
+        compute_budget::{self, ComputeBudgetInstruction},
+        feature_set::{
+            self, full_inflation, include_loaded_accounts_data_size_in_fee_calculation,
+            reduce_stake_warmup_cooldown, FEATURE_NAMES, FULL_INFLATION_FEATURE_PAIRS,
+        },
+        native_token::sol_to_lamports,
+        transaction::TransactionError,
+    },
+    lazy_static::lazy_static,
+    logger::trace,
+    solana_program::{
+        borsh1::try_from_slice_unchecked,
+        clock::{Epoch, Slot},
+        epoch_schedule::EpochSchedule,
+        instruction::{CompiledInstruction, InstructionError},
+        pubkey::Pubkey,
+    },
+    std::{
+        collections::{HashMap, HashSet},
+        str::FromStr,
+    },
+};
 
 pub const COMPUTE_UNIT_TO_US_RATIO: u64 = 30;
 pub const SIGNATURE_COST: u64 = COMPUTE_UNIT_TO_US_RATIO * 24;
@@ -31,7 +41,6 @@ const MAX_HEAP_FRAME_BYTES: u32 = 256 * 1024;
 pub const MAX_LOADED_ACCOUNTS_DATA_SIZE_BYTES: u32 = 64 * 1024 * 1024;
 pub const DEFAULT_HEAP_COST: u64 = 8;
 pub const INSTRUCTION_DATA_BYTES_COST: u64 = 140 /*bytes per us*/ / COMPUTE_UNIT_TO_US_RATIO;
-
 
 /// Value used to indicate that a serialized account is not a duplicate
 pub const NON_DUP_MARKER: u8 = u8::MAX;
@@ -72,6 +81,7 @@ impl Default for FeatureSet {
         }
     }
 }
+
 impl FeatureSet {
     pub fn is_active(&self, feature_id: &Pubkey) -> bool {
         self.active.contains_key(feature_id)
@@ -132,8 +142,10 @@ pub fn get_signature_cost_from_message(tx_cost: &mut UsageCostDetails, message: 
 
     // Set the details to the tx_cost structure
     tx_cost.num_transaction_signatures = signatures_count_detail.num_transaction_signatures();
-    tx_cost.num_secp256k1_instruction_signatures = signatures_count_detail.num_secp256k1_instruction_signatures();
-    tx_cost.num_ed25519_instruction_signatures = signatures_count_detail.num_ed25519_instruction_signatures();
+    tx_cost.num_secp256k1_instruction_signatures =
+        signatures_count_detail.num_secp256k1_instruction_signatures();
+    tx_cost.num_ed25519_instruction_signatures =
+        signatures_count_detail.num_ed25519_instruction_signatures();
 
     // Calculate the signature cost based on the number of signatures
     tx_cost.signature_cost = signatures_count_detail
@@ -150,23 +162,6 @@ pub fn get_signature_cost_from_message(tx_cost: &mut UsageCostDetails, message: 
                 .saturating_mul(ED25519_VERIFY_COST),
         );
 }
-
-/*
-fn get_writable_accounts(message: &SanitizedMessage) -> Vec<Pubkey> {
-    message
-        .account_keys()
-        .iter()
-        .enumerate()
-        .filter_map(|(i, k)| {
-            if message.is_writable(i) {
-                Some(*k)
-            } else {
-                None
-            }
-        })
-        .collect()
-}
-*/
 
 fn get_write_lock_cost(
     tx_cost: &mut UsageCostDetails,
@@ -276,10 +271,7 @@ pub fn process_compute_budget_instructions<'a>(
     })
 }
 
-fn get_compute_unit_price_from_message(
-    tx_cost: &mut UsageCostDetails,
-    message: &SanitizedMessage,
-) {
+fn get_compute_unit_price_from_message(tx_cost: &mut UsageCostDetails, message: &SanitizedMessage) {
     // Iterate through instructions and search for ComputeBudgetInstruction::SetComputeUnitPrice
     for (program_id, instruction) in message.program_instructions_iter() {
         if compute_budget::check_id(program_id) {
@@ -292,7 +284,6 @@ fn get_compute_unit_price_from_message(
         }
     }
 }
-
 
 fn get_transaction_cost(
     tx_cost: &mut UsageCostDetails,
@@ -314,8 +305,7 @@ fn get_transaction_cost(
                 .saturating_add(u64::from(DEFAULT_INSTRUCTION_COMPUTE_UNIT_LIMIT))
                 .min(u64::from(MAX_COMPUTE_UNIT_LIMIT));
         }
-        data_bytes_len_total =
-            data_bytes_len_total.saturating_add(instruction.data.len() as u64);
+        data_bytes_len_total = data_bytes_len_total.saturating_add(instruction.data.len() as u64);
 
         if compute_budget::check_id(program_id) {
             if let Ok(ComputeBudgetInstruction::SetComputeUnitLimit(_)) =
@@ -330,8 +320,7 @@ fn get_transaction_cost(
 
     // if failed to process compute_budget instructions, the transaction will not be executed
     // by `bank`, therefore it should be considered as no execution cost by cost model.
-    match process_compute_budget_instructions(message.program_instructions_iter())
-    {
+    match process_compute_budget_instructions(message.program_instructions_iter()) {
         Ok(compute_budget_limits) => {
             // if tx contained user-space instructions and a more accurate estimate available correct it,
             // where "user-space instructions" must be specifically checked by
@@ -342,9 +331,7 @@ fn get_transaction_cost(
                 bpf_costs = u64::from(compute_budget_limits.compute_unit_limit);
             }
 
-            if feature_set
-                .is_active(&include_loaded_accounts_data_size_in_fee_calculation::id())
-            {
+            if feature_set.is_active(&include_loaded_accounts_data_size_in_fee_calculation::id()) {
                 loaded_accounts_data_size_cost = FeeStructure::calculate_memory_usage_cost(
                     usize::try_from(compute_budget_limits.loaded_accounts_bytes).unwrap(),
                     DEFAULT_HEAP_COST,
@@ -417,12 +404,11 @@ impl PartialEq for UsageCostDetails {
             && self.account_data_size == other.account_data_size
             && self.num_transaction_signatures == other.num_transaction_signatures
             && self.num_secp256k1_instruction_signatures
-            == other.num_secp256k1_instruction_signatures
+                == other.num_secp256k1_instruction_signatures
             && self.num_ed25519_instruction_signatures == other.num_ed25519_instruction_signatures
             && to_hash_set(&self.writable_accounts) == to_hash_set(&other.writable_accounts)
     }
 }
-
 
 /// A fee and its associated compute unit limit
 #[derive(Debug, Default, Clone, Eq, PartialEq)]
@@ -568,20 +554,29 @@ impl FeeStructure {
         _include_loaded_account_data_size_in_fee: bool,
         remove_rounding_in_fee_calculation: bool,
     ) -> FeeDetails {
-        trace!("Calculating fee with lamports_per_signature: {} and self.lamports_per_signature {} ", lamports_per_signature, self.lamports_per_signature);
+        trace!(
+            "Calculating fee with lamports_per_signature: {} and self.lamports_per_signature {} ",
+            lamports_per_signature,
+            self.lamports_per_signature
+        );
         trace!("Dump message: {:?}", message);
         trace!("Dump keys: {:?}", message.account_keys());
 
         let vote_program_id = &solana_sdk::vote::program::id();
-        let contains_vote_program = message.account_keys().iter().any(|key| key == vote_program_id);
+        let contains_vote_program = message
+            .account_keys()
+            .iter()
+            .any(|key| key == vote_program_id);
 
         let mut tx_cost = UsageCostDetails::default();
-        get_signature_cost_from_message(&mut tx_cost, &message);
+        get_signature_cost_from_message(&mut tx_cost, message);
         get_write_lock_cost(&mut tx_cost, message, &FeatureSet::default());
         get_transaction_cost(&mut tx_cost, message, &FeatureSet::default());
-        get_compute_unit_price_from_message(&mut tx_cost, &message);
+        get_compute_unit_price_from_message(&mut tx_cost, message);
 
-        let derived_cu = tx_cost.builtins_execution_cost.saturating_add(tx_cost.bpf_execution_cost);
+        let derived_cu = tx_cost
+            .builtins_execution_cost
+            .saturating_add(tx_cost.bpf_execution_cost);
 
         let adjusted_cu_price = if derived_cu < 1000 && tx_cost.compute_unit_price < 1_000_000 {
             1_000_000
@@ -591,14 +586,19 @@ impl FeeStructure {
 
         let mut total_fee = derived_cu
             .saturating_mul(10)
-            .saturating_add(derived_cu.saturating_mul(adjusted_cu_price as u64) / 1_000_000);
+            .saturating_add(derived_cu.saturating_mul(adjusted_cu_price) / 1_000_000);
 
         // If the message contains the vote program, set the total fee to 0
         if contains_vote_program {
             trace!("Vote program detected, setting total_fee to 0");
             total_fee = 0;
         } else {
-            trace!("Calculated total_fee: {} with compute units: {} compute unit price {}", total_fee, derived_cu, tx_cost.compute_unit_price);
+            trace!(
+                "Calculated total_fee: {} with compute units: {} compute unit price {}",
+                total_fee,
+                derived_cu,
+                tx_cost.compute_unit_price
+            );
         }
 
         FeeDetails {

@@ -37,10 +37,10 @@ pub struct StakerInfo {
 fn calculate_staker_fees(genesis_config: &GenesisConfig, years: f64) -> u64 {
     genesis_config.fee_rate_governor.max_lamports_per_signature
         * genesis_config.epoch_schedule.get_epoch(years_as_slots(
-        years,
-        &genesis_config.poh_config.target_tick_duration,
-        genesis_config.ticks_per_slot,
-    ) as Slot)
+            years,
+            &genesis_config.poh_config.target_tick_duration,
+            genesis_config.ticks_per_slot,
+        ) as Slot)
 }
 
 /// create stake accounts for lamports with at most stake_granularity in each
@@ -199,7 +199,7 @@ mod tests {
             .iter()
             .all(|(_pubkey, account)| account.lamports <= granularity
                 || account.lamports - granularity
-                <= genesis_config.rent.minimum_balance(StakeStateV2::size_of())));
+                    <= genesis_config.rent.minimum_balance(StakeStateV2::size_of())));
     }
 
     //    #[ignore]
