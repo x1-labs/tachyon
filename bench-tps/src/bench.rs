@@ -18,7 +18,7 @@ use {
         clock::{DEFAULT_MS_PER_SLOT, DEFAULT_S_PER_SLOT, MAX_PROCESSING_AGE},
         compute_budget::ComputeBudgetInstruction,
         hash::Hash,
-        instruction::{AccountMeta, Instruction},
+        // instruction::{AccountMeta, Instruction},
         message::Message,
         native_token::Sol,
         pubkey::Pubkey,
@@ -1165,16 +1165,17 @@ pub fn fund_keypairs<T: 'static + TpsClient + Send + Sync + ?Sized>(
     //   pay for the transaction fees in a new run.
     let enough_lamports = 8 * lamports_per_account / 10;
     if first_keypair_balance < enough_lamports || last_keypair_balance < enough_lamports {
-        let single_sig_message = Message::new_with_blockhash(
-            &[Instruction::new_with_bytes(
-                Pubkey::new_unique(),
-                &[],
-                vec![AccountMeta::new(Pubkey::new_unique(), true)],
-            )],
-            None,
-            &client.get_latest_blockhash().unwrap(),
-        );
-        let max_fee = client.get_fee_for_message(&single_sig_message).unwrap();
+        // let single_sig_message = Message::new_with_blockhash(
+        //     &[Instruction::new_with_bytes(
+        //         Pubkey::new_unique(),
+        //         &[],
+        //         vec![AccountMeta::new(Pubkey::new_unique(), true)],
+        //     )],
+        //     None,
+        //     &client.get_latest_blockhash().unwrap(),
+        // );
+        // let max_fee = client.get_fee_for_message(&single_sig_message).unwrap();
+        let max_fee = 8250;
         let extra_fees = extra * max_fee;
         let total_keypairs = keypairs.len() as u64 + 1; // Add one for funding keypair
         let total = lamports_per_account * total_keypairs + extra_fees;
