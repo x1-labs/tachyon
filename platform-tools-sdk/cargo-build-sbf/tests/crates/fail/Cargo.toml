@@ -2,10 +2,10 @@
 name = "fail"
 version = "2.2.12"
 description = "Solana SBF test program written in Rust"
-authors = ["Anza Maintainers <maintainers@anza.xyz>"]
-repository = "https://github.com/anza-xyz/agave"
+authors = ["X1 Labs maintainers <maintainers@x1.xyz>"]
+repository = "https://github.com/x1-labs/tachyon"
 license = "Apache-2.0"
-homepage = "https://anza.xyz"
+homepage = "https://x1.xyz"
 edition = "2021"
 publish = false
 

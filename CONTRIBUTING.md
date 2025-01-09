@@ -285,8 +285,8 @@ confused with 3-letter acronyms.
 
 ## Design Proposals
 
-This Agave validator client's architecture is described by docs generated from markdown files in the `docs/src/`
-directory and viewable on the official [Agave Validator Client](https://docs.anza.xyz) documentation website.
+This Tachyon validator client's architecture is described by docs generated from markdown files in the `docs/src/`
+directory and viewable on the official [Tachyon Validator Client](https://docs.x1.xyz) documentation website.
 
 Current design proposals may be viewed on the docs site:
 
