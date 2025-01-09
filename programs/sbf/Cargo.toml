@@ -1,9 +1,9 @@
 [workspace.package]
 version = "2.0.21"
 description = "Solana SBF test program written in Rust"
-authors = ["Anza Maintainers <maintainers@anza.xyz>"]
-repository = "https://github.com/anza-xyz/agave"
-homepage = "https://anza.xyz"
+authors = ["X1 Labs maintainers <maintainers@x1.xyz>"]
+repository = "https://github.com/x1-labs/tachyon"
+homepage = "https://x1.xyz"
 license = "Apache-2.0"
 edition = "2021"
 
