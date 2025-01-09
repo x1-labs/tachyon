@@ -82,7 +82,7 @@ CPU), you can target your specific architecture using the `-march` flag. Refer
 to the following doc for
 [instructions on building from source](../../cli/install.md#build-from-source).
 
-### agave-install
+### tachyon-install
 
 If you are not comfortable building from source, or you need to quickly install
 a new version to test something out, you could instead try using the

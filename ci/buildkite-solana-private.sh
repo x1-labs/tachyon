@@ -287,7 +287,7 @@ if [[ $BUILDKITE_BRANCH =~ ^pull ]]; then
 
   # Add helpful link back to the corresponding Github Pull Request
   annotate --style info --context pr-backlink \
-    "Github Pull Request: https://github.com/FairCrypto/agave-xolana/$BUILDKITE_BRANCH"
+    "Github Pull Request: https://github.com/X1-labs/tachyon/$BUILDKITE_BRANCH"
 
   pull_or_push_steps
   exit 0
