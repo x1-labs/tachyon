@@ -7060,6 +7060,7 @@ dependencies = [
  "rand_chacha 0.3.1",
  "rayon",
  "regex",
+ "reqwest",
  "rustc_version 0.4.0",
  "serde",
  "serde_derive",
