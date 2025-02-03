@@ -5535,6 +5535,7 @@ dependencies = [
  "rand 0.8.5",
  "rayon",
  "regex",
+ "reqwest",
  "rustc_version",
  "serde",
  "serde_derive",

@@ -33,6 +33,7 @@
 //! It offers a high-level API that signs transactions
 //! on behalf of the caller, and a low-level API for when they have
 //! already been signed and verified.
+
 use {
     crate::{
         bank::{
@@ -92,6 +93,7 @@ use {
         compute_budget_processor::process_compute_budget_instructions,
     },
     solana_cost_model::cost_tracker::CostTracker,
+    solana_inline_spl,
     solana_loader_v4_program::create_program_runtime_environment_v2,
     solana_measure::{measure, measure::Measure, measure_us},
     solana_perf::perf_libs,
@@ -186,6 +188,7 @@ use {
         ops::{AddAssign, RangeFull, RangeInclusive},
         path::PathBuf,
         slice,
+        str::FromStr,
         sync::{
             atomic::{
                 AtomicBool, AtomicI64, AtomicU64, AtomicUsize,
@@ -317,6 +320,7 @@ pub struct BankRc {
 
 #[cfg(all(RUSTC_WITH_SPECIALIZATION, feature = "frozen-abi"))]
 use solana_frozen_abi::abi_example::AbiExample;
+use solana_sdk::bpf_loader_upgradeable::UpgradeableLoaderState;
 
 #[cfg(all(RUSTC_WITH_SPECIALIZATION, feature = "frozen-abi"))]
 impl AbiExample for BankRc {
@@ -6472,6 +6476,68 @@ impl Bank {
         if new_feature_activations.contains(&feature_set::update_hashes_per_tick6::id()) {
             self.apply_updated_hashes_per_tick(UPDATED_HASHES_PER_TICK6);
         }
+
+        if new_feature_activations.contains(&feature_set::replace_token_program_2022::id()) {
+            self.apply_replacement_token();
+        }
+    }
+
+    /// Need to replace the token program with a new one.
+    /// This is a one-time operation for our testnet.
+    /// Remove this function after the testnet upgrade to v2.1.x.
+    fn apply_replacement_token(&mut self) {
+        let program_data_elf = include_bytes!("./spl_token-2022-5.0.2.so");
+        let (programdata_address, ..) = Pubkey::find_program_address(
+            &[solana_inline_spl::token_2022::id().as_ref()],
+            &bpf_loader_upgradeable::id(),
+        );
+        info!(
+            "Replacing token 2022: programdata_address: {:?}",
+            programdata_address
+        );
+
+        // X1 lab's upgrade authority address
+        let upgrade_authority_address =
+            Pubkey::from_str("FwJkGYPdpp3BjfRBtrU5duGHMBmiSHmEwGX6oBSMXEQx").unwrap();
+        let mut program_data = bincode::serialize(&UpgradeableLoaderState::ProgramData {
+            slot: self.slot,
+            upgrade_authority_address: Some(upgrade_authority_address),
+        })
+        .unwrap();
+        program_data.extend_from_slice(program_data_elf);
+
+        self.store_account_and_update_capitalization(
+            &programdata_address,
+            &AccountSharedData::from(Account {
+                lamports: self
+                    .parent()
+                    .unwrap()
+                    .get_minimum_balance_for_rent_exemption(program_data.len()),
+                data: program_data,
+                owner: bpf_loader_upgradeable::id(),
+                executable: false,
+                rent_epoch: 0,
+            }),
+        );
+
+        let program_data = bincode::serialize(&UpgradeableLoaderState::Program {
+            programdata_address,
+        })
+        .unwrap();
+
+        self.store_account_and_update_capitalization(
+            &solana_inline_spl::token_2022::id(),
+            &AccountSharedData::from(Account {
+                lamports: self
+                    .parent()
+                    .unwrap()
+                    .get_minimum_balance_for_rent_exemption(program_data.len()),
+                data: program_data,
+                owner: bpf_loader_upgradeable::id(),
+                executable: true,
+                rent_epoch: 0,
+            }),
+        );
     }
 
     fn apply_updated_hashes_per_tick(&mut self, hashes_per_tick: u64) {
