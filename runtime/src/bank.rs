@@ -34,7 +34,6 @@
 //! on behalf of the caller, and a low-level API for when they have
 //! already been signed and verified.
 
-use std::str::FromStr;
 use {
     crate::{
         bank::{
@@ -189,6 +188,7 @@ use {
         ops::{AddAssign, RangeFull, RangeInclusive},
         path::PathBuf,
         slice,
+        str::FromStr,
         sync::{
             atomic::{
                 AtomicBool, AtomicI64, AtomicU64, AtomicUsize,
