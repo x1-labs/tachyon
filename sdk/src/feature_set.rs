@@ -467,7 +467,7 @@ pub mod enable_early_verification_of_account_modifications {
 }
 
 pub mod skip_rent_rewrites {
-    solana_sdk::declare_id!("FPxxFrxds8u7esBP3NY4mipYfSgFXxQHEfsMiujsBdtD");
+    solana_sdk::declare_id!("CGB2jM8pwZkeeiXQ66kBMyBR6Np61mggL7XUsmLjVcrw");
 }
 
 pub mod prevent_crediting_accounts_that_end_rent_paying {
@@ -826,7 +826,7 @@ pub mod enable_get_epoch_stake_syscall {
 }
 
 pub mod migrate_address_lookup_table_program_to_core_bpf {
-    solana_sdk::declare_id!("C97eKZygrkU4JxJsZdjgbUY7iQR7rKTr4NyDWo2E5pRm");
+    solana_sdk::declare_id!("8fqszxYA2HscUsVHtGGrb1Kx6KxRbLbT3oo76BZ97kay");
 }
 
 pub mod zk_elgamal_proof_program_enabled {
@@ -858,7 +858,7 @@ pub mod deprecate_legacy_vote_ixs {
 }
 
 pub mod disable_account_loader_special_case {
-    solana_program::declare_id!("EQUMpNFr7Nacb1sva56xn1aLfBxppEoSBH8RRVdkcD1x");
+    solana_program::declare_id!("7QkayNydJtEKXghHvc4EqedXWsadK3crvFs732jruVXM");
 }
 
 lazy_static! {
