@@ -1,9 +1,9 @@
 [workspace.package]
 version = "2.0.24"
 description = "Solana SBF test program written in Rust"
-authors = ["Anza Maintainers <maintainers@anza.xyz>"]
-repository = "https://github.com/anza-xyz/agave"
-homepage = "https://anza.xyz"
+authors = ["X1 Labs maintainers <maintainers@x1.xyz>"]
+repository = "https://github.com/x1-labs/tachyon"
+homepage = "https://x1.xyz"
 license = "Apache-2.0"
 edition = "2021"
 
@@ -51,7 +51,7 @@ solana-sdk = { path = "../../sdk", version = "=2.0.24" }
 solana-svm = { path = "../../svm", version = "=2.0.24" }
 solana-transaction-status = { path = "../../transaction-status", version = "=2.0.24" }
 solana-type-overrides = { path = "../../type-overrides", version = "=2.0.24" }
-agave-validator = { path = "../../validator", version = "=2.0.24" }
+tachyon-validator = { path = "../../validator", version = "=2.0.24" }
 solana-zk-token-sdk = { path = "../../zk-token-sdk", version = "=2.0.24" }
 solana_rbpf = "=0.8.4"
 thiserror = "1.0"
@@ -80,7 +80,6 @@ sbf_rust = []
 dummy-for-ci-check = ["sbf_c", "sbf_rust"]
 
 [dev-dependencies]
-agave-validator = { workspace = true }
 bincode = { workspace = true }
 byteorder = { workspace = true }
 elf = { workspace = true }
@@ -107,6 +106,7 @@ solana-svm = { workspace = true }
 solana-transaction-status = { workspace = true }
 solana-type-overrides = { workspace = true }
 solana_rbpf = { workspace = true }
+tachyon-validator = { workspace = true }
 
 [[bench]]
 name = "bpf_loader"

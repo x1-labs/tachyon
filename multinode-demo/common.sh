@@ -30,7 +30,9 @@ if [[ -n $USE_INSTALL || ! -f "$SOLANA_ROOT"/Cargo.toml ]]; then
     if [[ -z $program ]]; then
       printf "solana"
     else
-      if [[ $program == "validator" || $program == "ledger-tool" || $program == "watchtower" || $program == "install" ]]; then
+      if [[ $program == "validator" || $program == "ledger-tool" ]]; then
+        printf "tachyon-%s" "$program"
+      elif [[ $program == "watchtower" || $program == "install" ]]; then
         printf "agave-%s" "$program"
       else
         printf "solana-%s" "$program"
@@ -44,7 +46,9 @@ else
     if [[ -z $program ]]; then
       crate="cli"
       program="solana"
-    elif [[ $program == "validator" || $program == "ledger-tool" || $program == "watchtower" || $program == "install" ]]; then
+    elif [[ $program == "validator" || $program == "ledger-tool" ]]; then
+      program="tachyon-$program"
+    elif [[ $program == "watchtower" || $program == "install" ]]; then
       program="agave-$program"
     else
       program="solana-$program"
@@ -69,8 +73,8 @@ fi
 
 solana_bench_tps=$(solana_program bench-tps)
 solana_faucet=$(solana_program faucet)
-agave_validator=$(solana_program validator)
-agave_validator_cuda="$agave_validator --cuda"
+tachyon_validator=$(solana_program validator)
+tachyon_validator_cuda="$tachyon_validator --cuda"
 solana_genesis=$(solana_program genesis)
 solana_gossip=$(solana_program gossip)
 solana_keygen=$(solana_program keygen)

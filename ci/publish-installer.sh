@@ -26,14 +26,14 @@ fi
 # upload install script
 source ci/upload-ci-artifact.sh
 
-cat >release.anza.xyz-install <<EOF
+cat >release.x1.xyz-install <<EOF
 SOLANA_RELEASE=$CHANNEL_OR_TAG
 SOLANA_INSTALL_INIT_ARGS=$CHANNEL_OR_TAG
-SOLANA_DOWNLOAD_ROOT=https://release.anza.xyz
+SOLANA_DOWNLOAD_ROOT=https://release.x1.xyz
 EOF
-cat install/agave-install-init.sh >>release.anza.xyz-install
+cat install/agave-install-init.sh >>release.x1.xyz-install
 
 echo --- GCS: "install"
-upload-gcs-artifact "/solana/release.anza.xyz-install" "gs://anza-release/$CHANNEL_OR_TAG/install"
+upload-gcs-artifact "/solana/release.x1.xyz-install" "gs://anza-release/$CHANNEL_OR_TAG/install"
 echo Published to:
-ci/format-url.sh https://release.anza.xyz/"$CHANNEL_OR_TAG"/install
+ci/format-url.sh https://release.x1.xyz/"$CHANNEL_OR_TAG"/install

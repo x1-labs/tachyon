@@ -121,7 +121,7 @@ cat >> ~/solana/on-reboot <<EOF
   echo \$! > system-stats.pid
 
   if ${GPU_CUDA_OK} && [[ -e /dev/nvidia0 ]]; then
-    echo Selecting agave-validator-cuda
+    echo Selecting tachyon-validator-cuda
     export SOLANA_CUDA=1
   elif ${GPU_FAIL_IF_NONE} ; then
     echo "Expected GPU, found none!"
@@ -257,13 +257,13 @@ EOF
 
       if [[ -n "$maybeWarpSlot" ]]; then
         # shellcheck disable=SC2086 # Do not want to quote $maybeWarSlot
-        agave-ledger-tool -l config/bootstrap-validator create-snapshot 0 config/bootstrap-validator $maybeWarpSlot
+        tachyon-ledger-tool -l config/bootstrap-validator create-snapshot 0 config/bootstrap-validator $maybeWarpSlot
       fi
 
-      agave-ledger-tool -l config/bootstrap-validator shred-version --max-genesis-archive-unpacked-size 1073741824 | tee config/shred-version
+      tachyon-ledger-tool -l config/bootstrap-validator shred-version --max-genesis-archive-unpacked-size 1073741824 | tee config/shred-version
 
       if [[ -n "$maybeWaitForSupermajority" ]]; then
-        bankHash=$(agave-ledger-tool -l config/bootstrap-validator verify --halt-at-slot 0 --print-bank-hash --output json | jq -r ".hash")
+        bankHash=$(tachyon-ledger-tool -l config/bootstrap-validator verify --halt-at-slot 0 --print-bank-hash --output json | jq -r ".hash")
         shredVersion="$(cat "$SOLANA_CONFIG_DIR"/shred-version)"
         extraNodeArgs="$extraNodeArgs --expected-bank-hash $bankHash --expected-shred-version $shredVersion"
         echo "$bankHash" > config/bank-hash

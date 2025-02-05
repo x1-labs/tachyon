@@ -114,8 +114,8 @@ EOF
 
 trigger_secondary_step() {
   cat  >> "$output_file" <<"EOF"
-  - name: "Trigger Build on solana-secondary"
-    trigger: "solana-secondary"
+  - name: "Trigger Build on tachyon-secondary"
+    trigger: "tachyon-secondary"
     branches: "!pull/*"
     async: true
     build:
@@ -132,7 +132,7 @@ wait_step() {
 }
 
 all_test_steps() {
-  command_step checks ". ci/rust-version.sh; ci/docker-run.sh \$\$rust_nightly_docker_image ci/test-checks.sh" 20
+  command_step checks ". ci/rust-version.sh; ci/docker-run.sh \$\$ci_docker_image ci/test-checks.sh" 20
   wait_step
 
   # Coverage...
@@ -144,7 +144,7 @@ all_test_steps() {
              ^ci/test-coverage.sh \
              ^scripts/coverage.sh \
       ; then
-    command_step coverage ". ci/rust-version.sh; ci/docker-run.sh \$\$rust_nightly_docker_image ci/test-coverage.sh" 80
+    command_step coverage ". ci/rust-version.sh; ci/docker-run.sh \$\$ci_docker_image ci/test-coverage.sh" 80
     wait_step
   else
     annotate --style info --context test-coverage \
@@ -159,7 +159,7 @@ all_test_steps() {
              ^ci/test-coverage.sh \
              ^scripts/coverage-in-disk.sh \
       ; then
-    command_step coverage-in-disk ". ci/rust-version.sh; ci/docker-run.sh \$\$rust_nightly_docker_image ci/test-coverage.sh" 80
+    command_step coverage-in-disk ". ci/rust-version.sh; ci/docker-run.sh \$\$ci_docker_image ci/test-coverage.sh" 80
     wait_step
   else
     annotate --style info --context test-coverage \
@@ -289,7 +289,7 @@ if [[ -n $BUILDKITE_TAG ]]; then
   start_pipeline "Tag pipeline for $BUILDKITE_TAG"
 
   annotate --style info --context release-tag \
-    "https://github.com/anza-xyz/agave/releases/$BUILDKITE_TAG"
+    "https://github.com/x1-labs/tachyon/releases/$BUILDKITE_TAG"
 
   # Jump directly to the secondary build to publish release artifacts quickly
   trigger_secondary_step
@@ -307,7 +307,7 @@ if [[ $BUILDKITE_BRANCH =~ ^pull ]]; then
 
   # Add helpful link back to the corresponding Github Pull Request
   annotate --style info --context pr-backlink \
-    "Github Pull Request: https://github.com/anza-xyz/agave/$BUILDKITE_BRANCH"
+    "Github Pull Request: https://github.com/x1-labs/tachyon/$BUILDKITE_BRANCH"
 
   pull_or_push_steps
   exit 0

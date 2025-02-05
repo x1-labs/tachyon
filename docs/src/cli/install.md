@@ -19,26 +19,26 @@ on your preferred workflow:
 
 - Open your favorite Terminal application
 
-- Install the Agave release
-  [LATEST_AGAVE_RELEASE_VERSION](https://github.com/anza-xyz/agave/releases/tag/LATEST_AGAVE_RELEASE_VERSION)
+- Install the Tachyon release
+  [LATEST_TACHYON_RELEASE_VERSION](https://github.com/x1-labs/tachyon/releases/tag/LATEST_TACHYON_RELEASE_VERSION)
   on your machine by running:
 
 ```bash
-sh -c "$(curl -sSfL https://release.anza.xyz/LATEST_AGAVE_RELEASE_VERSION/install)"
+sh -c "$(curl -sSfL https://release.x1.xyz/LATEST_TACHYON_RELEASE_VERSION/install)"
 ```
 
-- You can replace `LATEST_AGAVE_RELEASE_VERSION` with the release tag matching
+- You can replace `LATEST_TACHYON_RELEASE_VERSION` with the release tag matching
   the software version of your desired release, or use one of the three symbolic
   channel names: `stable`, `beta`, or `edge`.
 
 - The following output indicates a successful update:
 
 ```text
-downloading LATEST_AGAVE_RELEASE_VERSION installer
+downloading LATEST_TACHYON_RELEASE_VERSION installer
 Configuration: /home/solana/.config/solana/install/config.yml
 Active release directory: /home/solana/.local/share/solana/install/active_release
-* Release version: LATEST_AGAVE_RELEASE_VERSION
-* Release URL: https://github.com/anza-xyz/agave/releases/download/LATEST_AGAVE_RELEASE_VERSION/solana-release-x86_64-unknown-linux-gnu.tar.bz2
+* Release version: LATEST_TACHYON_RELEASE_VERSION
+* Release URL: https://github.com/x1-labs/tachyon/releases/download/LATEST_TACHYON_RELEASE_VERSION/solana-release-x86_64-unknown-linux-gnu.tar.bz2
 Update successful
 ```
 
@@ -56,7 +56,7 @@ Please update your PATH environment variable to include the solana programs:
 solana --version
 ```
 
-- After a successful install, `agave-install update` may be used to easily
+- After a successful install, `tachyon-install update` may be used to easily
   update the Solana software to a newer version at any time.
 
 ---
@@ -74,7 +74,7 @@ solana --version
   installer into a temporary directory:
 
 ```bash
-cmd /c "curl https://release.anza.xyz/LATEST_AGAVE_RELEASE_VERSION/agave-install-init-x86_64-pc-windows-msvc.exe --output C:\agave-install-tmp\agave-install-init.exe --create-dirs"
+cmd /c "curl https://release.x1.xyz/LATEST_TACHYON_RELEASE_VERSION/agave-install-init-x86_64-pc-windows-msvc.exe --output C:\agave-install-tmp\agave-install-init.exe --create-dirs"
 ```
 
 - Copy and paste the following command, then press Enter to install the latest
@@ -108,7 +108,7 @@ manually download and install the binaries.
 ### Linux
 
 Download the binaries by navigating to
-[https://github.com/anza-xyz/agave/releases/latest](https://github.com/anza-xyz/agave/releases/latest),
+[https://github.com/x1-labs/tachyon/releases/latest](https://github.com/x1-labs/tachyon/releases/latest),
 download **solana-release-x86_64-unknown-linux-gnu.tar.bz2**, then extract the
 archive:
 
@@ -121,7 +121,7 @@ export PATH=$PWD/bin:$PATH
 ### MacOS
 
 Download the binaries by navigating to
-[https://github.com/anza-xyz/agave/releases/latest](https://github.com/anza-xyz/agave/releases/latest),
+[https://github.com/x1-labs/tachyon/releases/latest](https://github.com/x1-labs/tachyon/releases/latest),
 download **solana-release-x86_64-apple-darwin.tar.bz2**, then extract the
 archive:
 
@@ -134,7 +134,7 @@ export PATH=$PWD/bin:$PATH
 ### Windows
 
 - Download the binaries by navigating to
-  [https://github.com/anza-xyz/agave/releases/latest](https://github.com/anza-xyz/agave/releases/latest),
+  [https://github.com/x1-labs/tachyon/releases/latest](https://github.com/x1-labs/tachyon/releases/latest),
   download **solana-release-x86_64-pc-windows-msvc.tar.bz2**, then extract the
   archive using WinZip or similar.
 
@@ -242,7 +242,7 @@ above.
 
 After installing the prerequisites, proceed with building Solana from source,
 navigate to
-[Solana's GitHub releases page](https://github.com/anza-xyz/agave/releases/latest),
+[Solana's GitHub releases page](https://github.com/x1-labs/tachyon/releases/latest),
 and download the **Source Code** archive. Extract the code and build the
 binaries with:
 

@@ -31,7 +31,7 @@ source ci/rust-version.sh nightly
 declare tainted_packages=(
   solana-accounts-bench
   solana-banking-bench
-  agave-ledger-tool
+  tachyon-ledger-tool
   solana-bench-tps
   agave-store-tool
   agave-accounts-hash-cache-tool

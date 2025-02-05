@@ -1451,7 +1451,7 @@ fn main() {
                 ("bank-hash", Some(_)) => {
                     eprintln!(
                         "The bank-hash command has been deprecated, use \
-                        agave-ledger-tool verify --print-bank-hash ... instead"
+                        tachyon-ledger-tool verify --print-bank-hash ... instead"
                     );
                 }
                 ("verify", Some(arg_matches)) => {
@@ -2123,9 +2123,13 @@ fn main() {
                     };
 
                     let bank = if let Some(warp_slot) = warp_slot {
-                        // need to flush the write cache in order to use Storages to calculate
-                        // the accounts hash, and need to root `bank` before flushing the cache
-                        bank.rc.accounts.accounts_db.add_root(bank.slot());
+                        // Need to flush the write cache in order to use
+                        // Storages to calculate the accounts hash, and need to
+                        // root `bank` before flushing the cache. Use squash to
+                        // root all unrooted parents as well and avoid panicking
+                        // during snapshot creation if we try to add roots out
+                        // of order.
+                        bank.squash();
                         bank.force_flush_accounts_cache();
                         Arc::new(Bank::warp_from_parent(
                             bank.clone(),
