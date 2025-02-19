@@ -195,7 +195,7 @@ pub mod sol_log_data_syscall_enabled {
 }
 
 pub mod stakes_remove_delegation_if_inactive {
-    solana_sdk::declare_id!("DPxADooexTiz7mJYdTjrXqB6qdVh6iFy7V1ZRUoptAte");
+    solana_sdk::declare_id!("HFpdDDNQjvcXnXKec697HDDsyk6tFoWS2o8fkxuhQZpL");
 }
 
 pub mod do_support_realloc {
@@ -861,6 +861,10 @@ pub mod disable_account_loader_special_case {
     solana_program::declare_id!("7QkayNydJtEKXghHvc4EqedXWsadK3crvFs732jruVXM");
 }
 
+pub mod replace_token_program_2022 {
+    solana_program::declare_id!("8FbKvGXFBMjpYXhtnX6KuuLquqMRFaGouQkrDkKYp64b");
+}
+
 lazy_static! {
     /// Map of feature identifiers to user-visible description
     pub static ref FEATURE_NAMES: HashMap<Pubkey, &'static str> = [
@@ -1071,6 +1075,7 @@ lazy_static! {
         (enable_turbine_extended_fanout_experiments::id(), "enable turbine extended fanout experiments #2373"),
         (deprecate_legacy_vote_ixs::id(), "Deprecate legacy vote instructions"),
         (disable_account_loader_special_case::id(), "Disable account loader special case"),
+        (replace_token_program_2022::id(), "Replace Token Program 2022"),
         /*************** ADD NEW FEATURES HERE ***************/
     ]
     .iter()
