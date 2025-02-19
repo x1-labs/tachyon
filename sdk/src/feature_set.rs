@@ -641,6 +641,7 @@ pub mod remove_bpf_loader_incorrect_program_id {
     solana_sdk::declare_id!("2HmTkCj9tXuPE4ueHzdD7jPeMf9JGCoZh5AsyoATiWEe");
 }
 
+// false
 pub mod include_loaded_accounts_data_size_in_fee_calculation {
     solana_sdk::declare_id!("B13W9CVw5Y8aJz8hVeufEvkDnhsEN7vj3N4Hxutmec19");
 }
@@ -769,6 +770,7 @@ pub mod enable_zk_proof_from_account {
     solana_sdk::declare_id!("3N5XWwvVqYQoaaHe1GNjjKUkw7GJNp7vGbSQmeGNxAPk");
 }
 
+// false
 pub mod cost_model_requested_write_lock_cost {
     solana_sdk::declare_id!("DntdotNCp9vpUHuLnfaxmByBgXYTQqYnXLiUs72dWFTR");
 }
