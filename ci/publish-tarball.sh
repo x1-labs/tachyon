@@ -68,7 +68,7 @@ windows)
   ;;
 esac
 
-RELEASE_BASENAME="${RELEASE_BASENAME:=x1-release}"
+RELEASE_BASENAME="${RELEASE_BASENAME:=tachyon-release}"
 TARBALL_BASENAME="${TARBALL_BASENAME:="$RELEASE_BASENAME"}"
 
 echo --- Creating release tarball
