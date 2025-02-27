@@ -198,7 +198,7 @@ fn load_release_version(version_yml: &Path) -> Result<ReleaseVersion, String> {
 /// Reads the supported TARGET triple for the given release
 fn load_release_target(release_dir: &Path) -> Result<String, String> {
     let mut version_yml = PathBuf::from(release_dir);
-    version_yml.push("solana-release");
+    version_yml.push("tachyon-release");
     version_yml.push("version.yml");
 
     let version = load_release_version(&version_yml)?;
@@ -568,7 +568,7 @@ pub fn init(
 
 fn github_release_download_url(release_semver: &str) -> String {
     format!(
-        "https://github.com/x1-labs/tachyon/releases/download/v{}/solana-release-{}.tar.bz2",
+        "https://github.com/x1-labs/tachyon/releases/download/v{}/tachyon-release-{}.tar.bz2",
         release_semver,
         crate::build_env::TARGET
     )
@@ -576,7 +576,7 @@ fn github_release_download_url(release_semver: &str) -> String {
 
 fn release_channel_download_url(release_channel: &str) -> String {
     format!(
-        "https://release.x1.xyz/{}/solana-release-{}.tar.bz2",
+        "https://release.x1.xyz/{}/tachyon-release-{}.tar.bz2",
         release_channel,
         crate::build_env::TARGET
     )
@@ -584,7 +584,7 @@ fn release_channel_download_url(release_channel: &str) -> String {
 
 fn release_channel_version_url(release_channel: &str) -> String {
     format!(
-        "https://release.x1.xyz/{}/solana-release-{}.yml",
+        "https://release.x1.xyz/{}/tachyon-release-{}.yml",
         release_channel,
         crate::build_env::TARGET
     )
@@ -1034,7 +1034,7 @@ pub fn init_or_update(config_file: &str, is_init: bool, check_only: bool) -> Res
                 let release_id = format!("{}-{}", release_channel, update_release_version.commit);
                 let release_dir = config.release_dir(&release_id);
                 let current_release_version_yml =
-                    release_dir.join("solana-release").join("version.yml");
+                    release_dir.join("tachyon-release").join("version.yml");
 
                 let download_url = release_channel_download_url(release_channel);
 
@@ -1167,7 +1167,7 @@ pub fn init_or_update(config_file: &str, is_init: bool, check_only: bool) -> Res
 
     let _ = fs::remove_dir_all(config.active_release_dir());
     symlink_dir(
-        release_dir.join("solana-release"),
+        release_dir.join("tachyon-release"),
         config.active_release_dir(),
     )
     .map_err(|err| match err.raw_os_error() {

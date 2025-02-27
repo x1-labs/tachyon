@@ -91,8 +91,8 @@ if [[ $CI_OS_NAME = windows ]]; then
     cargo-test-bpf
     cargo-test-sbf
     solana
-    agave-install
-    agave-install-init
+    tachyon-install
+    tachyon-install-init
     solana-keygen
     solana-stake-accounts
     solana-test-validator
@@ -106,7 +106,7 @@ else
     solana-bench-tps
     solana-faucet
     solana-gossip
-    agave-install
+    tachyon-install
     solana-keygen
     tachyon-ledger-tool
     solana-log-analyzer
@@ -123,7 +123,7 @@ else
       cargo-test-bpf
       cargo-test-sbf
       solana-dos
-      agave-install-init
+      tachyon-install-init
       solana-stake-accounts
       solana-test-validator
       solana-tokens

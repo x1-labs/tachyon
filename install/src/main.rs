@@ -1,3 +1,3 @@
 fn main() -> Result<(), String> {
-    agave_install::main()
+    tachyon_install::main()
 }

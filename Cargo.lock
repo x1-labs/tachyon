@@ -114,42 +114,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "agave-install"
-version = "2.0.25"
-dependencies = [
- "atty",
- "bincode",
- "bzip2",
- "chrono",
- "clap 2.33.3",
- "console",
- "crossbeam-channel",
- "ctrlc",
- "dirs-next",
- "indicatif",
- "lazy_static",
- "nix",
- "reqwest",
- "scopeguard",
- "semver 1.0.23",
- "serde",
- "serde_derive",
- "serde_yaml 0.8.26",
- "serde_yaml 0.9.34+deprecated",
- "solana-clap-utils",
- "solana-config-program",
- "solana-logger",
- "solana-rpc-client",
- "solana-sdk",
- "solana-version",
- "tar",
- "tempfile",
- "url 2.5.2",
- "winapi 0.3.9",
- "winreg",
-]
-
-[[package]]
 name = "agave-store-tool"
 version = "2.0.25"
 dependencies = [
@@ -8297,6 +8261,42 @@ dependencies = [
  "nom",
  "time",
  "winapi 0.3.9",
+]
+
+[[package]]
+name = "tachyon-install"
+version = "2.0.25"
+dependencies = [
+ "atty",
+ "bincode",
+ "bzip2",
+ "chrono",
+ "clap 2.33.3",
+ "console",
+ "crossbeam-channel",
+ "ctrlc",
+ "dirs-next",
+ "indicatif",
+ "lazy_static",
+ "nix",
+ "reqwest",
+ "scopeguard",
+ "semver 1.0.23",
+ "serde",
+ "serde_derive",
+ "serde_yaml 0.8.26",
+ "serde_yaml 0.9.34+deprecated",
+ "solana-clap-utils",
+ "solana-config-program",
+ "solana-logger",
+ "solana-rpc-client",
+ "solana-sdk",
+ "solana-version",
+ "tar",
+ "tempfile",
+ "url 2.5.2",
+ "winapi 0.3.9",
+ "winreg",
 ]
 
 [[package]]

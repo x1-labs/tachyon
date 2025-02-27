@@ -1,4 +1,4 @@
-pub const JSON_RPC_URL: &str = "http://api.devnet.solana.com";
+pub const JSON_RPC_URL: &str = "https://rpc.testnet.x1.xyz";
 
 lazy_static! {
     pub static ref CONFIG_FILE: Option<String> = {

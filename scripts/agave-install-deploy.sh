@@ -76,4 +76,4 @@ if [[ $balance = "0 lamports" ]]; then
 fi
 
 # shellcheck disable=SC2086 # Don't want to double quote $maybeKeypair
-agave-install deploy $maybeKeypair --url "$URL" "$DOWNLOAD_URL" update_manifest_keypair.json
+tachyon-install deploy $maybeKeypair --url "$URL" "$DOWNLOAD_URL" update_manifest_keypair.json

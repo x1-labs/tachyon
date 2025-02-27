@@ -24,11 +24,11 @@ set -e
 
 usage() {
     cat 1>&2 <<EOF
-agave-install-init
+tachyon-install-init
 initializes a new installation
 
 USAGE:
-    agave-install-init [FLAGS] [OPTIONS] --data_dir <PATH> --pubkey <PUBKEY>
+    tachyon-install-init [FLAGS] [OPTIONS] --data_dir <PATH> --pubkey <PUBKEY>
 
 FLAGS:
     -h, --help              Prints help information
@@ -81,7 +81,7 @@ main() {
     esac
     TARGET="${_cputype}-${_ostype}"
 
-    temp_dir="$(mktemp -d 2>/dev/null || ensure mktemp -d -t agave-install-init)"
+    temp_dir="$(mktemp -d 2>/dev/null || ensure mktemp -d -t tachyon-install-init)"
     ensure mkdir -p "$temp_dir"
 
     # Check for SOLANA_RELEASE environment variable override.  Otherwise fetch
@@ -101,8 +101,8 @@ main() {
       fi
     fi
 
-    download_url="$SOLANA_DOWNLOAD_ROOT/$release/agave-install-init-$TARGET"
-    solana_install_init="$temp_dir/agave-install-init"
+    download_url="$SOLANA_DOWNLOAD_ROOT/$release/tachyon-install-init-$TARGET"
+    solana_install_init="$temp_dir/tachyon-install-init"
 
     printf 'downloading %s installer\n' "$release" 1>&2
 
@@ -111,7 +111,7 @@ main() {
     ensure chmod u+x "$solana_install_init"
     if [ ! -x "$solana_install_init" ]; then
         printf '%s\n' "Cannot execute $solana_install_init (likely because of mounting /tmp as noexec)." 1>&2
-        printf '%s\n' "Please copy the file to a location where you can execute binaries and run ./agave-install-init." 1>&2
+        printf '%s\n' "Please copy the file to a location where you can execute binaries and run ./tachyon-install-init." 1>&2
         exit 1
     fi
 
@@ -130,7 +130,7 @@ main() {
 }
 
 err() {
-    printf 'agave-install-init: %s\n' "$1" >&2
+    printf 'tachyon-install-init: %s\n' "$1" >&2
     exit 1
 }
 
