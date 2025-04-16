@@ -60,7 +60,7 @@ Once you have successfully installed the cli, the next step is to change your
 config so that it is making requests to the `testnet` cluster:
 
 ```
-solana config set --url https://api.testnet.solana.com
+solana config set --url https://rpc.testnet.x1.xyz
 ```
 
 To verify that your config has change run:
@@ -69,7 +69,7 @@ To verify that your config has change run:
 solana config get
 ```
 
-You should see a line that says: `RPC URL: https://api.testnet.solana.com`
+You should see a line that says: `RPC URL: https://rpc.testnet.x1.xyz`
 
 ## Create Keys
 
