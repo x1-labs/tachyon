@@ -85,12 +85,12 @@ are operated by Solana Labs
 export SOLANA_METRICS_CONFIG="host=https://metrics.solana.com:8086,db=tds,u=testnet_write,p=c4fa841aa918bf8274e3e2a44d77568d9861b3ea"
 ```
 
-- RPC URL for Testnet: `https://api.testnet.solana.com`
+- RPC URL for Testnet: `https://rpc.testnet.x1.xyz`
 
 ##### Example `solana` command-line configuration
 
 ```bash
-solana config set --url https://api.testnet.solana.com
+solana config set --url https://rpc.testnet.x1.xyz
 ```
 
 ##### Example `tachyon-validator` command-line
