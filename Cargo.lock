@@ -9278,6 +9278,7 @@ dependencies = [
  "solana-inline-spl",
  "solana-lattice-hash",
  "solana-loader-v3-interface",
+ "solana-loader-v4-interface",
  "solana-logger",
  "solana-measure",
  "solana-metrics",
