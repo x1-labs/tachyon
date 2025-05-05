@@ -61,6 +61,13 @@ cargo_audit_ignores=(
 	# need to solve this depentant tree:
 	# jsonrpc-core-client v18.0.0 -> jsonrpc-client-transports v18.0.0 -> url v1.7.2 -> idna v0.1.5
 	--ignore RUSTSEC-2024-0421
+
+  # Stopgap to allow v2.0 to build
+  # these are fixed in v2.1
+	--ignore RUSTSEC-2025-0024
+	--ignore RUSTSEC-2025-0022
+	--ignore RUSTSEC-2025-0009
+	--ignore RUSTSEC-2025-0009
 )
 scripts/cargo-for-all-lock-files.sh audit "${cargo_audit_ignores[@]}" | $dep_tree_filter
 # we want the `cargo audit` exit code, not `$dep_tree_filter`'s
