@@ -195,7 +195,7 @@ pub mod sol_log_data_syscall_enabled {
 }
 
 pub mod stakes_remove_delegation_if_inactive {
-    solana_sdk::declare_id!("HFpdDDNQjvcXnXKec697HDDsyk6tFoWS2o8fkxuhQZpL");
+    solana_sdk::declare_id!("DPxADooexTiz7mJYdTjrXqB6qdVh6iFy7V1ZRUoptAte");
 }
 
 pub mod do_support_realloc {
