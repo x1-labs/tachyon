@@ -810,7 +810,7 @@ pub mod abort_on_invalid_curve {
 }
 
 pub mod migrate_feature_gate_program_to_core_bpf {
-    solana_sdk::declare_id!("3hp1YAnRUPSi6af3hgPHUWquuQuDGFewacZyPT1z8B2U");
+    solana_sdk::declare_id!("7TuSw9fK36GFDd1XCZTvYSztFY3B6hoA1RxcdNCxph64");
 }
 
 pub mod vote_only_full_fec_sets {
