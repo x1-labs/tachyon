@@ -989,7 +989,9 @@ fn process_activate(
     force: ForceActivation,
     fee_payer: SignerIndex,
 ) -> ProcessResult {
-    check_rpc_genesis_hash(&cluster, rpc_client)?;
+    if force == ForceActivation::Almost {
+        check_rpc_genesis_hash(&cluster, rpc_client)?;
+    }
 
     let fee_payer = config.signers[fee_payer];
     let account = rpc_client
