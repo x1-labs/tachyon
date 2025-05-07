@@ -2822,7 +2822,7 @@ impl Bank {
         if *hash == Hash::default() {
             // finish up any deferred changes to account state
             self.collect_rent_eagerly();
-            if self.feature_set.is_active(&reward_full_priority_fee::id()) {
+            if self.feature_set.reward_full_priority_fee() {
                 self.distribute_transaction_fee_details();
             } else {
                 self.distribute_transaction_fees();
@@ -4057,7 +4057,7 @@ impl Bank {
 
         let mut update_transaction_statuses_time = Measure::start("update_transaction_statuses");
         self.update_transaction_statuses(sanitized_txs, &execution_results);
-        let fee_collection_results = if self.feature_set.is_active(&reward_full_priority_fee::id())
+        let fee_collection_results = if self.feature_set.reward_full_priority_fee()
         {
             self.filter_program_errors_and_collect_fee_details(&execution_results)
         } else {

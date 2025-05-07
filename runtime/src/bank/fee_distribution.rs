@@ -20,6 +20,7 @@ use {
     std::{result::Result, sync::atomic::Ordering::Relaxed},
     thiserror::Error,
 };
+use solana_sdk::feature_set::disable_reward_full_priority_fee;
 
 #[derive(Debug)]
 struct DepositFeeOptions {
@@ -94,7 +95,7 @@ impl Bank {
             self.feature_set
                 .is_active(&remove_rounding_in_fee_calculation::id()),
         );
-        let (reward, _burn) = if self.feature_set.is_active(&reward_full_priority_fee::id()) {
+        let (reward, _burn) = if self.feature_set.reward_full_priority_fee() {
             self.calculate_reward_and_burn_fee_details(&CollectorFeeDetails::from(fee_details))
         } else {
             let fee = fee_details.total_fee();

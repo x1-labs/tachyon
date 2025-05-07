@@ -865,6 +865,10 @@ pub mod replace_token_program_2022 {
     solana_program::declare_id!("8FbKvGXFBMjpYXhtnX6KuuLquqMRFaGouQkrDkKYp64b");
 }
 
+pub mod disable_reward_full_priority_fee {
+    solana_program::declare_id!("9Y5UJtWUV2VVgGhBToyANREzHybwvMtoTFrg29n7o8EX");
+}
+
 lazy_static! {
     /// Map of feature identifiers to user-visible description
     pub static ref FEATURE_NAMES: HashMap<Pubkey, &'static str> = [
@@ -1076,6 +1080,7 @@ lazy_static! {
         (deprecate_legacy_vote_ixs::id(), "Deprecate legacy vote instructions"),
         (disable_account_loader_special_case::id(), "Disable account loader special case"),
         (replace_token_program_2022::id(), "Replace Token Program 2022"),
+        (disable_reward_full_priority_fee::id(), "Disables: Reward full priority fee to validators #34731"),
         /*************** ADD NEW FEATURES HERE ***************/
     ]
     .iter()
@@ -1180,6 +1185,11 @@ impl FeatureSet {
     pub fn new_warmup_cooldown_rate_epoch(&self, epoch_schedule: &EpochSchedule) -> Option<Epoch> {
         self.activated_slot(&reduce_stake_warmup_cooldown::id())
             .map(|slot| epoch_schedule.get_epoch(slot))
+    }
+
+    pub fn reward_full_priority_fee(&self) -> bool {
+        self.is_active(&reward_full_priority_fee::id())
+            && !self.is_active(&disable_reward_full_priority_fee::id())
     }
 }
 
