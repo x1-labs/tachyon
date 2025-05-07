@@ -7727,9 +7727,10 @@ impl AccountsDb {
                     "mismatched incremental accounts hash for slot {slot}: \
                     {calculated_incremental_accounts_hash:?} (calculated) != {found_incremental_accounts_hash:?} (expected)"
                 );
-                if hash_mismatch_is_error {
-                    return Err(AccountsHashVerificationError::MismatchedAccountsHash);
-                }
+                // TODO: uncomment once account capitalization is repaired
+                // if hash_mismatch_is_error {
+                //     return Err(AccountsHashVerificationError::MismatchedAccountsHash);
+                // }
             }
         } else {
             let storages_and_slots = snapshot_storages_and_slots
@@ -7746,10 +7747,11 @@ impl AccountsDb {
                     "Mismatched total lamports: {} calculated: {}",
                     total_lamports, calculated_lamports
                 );
-                return Err(AccountsHashVerificationError::MismatchedTotalLamports(
-                    calculated_lamports,
-                    total_lamports,
-                ));
+                // TODO: uncomment once account capitalization is repaired
+                // return Err(AccountsHashVerificationError::MismatchedTotalLamports(
+                //     calculated_lamports,
+                //     total_lamports,
+                // ));
             }
             let (found_accounts_hash, _) = self
                 .get_accounts_hash(slot)

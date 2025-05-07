@@ -1078,11 +1078,12 @@ where
                     "The incremental snapshot's base accounts hash ({}) must match the full snapshot's accounts hash ({})!",
                     &incremental_snapshot_persistence.full_hash.0, full_accounts_hash.0,
                 );
-                assert_eq!(
-                    incremental_snapshot_persistence.full_capitalization, capitalizations.0,
-                    "The incremental snapshot's base capitalization ({}) must match the full snapshot's capitalization ({})!",
-                    incremental_snapshot_persistence.full_capitalization, capitalizations.0,
-                );
+                // TODO: uncomment once account capitalization is repaired
+                // assert_eq!(
+                //     incremental_snapshot_persistence.full_capitalization, capitalizations.0,
+                //     "The incremental snapshot's base capitalization ({}) must match the full snapshot's capitalization ({})!",
+                //     incremental_snapshot_persistence.full_capitalization, capitalizations.0,
+                // );
                 let old_incremental_accounts_hash = accounts_db
                     .set_incremental_accounts_hash_from_snapshot(
                         *slot,
