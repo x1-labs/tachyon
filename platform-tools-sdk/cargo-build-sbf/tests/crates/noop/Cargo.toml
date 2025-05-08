@@ -1,6 +1,6 @@
 [package]
 name = "noop"
-version = "2.2.13"
+version = "2.2.14"
 description = "Solana SBF test program written in Rust"
 authors = ["X1 Labs maintainers <maintainers@x1.xyz>"]
 repository = "https://github.com/x1-labs/tachyon"
