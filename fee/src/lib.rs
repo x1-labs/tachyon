@@ -1,6 +1,13 @@
 use {
     agave_feature_set::{enable_secp256r1_precompile, FeatureSet},
+    log::{debug, trace},
+    solana_builtins_default_costs::get_builtin_instruction_cost,
+    solana_compute_budget_instruction::instructions_processor::process_compute_budget_instructions,
     solana_fee_structure::FeeDetails,
+    solana_sdk::{
+        borsh1::try_from_slice_unchecked,
+        compute_budget::{check_id, ComputeBudgetInstruction},
+    },
     solana_svm_transaction::svm_message::SVMMessage,
 };
 
@@ -14,6 +21,14 @@ use {
 pub struct FeeFeatures {
     pub enable_secp256r1_precompile: bool,
 }
+
+pub const DEFAULT_INSTRUCTION_COMPUTE_UNIT_LIMIT: u32 = 200_000;
+pub const MAX_COMPUTE_UNIT_LIMIT: u32 = 1_400_000;
+pub const HEAP_LENGTH: usize = 32 * 1024;
+pub const MIN_COMPUTE_UNITS_THRESHOLD: u64 = 1_000;
+pub const MIN_COMPUTE_UNIT_PRICE_MICROLAMPORTS: u64 = 1_000_000;
+pub const BASE_FEE_MULTIPLIER: u64 = 10;
+pub const MICROLAMPORTS_PER_LAMPORT: u64 = 1_000_000;
 
 impl From<&FeatureSet> for FeeFeatures {
     fn from(feature_set: &FeatureSet) -> Self {
@@ -44,128 +59,101 @@ pub fn calculate_fee(
 pub fn calculate_fee_details(
     message: &impl SVMMessage,
     zero_fees_for_test: bool,
-    lamports_per_signature: u64,
+    _lamports_per_signature: u64,
     prioritization_fee: u64,
-    fee_features: FeeFeatures,
+    _fee_features: FeeFeatures,
 ) -> FeeDetails {
     if zero_fees_for_test {
         return FeeDetails::default();
     }
 
-    FeeDetails::new(
-        calculate_signature_fee(
-            SignatureCounts::from(message),
-            lamports_per_signature,
-            fee_features.enable_secp256r1_precompile,
-        ),
-        prioritization_fee,
-    )
+    if is_vote_transaction(message) {
+        trace!("Vote program detected, setting total_fee to 0");
+        return FeeDetails::default();
+    }
+
+    let derived_compute_units = get_transaction_cost(message);
+    let requested_cu_price = get_compute_unit_price_from_message(message);
+
+    // Ensure minimum price when both CU and price are low
+    let effective_cu_price = if derived_compute_units < MIN_COMPUTE_UNITS_THRESHOLD
+        && requested_cu_price < MIN_COMPUTE_UNIT_PRICE_MICROLAMPORTS
+    {
+        MIN_COMPUTE_UNIT_PRICE_MICROLAMPORTS
+    } else {
+        requested_cu_price
+    };
+
+    // Base fee: fixed multiplier + proportional to CU price
+    let base_fee = derived_compute_units.saturating_mul(BASE_FEE_MULTIPLIER);
+    let price_fee =
+        derived_compute_units.saturating_mul(effective_cu_price) / MICROLAMPORTS_PER_LAMPORT;
+
+    let total_fee = base_fee.saturating_add(price_fee);
+
+    debug!(
+        "Calculated total_fee: {total_fee} | compute_units: {derived_compute_units} | requested_cu_price: {requested_cu_price}"
+    );
+
+    FeeDetails::new(total_fee, prioritization_fee)
 }
 
-/// Calculate fees from signatures.
-fn calculate_signature_fee(
-    SignatureCounts {
-        num_transaction_signatures,
-        num_ed25519_signatures,
-        num_secp256k1_signatures,
-        num_secp256r1_signatures,
-    }: SignatureCounts,
-    lamports_per_signature: u64,
-    enable_secp256r1_precompile: bool,
-) -> u64 {
-    let signature_count = num_transaction_signatures
-        .saturating_add(num_ed25519_signatures)
-        .saturating_add(num_secp256k1_signatures)
-        .saturating_add(
-            u64::from(enable_secp256r1_precompile).wrapping_mul(num_secp256r1_signatures),
-        );
-    signature_count.saturating_mul(lamports_per_signature)
+fn is_vote_transaction(message: &impl SVMMessage) -> bool {
+    let vote_program_id = &solana_sdk_ids::vote::ID;
+    message
+        .account_keys()
+        .iter()
+        .any(|key| key == vote_program_id)
 }
 
-struct SignatureCounts {
-    pub num_transaction_signatures: u64,
-    pub num_ed25519_signatures: u64,
-    pub num_secp256k1_signatures: u64,
-    pub num_secp256r1_signatures: u64,
-}
-
-impl<Tx: SVMMessage> From<&Tx> for SignatureCounts {
-    fn from(message: &Tx) -> Self {
-        Self {
-            num_transaction_signatures: message.num_transaction_signatures(),
-            num_ed25519_signatures: message.num_ed25519_signatures(),
-            num_secp256k1_signatures: message.num_secp256k1_signatures(),
-            num_secp256r1_signatures: message.num_secp256r1_signatures(),
+fn get_compute_unit_price_from_message(message: &impl SVMMessage) -> u64 {
+    for (program_id, instruction) in message.program_instructions_iter() {
+        if check_id(program_id) {
+            if let Ok(ComputeBudgetInstruction::SetComputeUnitPrice(price)) =
+                try_from_slice_unchecked(instruction.data)
+            {
+                return price;
+            }
         }
     }
+
+    0
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+fn get_transaction_cost(message: &impl SVMMessage) -> u64 {
+    let (mut builtin_costs, mut bpf_costs, mut data_bytes_len_total): (u64, u64, u64) = (0, 0, 0);
+    let feature_set = &FeatureSet::all_enabled();
 
-    #[test]
-    fn test_calculate_signature_fee() {
-        const LAMPORTS_PER_SIGNATURE: u64 = 5_000;
+    let compute_unit_limit_is_set =
+        message
+            .program_instructions_iter()
+            .any(|(program_id, instruction)| {
+                if let Some(builtin_cost) = get_builtin_instruction_cost(program_id, feature_set) {
+                    builtin_costs = builtin_costs.saturating_add(builtin_cost);
+                } else {
+                    bpf_costs = bpf_costs
+                        .saturating_add(solana_compute_budget::compute_budget_limits::DEFAULT_INSTRUCTION_COMPUTE_UNIT_LIMIT.into())
+                        .min(solana_compute_budget::compute_budget_limits::MAX_COMPUTE_UNIT_LIMIT.into());
+                };
 
-        // Impossible case - 0 signatures.
-        assert_eq!(
-            calculate_signature_fee(
-                SignatureCounts {
-                    num_transaction_signatures: 0,
-                    num_ed25519_signatures: 0,
-                    num_secp256k1_signatures: 0,
-                    num_secp256r1_signatures: 0,
-                },
-                LAMPORTS_PER_SIGNATURE,
-                true,
-            ),
-            0
-        );
+                data_bytes_len_total =
+                    data_bytes_len_total.saturating_add(instruction.data.len() as u64);
 
-        // Simple signature
-        assert_eq!(
-            calculate_signature_fee(
-                SignatureCounts {
-                    num_transaction_signatures: 1,
-                    num_ed25519_signatures: 0,
-                    num_secp256k1_signatures: 0,
-                    num_secp256r1_signatures: 0,
-                },
-                LAMPORTS_PER_SIGNATURE,
-                true,
-            ),
-            LAMPORTS_PER_SIGNATURE
-        );
+                check_id(program_id)
+                    && try_from_slice_unchecked::<ComputeBudgetInstruction>(instruction.data)
+                        .ok()
+                        .is_some_and(|i| {
+                            matches!(i, ComputeBudgetInstruction::SetComputeUnitLimit(_))
+                        })
+            });
 
-        // Pre-compile signatures.
-        assert_eq!(
-            calculate_signature_fee(
-                SignatureCounts {
-                    num_transaction_signatures: 1,
-                    num_ed25519_signatures: 2,
-                    num_secp256k1_signatures: 3,
-                    num_secp256r1_signatures: 4,
-                },
-                LAMPORTS_PER_SIGNATURE,
-                true,
-            ),
-            10 * LAMPORTS_PER_SIGNATURE
-        );
-
-        // Pre-compile signatures (no secp256r1)
-        assert_eq!(
-            calculate_signature_fee(
-                SignatureCounts {
-                    num_transaction_signatures: 1,
-                    num_ed25519_signatures: 2,
-                    num_secp256k1_signatures: 3,
-                    num_secp256r1_signatures: 4,
-                },
-                LAMPORTS_PER_SIGNATURE,
-                false,
-            ),
-            6 * LAMPORTS_PER_SIGNATURE
-        );
+    if let Ok(compute_budget_limits) =
+        process_compute_budget_instructions(message.program_instructions_iter(), feature_set)
+    {
+        if bpf_costs > 0 && compute_unit_limit_is_set {
+            bpf_costs = u64::from(compute_budget_limits.compute_unit_limit);
+        }
     }
+
+    builtin_costs.saturating_add(bpf_costs)
 }

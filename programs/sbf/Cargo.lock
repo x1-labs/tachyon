@@ -6014,8 +6014,20 @@ name = "solana-fee"
 version = "2.2.12"
 dependencies = [
  "agave-feature-set",
+ "lazy_static",
+ "log",
+ "serde",
+ "solana-builtins-default-costs",
+ "solana-compute-budget",
+ "solana-compute-budget-instruction",
+ "solana-cost-model",
  "solana-fee-structure",
+ "solana-pubkey",
+ "solana-runtime-transaction",
+ "solana-sdk",
+ "solana-sdk-ids",
  "solana-svm-transaction",
+ "solana-vote",
 ]
 
 [[package]]

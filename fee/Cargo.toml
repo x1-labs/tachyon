@@ -11,5 +11,18 @@ edition = { workspace = true }
 
 [dependencies]
 agave-feature-set = { workspace = true }
+lazy_static = "1.5.0"
+log = "0.4.22"
+
+serde = { version = "1.0.213", features = ["derive"] }
+solana-builtins-default-costs = { workspace = true }
+solana-compute-budget = { workspace = true }
+solana-compute-budget-instruction = { workspace = true }
+solana-cost-model = { workspace = true }
 solana-fee-structure = { workspace = true }
+solana-pubkey = { workspace = true }
+solana-runtime-transaction = { workspace = true }
+solana-sdk = { workspace = true }
+solana-sdk-ids = { workspace = true }
 solana-svm-transaction = { workspace = true }
+solana-vote = { workspace = true }
