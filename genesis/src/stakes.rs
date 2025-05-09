@@ -196,38 +196,6 @@ mod tests {
                     <= genesis_config.rent.minimum_balance(StakeStateV2::size_of())));
     }
 
-    //    #[ignore]
-    //    #[test]
-    //    fn hex_test_keys_to_bs58() {
-    //    vec![
-    //        "ab22196afde08a090a3721eb20e3e1ea84d36e14d1a3f0815b236b300d9d33ef", // CX2sgoat51bnDgCN2YeesrTcscgVhnhWnwxtWEEEqBs4
-    //        "a2a7ae9098f862f4b3ba7d102d174de5e84a560444c39c035f3eeecce442eadc", // BwwM47pLHwUgjJXKQKVNiRfGhtPNWfNLH27na2HJQHhd
-    //        "6a56514c29f6b1de4d46164621d6bd25b337a711f569f9283c1143c7e8fb546e", // 8A6ZEEW2odkqXNjTWHNG6tUk7uj6zCzHueTyEr9pM1tH
-    //        "b420af728f58d9f269d6e07fbbaecf6ed6535e5348538e3f39f2710351f2b940", // D89HyaBmr2WmrTehsfkQrY23wCXcDfsFnN9gMfUXHaDd
-    //        "ddf2e4c81eafae2d68ac99171b066c87bddb168d6b7c07333cd951f36640163d", // FwPvDpvUmnco1CSfwXQDTbUbuhG5eP7h2vgCKYKVL7at
-    //        "312fa06ccf1b671b26404a34136161ed2aba9e66f248441b4fddb5c592fde560", // 4K16iBoC9kAQRT8pUEKeD2h9WEx1zsRgEmJFssXcXmqq
-    //        "0cbf98cd35ceff84ca72b752c32cc3eeee4f765ca1bef1140927ebf5c6e74339", // rmLpENW4V6QNeEhdJJVxo9Xt99oKgNUFZS4Y4375amW
-    //        "467e06fa25a9e06824eedc926ce431947ed99c728bed36be54561354c1330959", // 5kAztE3XtrpeyGZZxckSUt3ZWojNTmph1QSC9S2682z4
-    //        "ef1562bf9edfd0f5e62530cce4244e8de544a3a30075a2cd5c9074edfbcbe78a", // H6HMVuDR8XCw3EuhLvFG4EciVvGo76Agq1kSBL2ozoDs
-    //        "2ab26abb9d8131a30a4a63446125cf961ece4b926c31cce0eb84da4eac3f836e", // 3sfv8tk5ZSDBWbTkFkvFxCvJUyW5yDJUu6VMJcUARQWq
-    //    ]
-    //    .iter()
-    //    .for_each(|_hex| {
-    //        print(
-    //            "\n\"{}\", // {:?}",
-    //            hex,
-    //            Pubkey::try_from(&hex::decode(hex).unwrap()).unwrap()
-    //        );
-    //    });
-    //    println();
-    // println(
-    //     "{:?}",
-    //     "P1aceHo1derPubkey11111111111111111111111111"
-    //         .parse::<Pubkey>()
-    //         .unwrap()
-    // );
-    //}
-
     #[test]
     fn test_create_stakes() {
         // 2 unlocks
