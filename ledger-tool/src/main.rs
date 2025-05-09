@@ -1755,7 +1755,7 @@ fn main() {
                 ("bank-hash", Some(_)) => {
                     eprintln!(
                         "The bank-hash command has been deprecated, use \
-                        agave-ledger-tool verify --print-bank-hash ... instead"
+                        tachyon-ledger-tool verify --print-bank-hash ... instead"
                     );
                 }
                 ("verify", Some(arg_matches)) => {

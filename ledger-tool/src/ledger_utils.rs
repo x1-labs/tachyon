@@ -209,7 +209,7 @@ pub fn load_and_process_ledger(
             // Attempt to open the Blockstore in Primary access; if successful, no other process
             // was holding Primary so allow things to proceed with custom accounts path. Release
             // the Primary access instead of holding it to give priority to tachyon-validator over
-            // agave-ledger-tool should tachyon-validator start before we've finished.
+            // tachyon-ledger-tool should tachyon-validator start before we've finished.
             info!(
                 "Checking if another process currently holding Primary access to {:?}",
                 blockstore.ledger_path()
