@@ -7509,21 +7509,11 @@ impl AccountsDb {
     /// when called after a failure has been detected, redirect the cache storage to a separate folder for debugging later
     fn get_cache_hash_data(
         accounts_hash_cache_path: PathBuf,
-        config: &CalcAccountsHashConfig<'_>,
+        _config: &CalcAccountsHashConfig<'_>,
         kind: CalcAccountsHashKind,
-        slot: Slot,
+        _slot: Slot,
         storages_start_slot: Slot,
     ) -> CacheHashData {
-        let accounts_hash_cache_path = if !config.store_detailed_debug_info_on_failure {
-            accounts_hash_cache_path
-        } else {
-            // this path executes when we are failing with a hash mismatch
-            let failed_dir = accounts_hash_cache_path
-                .join("failed_calculate_accounts_hash_cache")
-                .join(slot.to_string());
-            _ = std::fs::remove_dir_all(&failed_dir);
-            failed_dir
-        };
         let deletion_policy = match kind {
             CalcAccountsHashKind::Full => CacheHashDeletionPolicy::AllUnused,
             CalcAccountsHashKind::Incremental => {
