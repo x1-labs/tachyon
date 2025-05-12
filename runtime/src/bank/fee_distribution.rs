@@ -6,7 +6,7 @@ use {
         account::{ReadableAccount, WritableAccount},
         feature_set::{
             include_loaded_accounts_data_size_in_fee_calculation,
-            remove_rounding_in_fee_calculation, reward_full_priority_fee,
+            remove_rounding_in_fee_calculation,
         },
         fee::FeeBudgetLimits,
         pubkey::Pubkey,
@@ -20,7 +20,6 @@ use {
     std::{result::Result, sync::atomic::Ordering::Relaxed},
     thiserror::Error,
 };
-use solana_sdk::feature_set::disable_reward_full_priority_fee;
 
 #[derive(Debug)]
 struct DepositFeeOptions {

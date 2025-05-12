@@ -120,7 +120,7 @@ use {
         feature,
         feature_set::{
             self, include_loaded_accounts_data_size_in_fee_calculation,
-            remove_rounding_in_fee_calculation, reward_full_priority_fee, FeatureSet,
+            remove_rounding_in_fee_calculation, FeatureSet,
         },
         fee::{FeeDetails, FeeStructure},
         fee_calculator::FeeRateGovernor,
