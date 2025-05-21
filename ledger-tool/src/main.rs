@@ -865,6 +865,11 @@ fn main() {
         .long("allow-dead-slots")
         .takes_value(false)
         .help("Output dead slots as well");
+    let slots_per_epoch = Arg::with_name("slots_per_epoch")
+        .long("slots-per-epoch")
+        .value_name("EPOCH_SLOTS")
+        .takes_value(true)
+        .help("Number of slots per epoch.");
     let hashes_per_tick = Arg::with_name("hashes_per_tick")
         .long("hashes-per-tick")
         .value_name("NUM_HASHES|\"sleep\"")
@@ -1047,6 +1052,7 @@ fn main() {
                 .about("Modifies genesis parameters")
                 .arg(&load_genesis_config_arg)
                 .arg(&hashes_per_tick)
+                .arg(&slots_per_epoch)
                 .arg(
                     Arg::with_name("cluster_type")
                         .long("cluster-type")
@@ -1707,6 +1713,11 @@ fn main() {
                             "sleep" => None,
                             _ => Some(value_t_or_exit!(arg_matches, "hashes_per_tick", u64)),
                         }
+                    }
+
+                    if arg_matches.is_present("slots_per_epoch") {
+                        genesis_config.epoch_schedule.slots_per_epoch =
+                            value_t_or_exit!(arg_matches, "slots_per_epoch", u64);
                     }
 
                     create_new_ledger(
