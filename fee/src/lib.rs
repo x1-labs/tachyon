@@ -91,7 +91,7 @@ pub fn calculate_fee_details(
 
     let total_fee = base_fee.saturating_add(price_fee);
 
-    println!(
+    debug!(
         "Calculated total_fee: {total_fee} | compute_units: {derived_compute_units} | requested_cu_price: {requested_cu_price}"
     );
 
