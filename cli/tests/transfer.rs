@@ -86,11 +86,7 @@ fn test_transfer(skip_preflight: bool) {
         compute_unit_price: None,
     };
     process_command(&config).unwrap();
-    check_balance!(
-        sol_to_lamports(4.0) - fee1,
-        &rpc_client,
-        &sender_pubkey
-    );
+    check_balance!(sol_to_lamports(4.0) - fee1, &rpc_client, &sender_pubkey);
     check_balance!(sol_to_lamports(1.0), &rpc_client, &recipient_pubkey);
 
     // Plain ole transfer, failure due to InsufficientFundsForSpendAndFee
@@ -112,11 +108,7 @@ fn test_transfer(skip_preflight: bool) {
         compute_unit_price: None,
     };
     assert!(process_command(&config).is_err());
-    check_balance!(
-        sol_to_lamports(4.0) - fee1,
-        &rpc_client,
-        &sender_pubkey
-    );
+    check_balance!(sol_to_lamports(4.0) - fee1, &rpc_client, &sender_pubkey);
     check_balance!(sol_to_lamports(1.0), &rpc_client, &recipient_pubkey);
 
     let mut offline = CliConfig::recent_for_tests();
@@ -174,11 +166,7 @@ fn test_transfer(skip_preflight: bool) {
         compute_unit_price: None,
     };
     process_command(&config).unwrap();
-    check_balance!(
-        sol_to_lamports(0.5) - fee1,
-        &rpc_client,
-        &offline_pubkey
-    );
+    check_balance!(sol_to_lamports(0.5) - fee1, &rpc_client, &offline_pubkey);
     check_balance!(sol_to_lamports(1.5), &rpc_client, &recipient_pubkey);
 
     // Create nonce account
@@ -196,11 +184,7 @@ fn test_transfer(skip_preflight: bool) {
         compute_unit_price: None,
     };
     process_command(&config).unwrap();
-    check_balance!(
-        sol_to_lamports(4.0) - fee2,
-        &rpc_client,
-        &sender_pubkey,
-    );
+    check_balance!(sol_to_lamports(4.0) - fee2, &rpc_client, &sender_pubkey,);
 
     // Fetch nonce hash
     let nonce_hash = solana_rpc_client_nonce_utils::get_account_with_commitment(
@@ -235,11 +219,7 @@ fn test_transfer(skip_preflight: bool) {
         compute_unit_price: None,
     };
     process_command(&config).unwrap();
-    check_balance!(
-        sol_to_lamports(3.0) - fee3,
-        &rpc_client,
-        &sender_pubkey,
-    );
+    check_balance!(sol_to_lamports(3.0) - fee3, &rpc_client, &sender_pubkey,);
     check_balance!(sol_to_lamports(2.5), &rpc_client, &recipient_pubkey);
     let new_nonce_hash = solana_rpc_client_nonce_utils::get_account_with_commitment(
         &rpc_client,
@@ -261,11 +241,7 @@ fn test_transfer(skip_preflight: bool) {
         compute_unit_price: None,
     };
     process_command(&config).unwrap();
-    check_balance!(
-        sol_to_lamports(3.0) - fee4,
-        &rpc_client,
-        &sender_pubkey,
-    );
+    check_balance!(sol_to_lamports(3.0) - fee4, &rpc_client, &sender_pubkey,);
 
     // Fetch nonce hash
     let nonce_hash = solana_rpc_client_nonce_utils::get_account_with_commitment(
@@ -322,11 +298,7 @@ fn test_transfer(skip_preflight: bool) {
         compute_unit_price: None,
     };
     process_command(&config).unwrap();
-    check_balance!(
-        sol_to_lamports(0.1) - fee5,
-        &rpc_client,
-        &offline_pubkey
-    );
+    check_balance!(sol_to_lamports(0.1) - fee5, &rpc_client, &offline_pubkey);
     check_balance!(sol_to_lamports(2.9), &rpc_client, &recipient_pubkey);
 }
 
