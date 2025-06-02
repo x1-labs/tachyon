@@ -327,7 +327,7 @@ fn test_cli_program_deploy_no_authority() {
     config.json_rpc_url = test_validator.rpc_url();
     config.command = CliCommand::Airdrop {
         pubkey: None,
-        lamports: 100 * minimum_balance_for_programdata + minimum_balance_for_program,
+        lamports: 200 * minimum_balance_for_programdata + minimum_balance_for_program,
     };
     config.signers = vec![&keypair];
     process_command(&config).unwrap();
@@ -437,7 +437,7 @@ fn test_cli_program_deploy_feature(enable_feature: bool, skip_preflight: bool) {
     config.json_rpc_url = test_validator.rpc_url();
     config.command = CliCommand::Airdrop {
         pubkey: None,
-        lamports: 100 * minimum_balance_for_programdata + minimum_balance_for_program,
+        lamports: 200 * minimum_balance_for_programdata + minimum_balance_for_program,
     };
     config.signers = vec![&keypair];
     config.send_transaction_config.skip_preflight = skip_preflight;
@@ -711,7 +711,7 @@ fn test_cli_program_deploy_with_authority() {
     config.signers = vec![&keypair];
     config.command = CliCommand::Airdrop {
         pubkey: None,
-        lamports: 100 * minimum_balance_for_programdata + minimum_balance_for_program,
+        lamports: 200 * minimum_balance_for_programdata + minimum_balance_for_program,
     };
     process_command(&config).unwrap();
 
@@ -1119,7 +1119,7 @@ fn test_cli_program_upgrade_auto_extend(skip_preflight: bool) {
     config.signers = vec![&keypair];
     config.command = CliCommand::Airdrop {
         pubkey: None,
-        lamports: 100 * minimum_balance_for_programdata + minimum_balance_for_program,
+        lamports: 200 * minimum_balance_for_programdata + minimum_balance_for_program,
     };
     process_command(&config).unwrap();
 
@@ -1275,7 +1275,7 @@ fn test_cli_program_close_program() {
     config.signers = vec![&keypair];
     config.command = CliCommand::Airdrop {
         pubkey: None,
-        lamports: 100 * minimum_balance_for_programdata + minimum_balance_for_program,
+        lamports: 200 * minimum_balance_for_programdata + minimum_balance_for_program,
     };
     process_command(&config).unwrap();
 
@@ -1394,7 +1394,7 @@ fn test_cli_program_extend_program() {
     config.signers = vec![&keypair];
     config.command = CliCommand::Airdrop {
         pubkey: None,
-        lamports: 100 * minimum_balance_for_programdata + minimum_balance_for_program,
+        lamports: 200 * minimum_balance_for_programdata + minimum_balance_for_program,
     };
     config.send_transaction_config = RpcSendTransactionConfig {
         skip_preflight: false,
@@ -1564,7 +1564,7 @@ fn test_cli_program_migrate_program() {
     config.signers = vec![&keypair];
     config.command = CliCommand::Airdrop {
         pubkey: None,
-        lamports: 100 * minimum_balance_for_programdata + minimum_balance_for_program,
+        lamports: 200 * minimum_balance_for_programdata + minimum_balance_for_program,
     };
     process_command(&config).unwrap();
 
@@ -2429,13 +2429,13 @@ fn test_cli_program_deploy_with_offline_signing(use_offline_signer_as_fee_payer:
 
     config.command = CliCommand::Airdrop {
         pubkey: None,
-        lamports: 100 * minimum_balance_for_large_buffer, // gotta be enough for this test
+        lamports: 200 * minimum_balance_for_large_buffer, // gotta be enough for this test
     };
     config.signers = vec![&online_signer];
     process_command(&config).unwrap();
     config.command = CliCommand::Airdrop {
         pubkey: None,
-        lamports: 100 * minimum_balance_for_large_buffer, // gotta be enough for this test
+        lamports: 200 * minimum_balance_for_large_buffer, // gotta be enough for this test
     };
     config.signers = vec![&offline_signer];
     process_command(&config).unwrap();
@@ -2958,7 +2958,7 @@ fn test_cli_program_deploy_with_args(compute_unit_price: Option<u64>, use_rpc: b
     config.signers = vec![&keypair];
     config.command = CliCommand::Airdrop {
         pubkey: None,
-        lamports: 100 * minimum_balance_for_programdata + minimum_balance_for_program,
+        lamports: 200 * minimum_balance_for_programdata + minimum_balance_for_program,
     };
     process_command(&config).unwrap();
 
