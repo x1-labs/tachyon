@@ -31,7 +31,6 @@ use {
 fn test_transfer(skip_preflight: bool) {
     solana_logger::setup();
     let fee_one_sig = FeeStructure::default().get_max_fee(1, 0);
-    let fee_two_sig = FeeStructure::default().get_max_fee(2, 0);
     let fee1 = 1650;
     let fee2 = 5158;
     let fee3 = 8458;
