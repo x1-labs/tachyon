@@ -5380,6 +5380,7 @@ pub mod tests {
             leader_schedule::{FixedSchedule, LeaderSchedule},
             shred::{max_ticks_per_n_shreds, ShredFlags, LEGACY_SHRED_DATA_CAPACITY},
         },
+        agave_feature_set::{vote_only_full_fec_sets, vote_only_retransmitter_signed_fec_sets},
         assert_matches::assert_matches,
         bincode::{serialize, Options},
         crossbeam_channel::unbounded,
@@ -5400,7 +5401,6 @@ pub mod tests {
             signature::Signature,
             transaction::{Transaction, TransactionError},
         },
-        agave_feature_set::{vote_only_full_fec_sets, vote_only_retransmitter_signed_fec_sets},
         solana_storage_proto::convert::generated,
         solana_transaction_context::TransactionReturnData,
         solana_transaction_status::{
