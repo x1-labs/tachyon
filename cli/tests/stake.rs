@@ -1662,10 +1662,10 @@ fn test_offline_nonced_create_stake_account_and_withdraw(compute_unit_price: Opt
         &rpc_client,
         &config_offline,
         &offline_pubkey,
-        100_000_000_000,
+        200_000_000_000,
     )
     .unwrap();
-    check_balance!(100_000_000_000, &rpc_client, &offline_pubkey);
+    check_balance!(200_000_000_000, &rpc_client, &offline_pubkey);
 
     // Create nonce account
     let minimum_nonce_balance = rpc_client

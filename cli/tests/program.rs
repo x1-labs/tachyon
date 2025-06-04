@@ -121,7 +121,7 @@ fn test_cli_program_deploy_non_upgradeable() {
     config.signers = vec![&keypair];
     config.command = CliCommand::Airdrop {
         pubkey: None,
-        lamports: 4 * minimum_balance_for_programdata, // min balance for rent exemption for three programs + leftover for tx processing
+        lamports: 200 * minimum_balance_for_programdata, // min balance for rent exemption for three programs + leftover for tx processing
     };
     process_command(&config).unwrap();
 
