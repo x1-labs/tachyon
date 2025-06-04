@@ -86,7 +86,7 @@ fn test_bench_tps_local_cluster(config: Config) {
             }),
     );
 
-    let lamports_per_account = 100;
+    let lamports_per_account = 200000;
 
     let keypair_count = config.tx_count * config.keypair_multiplier;
     let keypairs = generate_and_fund_keypairs(
@@ -142,7 +142,7 @@ fn test_bench_tps_test_validator(config: Config) {
         .expect("Should build Quic Tpu Client."),
     );
 
-    let lamports_per_account = 200000;
+    let lamports_per_account = 2000;
 
     let keypair_count = config.tx_count * config.keypair_multiplier;
     let keypairs = generate_and_fund_keypairs(

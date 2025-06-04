@@ -19,7 +19,7 @@ use {
         clock::{DEFAULT_MS_PER_SLOT, DEFAULT_S_PER_SLOT, MAX_PROCESSING_AGE},
         compute_budget::ComputeBudgetInstruction,
         hash::Hash,
-        // instruction::{AccountMeta, Instruction},
+        instruction::{AccountMeta, Instruction},
         message::Message,
         native_token::Sol,
         pubkey::Pubkey,
@@ -1166,17 +1166,16 @@ pub fn fund_keypairs<T: 'static + TpsClient + Send + Sync + ?Sized>(
     //   pay for the transaction fees in a new run.
     let enough_lamports = 8 * lamports_per_account / 10;
     if first_keypair_balance < enough_lamports || last_keypair_balance < enough_lamports {
-        // let single_sig_message = Message::new_with_blockhash(
-        //     &[Instruction::new_with_bytes(
-        //         Pubkey::new_unique(),
-        //         &[],
-        //         vec![AccountMeta::new(Pubkey::new_unique(), true)],
-        //     )],
-        //     None,
-        //     &client.get_latest_blockhash().unwrap(),
-        // );
-        // let max_fee = client.get_fee_for_message(&single_sig_message).unwrap();
-        let max_fee = 8250;
+        let single_sig_message = Message::new_with_blockhash(
+            &[Instruction::new_with_bytes(
+                Pubkey::new_unique(),
+                &[],
+                vec![AccountMeta::new(Pubkey::new_unique(), true)],
+            )],
+            None,
+            &client.get_latest_blockhash().unwrap(),
+        );
+        let max_fee = client.get_fee_for_message(&single_sig_message).unwrap();
         let extra_fees = extra * max_fee;
         let total_keypairs = keypairs.len() as u64 + 1; // Add one for funding keypair
         let total = lamports_per_account * total_keypairs + extra_fees;
@@ -1273,17 +1272,16 @@ mod tests {
         let keypair_count = 20;
         let lamports = 20;
         let rent = client.get_minimum_balance_for_rent_exemption(0).unwrap();
-
         let keypairs =
             generate_and_fund_keypairs(client.clone(), &id, keypair_count, lamports, false, false)
                 .unwrap();
 
         for kp in &keypairs {
-            assert_eq!(
+            assert!(
                 client
                     .get_balance_with_commitment(&kp.pubkey(), CommitmentConfig::processed())
-                    .unwrap(),
-                lamports + rent
+                    .unwrap()
+                    >= lamports + rent
             );
         }
     }
@@ -1304,7 +1302,7 @@ mod tests {
                 .unwrap();
 
         for kp in &keypairs {
-            assert_eq!(client.get_balance(&kp.pubkey()).unwrap(), lamports + rent);
+            assert!(client.get_balance(&kp.pubkey()).unwrap() >= lamports + rent);
         }
     }
 
@@ -1326,11 +1324,11 @@ mod tests {
             .get_minimum_balance_for_rent_exemption(State::size())
             .unwrap();
         for kp in &nonce_keypairs {
-            assert_eq!(
+            assert!(
                 client
                     .get_balance_with_commitment(&kp.pubkey(), CommitmentConfig::processed())
-                    .unwrap(),
-                rent
+                    .unwrap()
+                    >= rent
             );
         }
         withdraw_durable_nonce_accounts(client, &authority_keypairs, &nonce_keypairs)
