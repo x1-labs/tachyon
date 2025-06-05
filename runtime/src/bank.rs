@@ -2871,11 +2871,12 @@ impl Bank {
     }
 
     pub fn get_fee_for_message(&self, message: &SanitizedMessage) -> Option<u64> {
+        let fee_budget_limits = self.get_fee_budget_limits(message);
         Some(calculate_fee(
             message,
             false,
             self.fee_rate_governor.lamports_per_signature,
-            0,
+            fee_budget_limits.prioritization_fee,
             FeeFeatures::from(self.feature_set.as_ref()),
         ))
     }
@@ -2921,6 +2922,16 @@ impl Bank {
             self.fee_structure().lamports_per_signature,
             fee_budget_limits.prioritization_fee,
             FeeFeatures::from(self.feature_set.as_ref()),
+        )
+    }
+
+    fn get_fee_budget_limits(&self, message: &impl SVMMessage) -> FeeBudgetLimits {
+        FeeBudgetLimits::from(
+            process_compute_budget_instructions(
+                message.program_instructions_iter(),
+                &self.feature_set,
+            )
+            .unwrap_or_default(),
         )
     }
 
