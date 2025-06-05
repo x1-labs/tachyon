@@ -1671,17 +1671,10 @@ mod tests {
         let bank2 =
             new_bank_from_parent_with_bank_forks(bank_forks.as_ref(), bank1, &collector, slot);
         let blockhash = bank2.last_blockhash();
-        let tx = SanitizedTransaction::from_transaction_for_tests(system_transaction::transfer(
-            &key1,
-            &key2.pubkey(),
-            lamports_to_transfer,
-            blockhash,
-        ));
-        let fee = bank2.get_fee_for_message(tx.message()).unwrap();
         let tx = system_transaction::transfer(
             &key1,
             &key2.pubkey(),
-            lamports_to_transfer - fee,
+            lamports_to_transfer,
             blockhash,
         );
         bank2.process_transaction(&tx).unwrap();
