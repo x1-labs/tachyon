@@ -1671,12 +1671,8 @@ mod tests {
         let bank2 =
             new_bank_from_parent_with_bank_forks(bank_forks.as_ref(), bank1, &collector, slot);
         let blockhash = bank2.last_blockhash();
-        let tx = system_transaction::transfer(
-            &key1,
-            &key2.pubkey(),
-            lamports_to_transfer,
-            blockhash,
-        );
+        let tx =
+            system_transaction::transfer(&key1, &key2.pubkey(), lamports_to_transfer, blockhash);
         bank2.process_transaction(&tx).unwrap();
         assert_eq!(
             bank2.get_balance(&key1.pubkey()),
