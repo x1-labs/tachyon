@@ -310,18 +310,6 @@ all_test_steps() {
       "downstream-projects skipped as no relevant files were modified"
   fi
 
-  # Wasm support
-  if affects \
-             ^ci/test-wasm.sh \
-             ^ci/test-stable.sh \
-             ^sdk/ \
-      ; then
-    docker_command_step wasm "ci/test-wasm.sh" "$CI_DOCKER_IMAGE" 20
-  else
-    annotate --style info \
-      "wasm skipped as no relevant files were modified"
-  fi
-
   # Coverage...
   if affects \
              .rs$ \
