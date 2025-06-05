@@ -59,7 +59,7 @@ pub fn add_genesis_accounts(genesis_config: &mut GenesisConfig, mut issued_lampo
 
 #[cfg(test)]
 mod tests {
-    use {super::*, solana_sdk::native_token::LAMPORTS_PER_SOL};
+    use super::*;
 
     #[test]
     fn test_add_genesis_accounts() {
@@ -73,6 +73,6 @@ mod tests {
             .map(|account| account.lamports)
             .sum::<u64>();
 
-        assert_eq!(500_000_000 * LAMPORTS_PER_SOL, lamports);
+        assert_eq!(0, lamports);
     }
 }
