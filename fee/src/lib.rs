@@ -75,6 +75,13 @@ pub fn calculate_fee_details(
     let derived_compute_units = get_transaction_cost(message);
     let requested_cu_price = get_compute_unit_price_from_message(message);
 
+    trace!(
+        "message: {:?}, derived_compute_units: {}, requested_cu_price: {}",
+        message,
+        derived_compute_units,
+        requested_cu_price
+    );
+
     // Ensure minimum price when both CU and price are low
     let effective_cu_price = if derived_compute_units < MIN_COMPUTE_UNITS_THRESHOLD
         && requested_cu_price < MIN_COMPUTE_UNIT_PRICE_MICROLAMPORTS
@@ -89,13 +96,15 @@ pub fn calculate_fee_details(
     let price_fee =
         derived_compute_units.saturating_mul(effective_cu_price) / MICROLAMPORTS_PER_LAMPORT;
 
-    let total_fee = base_fee.saturating_add(price_fee);
+    let transaction_fee = base_fee.saturating_add(price_fee);
+    let fee_details = FeeDetails::new(transaction_fee, prioritization_fee);
 
     debug!(
-        "Calculated total_fee: {total_fee} | compute_units: {derived_compute_units} | requested_cu_price: {requested_cu_price}"
+        "Calculated transaction_fee: {transaction_fee} | total_fee: {} | compute_units: {derived_compute_units} | requested_cu_price: {requested_cu_price} | prioritization_fee: {prioritization_fee}",
+        fee_details.total_fee()
     );
 
-    FeeDetails::new(total_fee, prioritization_fee)
+    fee_details
 }
 
 fn is_vote_transaction(message: &impl SVMMessage) -> bool {
