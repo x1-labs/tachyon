@@ -1320,21 +1320,15 @@ fn test_snapshots_blockstore_floor() {
         ..ClusterConfig::default()
     };
 
-    println!("Starting up cluster with 1 snapshotting validator");
-
     let mut cluster = LocalCluster::new(&mut config, SocketAddrSpace::Unspecified);
-
-    println!("Waiting for snapshot tar to be generated with slot",);
 
     let archive_info = loop {
         let archive =
             snapshot_utils::get_highest_full_snapshot_archive_info(full_snapshot_archives_dir);
         if archive.is_some() {
-            println!("snapshot exists");
             break archive.unwrap();
         }
         sleep(Duration::from_millis(5000));
-        println!("Waiting for snapshot tar to be generated with slot",);
     };
 
     // Copy archive to validator's snapshot output directory
@@ -1352,8 +1346,6 @@ fn test_snapshots_blockstore_floor() {
     fs::hard_link(archive_info.path(), validator_archive_path).unwrap();
     let slot_floor = archive_info.slot();
 
-    println!("here1");
-
     // Start up a new node from a snapshot
     let cluster_nodes = discover_cluster(
         &cluster.entry_point_info.gossip().unwrap(),
@@ -1366,8 +1358,6 @@ fn test_snapshots_blockstore_floor() {
     validator_snapshot_test_config
         .validator_config
         .known_validators = Some(known_validators);
-
-    println!("here2");
 
     cluster.add_validator(
         &validator_snapshot_test_config.validator_config,
@@ -1386,8 +1376,6 @@ fn test_snapshots_blockstore_floor() {
         .unwrap();
     let mut current_slot = 0;
 
-    println!("here3");
-
     // Let this validator run a while with repair
     let target_slot = slot_floor + 40;
     while current_slot <= target_slot {
@@ -1403,8 +1391,6 @@ fn test_snapshots_blockstore_floor() {
         sleep(Duration::from_secs(1));
     }
 
-    println!("here4");
-
     // Check the validator ledger doesn't contain any slots < slot_floor
     cluster.close_preserve_ledgers();
     let validator_ledger_path = &cluster.validators[&validator_id];
@@ -1419,7 +1405,7 @@ fn test_snapshots_blockstore_floor() {
 #[test]
 #[serial]
 fn test_snapshots_restart_validity() {
-    solana_logger::setup_with_default(RUST_LOG_FILTER);
+    solana_logger::setup();
     let snapshot_interval_slots = 100;
     let num_account_paths = 1;
     let mut snapshot_test_config =

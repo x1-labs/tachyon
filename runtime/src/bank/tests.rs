@@ -6088,7 +6088,7 @@ fn test_pre_post_transaction_balances() {
     );
     assert_eq!(
         transaction_balances_set.post_balances[0],
-        vec![904350, 913_000, 1]
+        vec![904_350, 913_000, 1]
     );
 
     // Failed transactions still produce balance sets
@@ -6112,7 +6112,7 @@ fn test_pre_post_transaction_balances() {
     );
     assert_eq!(
         transaction_balances_set.post_balances[2],
-        vec![907350, 0, 1]
+        vec![907_350, 0, 1]
     );
 }
 
