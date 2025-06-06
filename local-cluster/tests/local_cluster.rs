@@ -1296,7 +1296,7 @@ fn test_snapshot_restart_tower() {
 #[test]
 #[serial]
 fn test_snapshots_blockstore_floor() {
-    solana_logger::setup();
+    solana_logger::setup_with_default(RUST_LOG_FILTER);
     // First set up the cluster with 1 snapshotting leader
     let snapshot_interval_slots = 100;
     let num_account_paths = 4;
@@ -1322,10 +1322,13 @@ fn test_snapshots_blockstore_floor() {
 
     let mut cluster = LocalCluster::new(&mut config, SocketAddrSpace::Unspecified);
 
+    trace!("Waiting for snapshot tar to be generated with slot",);
+
     let archive_info = loop {
         let archive =
             snapshot_utils::get_highest_full_snapshot_archive_info(full_snapshot_archives_dir);
         if archive.is_some() {
+            trace!("snapshot exists");
             break archive.unwrap();
         }
         sleep(Duration::from_millis(5000));
@@ -1405,7 +1408,7 @@ fn test_snapshots_blockstore_floor() {
 #[test]
 #[serial]
 fn test_snapshots_restart_validity() {
-    solana_logger::setup();
+    solana_logger::setup_with_default(RUST_LOG_FILTER);
     let snapshot_interval_slots = 100;
     let num_account_paths = 1;
     let mut snapshot_test_config =
