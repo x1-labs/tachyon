@@ -319,7 +319,7 @@ all_test_steps() {
              ^ci/test-coverage.sh \
              ^scripts/coverage.sh \
       ; then
-    docker_command_step coverage "ci/test-coverage.sh" "$CI_DOCKER_IMAGE" 160
+    docker_command_step coverage "ci/test-coverage.sh" "$CI_DOCKER_IMAGE" 240
   else
     annotate --style info --context test-coverage \
       "Coverage skipped as no .rs files were modified"
