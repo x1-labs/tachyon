@@ -33,7 +33,7 @@ pull_request_rules:
     actions:
       request_reviews:
         teams:
-          - "@x1-labs-xyz/community-pr-subscribers"
+          - "@x1-labs/community-pr-subscribers"
   - name: label changes from monorepo-triage
     conditions:
       - author≠@x1-labs
