@@ -1,4 +1,4 @@
-# https://doc.mergify.io/
+# https://docs.mergify.com/
 pull_request_rules:
   - name: label changes from community
     conditions:
