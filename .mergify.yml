@@ -1,4 +1,3 @@
-# https://doc.mergify.io/
 pull_request_rules:
   - name: label changes from community
     conditions:
@@ -23,9 +22,6 @@ pull_request_rules:
       - author≠mergify[bot]
       - author≠dependabot[bot]
       - author≠github-actions[bot]
-      # Only request reviews from the pr subscribers group if no one
-      # has reviewed the community PR yet. These checks only match
-      # reviewers with admin, write or maintain permission on the repository.
       - "#approved-reviews-by=0"
       - "#commented-reviews-by=0"
       - "#changes-requested-reviews-by=0"
@@ -50,54 +46,53 @@ pull_request_rules:
   - name: automatic merge (squash) on CI success
     conditions:
       - and:
-        - status-success=buildkite/agave
-        - status-success=ci-gate
-        - label=automerge
-        - label!=no-automerge
-        - or:
-          # only require docs checks if docs files changed
-          - -files~=^docs/
-          - status-success=build & deploy docs
-        - or:
-          - -files~=(\.rs|Cargo\.toml|Cargo\.lock|\.github/scripts/cargo-clippy-before-script\.sh|\.github/workflows/cargo\.yml)$
+          - status-success=buildkite/agave
+          - status-success=ci-gate
+          - label=automerge
+          - label!=no-automerge
           - or:
-            - check-success=clippy-nightly (macos-latest)
-            - check-success=clippy-nightly (macos-latest-large)
-        - or:
-          - -files~=(\.rs|Cargo\.toml|Cargo\.lock|cargo-build-sbf|cargo-test-sbf|ci/downstream-projects/run-spl\.sh|\.github/workflows/downstream-project-spl\.yml)$
-          - and:
-            - status-success=check (associated-token-account)
-            - status-success=check (feature-proposal)
-            - status-success=check (instruction-padding)
-            - status-success=check (memo)
-            - status-success=check (record)
-            - status-success=check (single-pool)
-            - status-success=check (slashing)
-            - status-success=check (stake-pool)
-            - status-success=check (token-2022)
-            - status-success=test_cli (single-pool)
-            - status-success=test_cli (token-2022)
-            - status-success=cargo-test-sbf (associated-token-account)
-            - status-success=cargo-test-sbf (feature-proposal)
-            - status-success=cargo-test-sbf (instruction-padding)
-            - status-success=cargo-test-sbf (memo)
-            - status-success=cargo-test-sbf (record)
-            - status-success=cargo-test-sbf (single-pool)
-            - status-success=cargo-test-sbf (slashing)
-            - status-success=cargo-test-sbf (stake-pool)
-            - status-success=cargo-test-sbf (token-2022)
-        - or:
-          - -files~=(Cargo\.toml|.github/workflows/crate-check\.yml|ci/check-crates\.sh)$
-          - check-success=crate check
+              - -files~=^docs/
+              - status-success=build & deploy docs
+          - or:
+              - -files~=(\.rs|Cargo\.toml|Cargo\.lock|\.github/scripts/cargo-clippy-before-script\.sh|\.github/workflows/cargo\.yml)$
+              - or:
+                  - check-success=clippy-nightly (macos-latest)
+                  - check-success=clippy-nightly (macos-latest-large)
+          - or:
+              - -files~=(\.rs|Cargo\.toml|Cargo\.lock|cargo-build-sbf|cargo-test-sbf|ci/downstream-projects/run-spl\.sh|\.github/workflows/downstream-project-spl\.yml)$
+              - and:
+                  - status-success=check (associated-token-account)
+                  - status-success=check (feature-proposal)
+                  - status-success=check (instruction-padding)
+                  - status-success=check (memo)
+                  - status-success=check (record)
+                  - status-success=check (single-pool)
+                  - status-success=check (slashing)
+                  - status-success=check (stake-pool)
+                  - status-success=check (token-2022)
+                  - status-success=test_cli (single-pool)
+                  - status-success=test_cli (token-2022)
+                  - status-success=cargo-test-sbf (associated-token-account)
+                  - status-success=cargo-test-sbf (feature-proposal)
+                  - status-success=cargo-test-sbf (instruction-padding)
+                  - status-success=cargo-test-sbf (memo)
+                  - status-success=cargo-test-sbf (record)
+                  - status-success=cargo-test-sbf (single-pool)
+                  - status-success=cargo-test-sbf (slashing)
+                  - status-success=cargo-test-sbf (stake-pool)
+                  - status-success=cargo-test-sbf (token-2022)
+          - or:
+              - -files~=(Cargo\.toml|.github/workflows/crate-check\.yml|ci/check-crates\.sh)$
+              - check-success=crate check
     actions:
       merge:
         method: squash
   - name: remove automerge label on CI failure
     conditions:
       - and:
-        - label=automerge
-        - "#status-failure!=0"
-        - -merged
+          - label=automerge
+          - "#status-failure!=0"
+          - -merged
     actions:
       label:
         remove:
@@ -110,8 +105,10 @@ pull_request_rules:
       - label=feature-gate
     actions:
       backport:
-        assignees: &BackportAssignee
-          - "{{ merged_by|replace('mergify[bot]', label|select('equalto', 'community')|first|default(author)|replace('community', '@x1-xyz/community-pr-subscribers')) }}"
+        assignees: &a1
+          - "{{ merged_by|replace('mergify[bot]', label|select('equalto',
+            'community')|first|default(author)|replace('community',
+            '@x1-xyz/community-pr-subscribers')) }}"
         title: "{{ destination_branch }}: {{ title }} (backport of #{{ number }})"
         ignore_conflicts: true
         labels:
@@ -124,7 +121,7 @@ pull_request_rules:
       - label!=feature-gate
     actions:
       backport:
-        assignees: *BackportAssignee
+        assignees: *a1
         title: "{{ destination_branch }}: {{ title }} (backport of #{{ number }})"
         ignore_conflicts: true
         branches:
@@ -137,18 +134,18 @@ pull_request_rules:
         message: >
           Backports to the stable branch are to be avoided unless absolutely
           necessary for fixing bugs, security issues, and perf regressions.
-          Changes intended for backport should be structured such that a
-          minimum effective diff can be committed separately from any
-          refactoring, plumbing, cleanup, etc that are not strictly
-          necessary to achieve the goal. Any of the latter should go only
-          into master and ride the normal stabilization schedule.
+          Changes intended for backport should be structured such that a minimum
+          effective diff can be committed separately from any refactoring,
+          plumbing, cleanup, etc that are not strictly necessary to achieve the
+          goal. Any of the latter should go only into master and ride the normal
+          stabilization schedule.
   - name: v2.1 feature-gate backport
     conditions:
       - label=v2.1
       - label=feature-gate
     actions:
       backport:
-        assignees: *BackportAssignee
+        assignees: *a1
         title: "{{ destination_branch }}: {{ title }} (backport of #{{ number }})"
         ignore_conflicts: true
         labels:
@@ -161,7 +158,7 @@ pull_request_rules:
       - label!=feature-gate
     actions:
       backport:
-        assignees: *BackportAssignee
+        assignees: *a1
         title: "{{ destination_branch }}: {{ title }} (backport of #{{ number }})"
         ignore_conflicts: true
         branches:
@@ -174,19 +171,18 @@ pull_request_rules:
         message: >
           Backports to the beta branch are to be avoided unless absolutely
           necessary for fixing bugs, security issues, and perf regressions.
-          Changes intended for backport should be structured such that a
-          minimum effective diff can be committed separately from any
-          refactoring, plumbing, cleanup, etc that are not strictly
-          necessary to achieve the goal. Any of the latter should go only
-          into master and ride the normal stabilization schedule. Exceptions
-          include CI/metrics changes, CLI improvements and documentation
-          updates on a case by case basis.
+          Changes intended for backport should be structured such that a minimum
+          effective diff can be committed separately from any refactoring,
+          plumbing, cleanup, etc that are not strictly necessary to achieve the
+          goal. Any of the latter should go only into master and ride the normal
+          stabilization schedule. Exceptions include CI/metrics changes, CLI
+          improvements and documentation updates on a case by case basis.
   - name: Reminder to update RPC clients for changes in `rpc/`
     conditions:
       - or:
-        - files~=^rpc/src/rpc\.rs$
-        - files~=^rpc/src/rpc_pubsub\.rs$
-        - files~=^rpc-client-api/src/.*\.rs$
+          - files~=^rpc/src/rpc\.rs$
+          - files~=^rpc/src/rpc_pubsub\.rs$
+          - files~=^rpc-client-api/src/.*\.rs$
     actions:
       comment:
         message: |
@@ -199,15 +195,15 @@ pull_request_rules:
   - name: Reminder to add Firedancer team to changes in `programs/`
     conditions:
       - or:
-        - files~=^programs/address-lookup-table/src/.*\.rs$
-        - files~=^programs/bpf_loader/src/.*\.rs$
-        - files~=^programs/compute_budget/src/.*\.rs$
-        - files~=^programs/config/src/.*\.rs$
-        - files~=^programs/loader-v4/src/.*\.rs$
-        - files~=^programs/stake/src/.*\.rs$
-        - files~=^programs/system/src/.*\.rs$
-        - files~=^programs/vote/src/.*\.rs$
-        - files~=^programs/zk-elgamal-proof/src/.*\.rs$
+          - files~=^programs/address-lookup-table/src/.*\.rs$
+          - files~=^programs/bpf_loader/src/.*\.rs$
+          - files~=^programs/compute_budget/src/.*\.rs$
+          - files~=^programs/config/src/.*\.rs$
+          - files~=^programs/loader-v4/src/.*\.rs$
+          - files~=^programs/stake/src/.*\.rs$
+          - files~=^programs/system/src/.*\.rs$
+          - files~=^programs/vote/src/.*\.rs$
+          - files~=^programs/zk-elgamal-proof/src/.*\.rs$
     actions:
       comment:
         message: |
@@ -217,10 +213,9 @@ pull_request_rules:
           If this PR represents a change to a native program implementation (not
           tests), please include a reviewer from the Firedancer team. And please
           keep refactors to a minimum.
-
 commands_restrictions:
-  # The author of copied PRs is the Mergify user.
-  # Restrict `copy` access to Core Contributors
   copy:
     conditions:
-    - author=@core-contributors
+      - author=@core-contributors
+queue_rules:
+  - name: Test1 merge1
