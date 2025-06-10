@@ -100,7 +100,7 @@ use {
         block_cost_limits::{simd_0207_block_limits, simd_0256_block_limits},
         cost_tracker::CostTracker,
     },
-    solana_fee::FeeFeatures,
+    solana_fee::{calculate_fee, FeeFeatures},
     solana_lattice_hash::lt_hash::LtHash,
     solana_measure::{meas_dur, measure::Measure, measure_time, measure_us},
     solana_program_runtime::{
@@ -2871,18 +2871,14 @@ impl Bank {
     }
 
     pub fn get_fee_for_message(&self, message: &SanitizedMessage) -> Option<u64> {
-        let lamports_per_signature = {
-            let blockhash_queue = self.blockhash_queue.read().unwrap();
-            blockhash_queue.get_lamports_per_signature(message.recent_blockhash())
-        }
-        .or_else(|| {
-            self.load_message_nonce_account(message).map(
-                |(_nonce_address, _nonce_account, nonce_data)| {
-                    nonce_data.get_lamports_per_signature()
-                },
-            )
-        })?;
-        Some(self.get_fee_for_message_with_lamports_per_signature(message, lamports_per_signature))
+        let fee_budget_limits = self.get_fee_budget_limits(message);
+        Some(calculate_fee(
+            message,
+            false,
+            self.fee_rate_governor.lamports_per_signature,
+            fee_budget_limits.prioritization_fee,
+            FeeFeatures::from(self.feature_set.as_ref()),
+        ))
     }
 
     /// Returns true when startup accounts hash verification has completed or never had to run in background.
@@ -2926,6 +2922,16 @@ impl Bank {
             self.fee_structure().lamports_per_signature,
             fee_budget_limits.prioritization_fee,
             FeeFeatures::from(self.feature_set.as_ref()),
+        )
+    }
+
+    fn get_fee_budget_limits(&self, message: &impl SVMMessage) -> FeeBudgetLimits {
+        FeeBudgetLimits::from(
+            process_compute_budget_instructions(
+                message.program_instructions_iter(),
+                &self.feature_set,
+            )
+            .unwrap_or_default(),
         )
     }
 

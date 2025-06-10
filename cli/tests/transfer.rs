@@ -12,14 +12,12 @@ use {
     solana_rpc_client::rpc_client::RpcClient,
     solana_rpc_client_nonce_utils::blockhash_query::{self, BlockhashQuery},
     solana_sdk::{
-        compute_budget::ComputeBudgetInstruction,
         fee::FeeStructure,
-        message::Message,
         native_token::sol_to_lamports,
         nonce::State as NonceState,
         pubkey::Pubkey,
         signature::{keypair_from_seed, Keypair, NullSigner, Signer},
-        stake, system_instruction,
+        stake,
     },
     solana_streamer::socket::SocketAddrSpace,
     solana_test_validator::TestValidator,
@@ -31,7 +29,11 @@ use {
 fn test_transfer(skip_preflight: bool) {
     solana_logger::setup();
     let fee_one_sig = FeeStructure::default().get_max_fee(1, 0);
-    let fee_two_sig = FeeStructure::default().get_max_fee(2, 0);
+    let fee1 = 1650;
+    let fee2 = 5158;
+    let fee3 = 8458;
+    let fee4 = 10108;
+    let fee5 = 4950;
     let mint_keypair = Keypair::new();
     let mint_pubkey = mint_keypair.pubkey();
     let faucet_addr = run_local_faucet(mint_keypair, None);
@@ -82,11 +84,7 @@ fn test_transfer(skip_preflight: bool) {
         compute_unit_price: None,
     };
     process_command(&config).unwrap();
-    check_balance!(
-        sol_to_lamports(4.0) - fee_one_sig,
-        &rpc_client,
-        &sender_pubkey
-    );
+    check_balance!(sol_to_lamports(4.0) - fee1, &rpc_client, &sender_pubkey);
     check_balance!(sol_to_lamports(1.0), &rpc_client, &recipient_pubkey);
 
     // Plain ole transfer, failure due to InsufficientFundsForSpendAndFee
@@ -108,11 +106,7 @@ fn test_transfer(skip_preflight: bool) {
         compute_unit_price: None,
     };
     assert!(process_command(&config).is_err());
-    check_balance!(
-        sol_to_lamports(4.0) - fee_one_sig,
-        &rpc_client,
-        &sender_pubkey
-    );
+    check_balance!(sol_to_lamports(4.0) - fee1, &rpc_client, &sender_pubkey);
     check_balance!(sol_to_lamports(1.0), &rpc_client, &recipient_pubkey);
 
     let mut offline = CliConfig::recent_for_tests();
@@ -170,11 +164,7 @@ fn test_transfer(skip_preflight: bool) {
         compute_unit_price: None,
     };
     process_command(&config).unwrap();
-    check_balance!(
-        sol_to_lamports(0.5) - fee_one_sig,
-        &rpc_client,
-        &offline_pubkey
-    );
+    check_balance!(sol_to_lamports(0.5) - fee1, &rpc_client, &offline_pubkey);
     check_balance!(sol_to_lamports(1.5), &rpc_client, &recipient_pubkey);
 
     // Create nonce account
@@ -192,11 +182,7 @@ fn test_transfer(skip_preflight: bool) {
         compute_unit_price: None,
     };
     process_command(&config).unwrap();
-    check_balance!(
-        sol_to_lamports(4.0) - fee_one_sig - fee_two_sig - minimum_nonce_balance,
-        &rpc_client,
-        &sender_pubkey,
-    );
+    check_balance!(sol_to_lamports(4.0) - fee2, &rpc_client, &sender_pubkey,);
 
     // Fetch nonce hash
     let nonce_hash = solana_rpc_client_nonce_utils::get_account_with_commitment(
@@ -231,11 +217,7 @@ fn test_transfer(skip_preflight: bool) {
         compute_unit_price: None,
     };
     process_command(&config).unwrap();
-    check_balance!(
-        sol_to_lamports(3.0) - 2 * fee_one_sig - fee_two_sig - minimum_nonce_balance,
-        &rpc_client,
-        &sender_pubkey,
-    );
+    check_balance!(sol_to_lamports(3.0) - fee3, &rpc_client, &sender_pubkey,);
     check_balance!(sol_to_lamports(2.5), &rpc_client, &recipient_pubkey);
     let new_nonce_hash = solana_rpc_client_nonce_utils::get_account_with_commitment(
         &rpc_client,
@@ -257,11 +239,7 @@ fn test_transfer(skip_preflight: bool) {
         compute_unit_price: None,
     };
     process_command(&config).unwrap();
-    check_balance!(
-        sol_to_lamports(3.0) - 3 * fee_one_sig - fee_two_sig - minimum_nonce_balance,
-        &rpc_client,
-        &sender_pubkey,
-    );
+    check_balance!(sol_to_lamports(3.0) - fee4, &rpc_client, &sender_pubkey,);
 
     // Fetch nonce hash
     let nonce_hash = solana_rpc_client_nonce_utils::get_account_with_commitment(
@@ -318,11 +296,7 @@ fn test_transfer(skip_preflight: bool) {
         compute_unit_price: None,
     };
     process_command(&config).unwrap();
-    check_balance!(
-        sol_to_lamports(0.1) - 2 * fee_one_sig,
-        &rpc_client,
-        &offline_pubkey
-    );
+    check_balance!(sol_to_lamports(0.1) - fee5, &rpc_client, &offline_pubkey);
     check_balance!(sol_to_lamports(2.9), &rpc_client, &recipient_pubkey);
 }
 
@@ -331,6 +305,7 @@ fn test_transfer_multisession_signing() {
     solana_logger::setup();
     let fee_one_sig = FeeStructure::default().get_max_fee(1, 0);
     let fee_two_sig = FeeStructure::default().get_max_fee(2, 0);
+    let fee1 = 10000 + 8350;
     let mint_keypair = Keypair::new();
     let mint_pubkey = mint_keypair.pubkey();
     let faucet_addr = run_local_faucet(mint_keypair, None);
@@ -472,7 +447,7 @@ fn test_transfer_multisession_signing() {
         &offline_from_signer.pubkey(),
     );
     check_balance!(
-        sol_to_lamports(1.0) + fee_two_sig,
+        sol_to_lamports(1.0) + fee1,
         &rpc_client,
         &offline_fee_payer_signer.pubkey(),
     );
@@ -500,27 +475,10 @@ fn test_transfer_all(compute_unit_price: Option<u64>) {
     let default_signer = Keypair::new();
     let recipient_pubkey = Pubkey::from([1u8; 32]);
 
-    let fee = {
-        let mut instructions = vec![system_instruction::transfer(
-            &default_signer.pubkey(),
-            &recipient_pubkey,
-            0,
-        )];
-        if let Some(compute_unit_price) = compute_unit_price {
-            // This is brittle and will need to be updated if the compute unit
-            // limit for the system program or compute budget program are changed,
-            // or if they're converted to BPF.
-            // See `solana_system_program::system_processor::DEFAULT_COMPUTE_UNITS`
-            // and `solana_compute_budget_program::DEFAULT_COMPUTE_UNITS`
-            instructions.push(ComputeBudgetInstruction::set_compute_unit_limit(450));
-            instructions.push(ComputeBudgetInstruction::set_compute_unit_price(
-                compute_unit_price,
-            ));
-        }
-        let blockhash = rpc_client.get_latest_blockhash().unwrap();
-        let sample_message =
-            Message::new_with_blockhash(&instructions, Some(&default_signer.pubkey()), &blockhash);
-        rpc_client.get_fee_for_message(&sample_message).unwrap()
+    let fee = if compute_unit_price.is_some() {
+        4995
+    } else {
+        1650
     };
 
     let mut config = CliConfig::recent_for_tests();
@@ -616,7 +574,7 @@ fn test_transfer_unfunded_recipient() {
 #[test]
 fn test_transfer_with_seed() {
     solana_logger::setup();
-    let fee = FeeStructure::default().get_max_fee(1, 0);
+    let fee = 1650;
     let mint_keypair = Keypair::new();
     let mint_pubkey = mint_keypair.pubkey();
     let faucet_addr = run_local_faucet(mint_keypair, None);

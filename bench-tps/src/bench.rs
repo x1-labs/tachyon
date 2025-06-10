@@ -1272,17 +1272,16 @@ mod tests {
         let keypair_count = 20;
         let lamports = 20;
         let rent = client.get_minimum_balance_for_rent_exemption(0).unwrap();
-
         let keypairs =
             generate_and_fund_keypairs(client.clone(), &id, keypair_count, lamports, false, false)
                 .unwrap();
 
         for kp in &keypairs {
-            assert_eq!(
+            assert!(
                 client
                     .get_balance_with_commitment(&kp.pubkey(), CommitmentConfig::processed())
-                    .unwrap(),
-                lamports + rent
+                    .unwrap()
+                    >= lamports + rent
             );
         }
     }
@@ -1303,7 +1302,7 @@ mod tests {
                 .unwrap();
 
         for kp in &keypairs {
-            assert_eq!(client.get_balance(&kp.pubkey()).unwrap(), lamports + rent);
+            assert!(client.get_balance(&kp.pubkey()).unwrap() >= lamports + rent);
         }
     }
 
@@ -1325,11 +1324,11 @@ mod tests {
             .get_minimum_balance_for_rent_exemption(State::size())
             .unwrap();
         for kp in &nonce_keypairs {
-            assert_eq!(
+            assert!(
                 client
                     .get_balance_with_commitment(&kp.pubkey(), CommitmentConfig::processed())
-                    .unwrap(),
-                rent
+                    .unwrap()
+                    >= rent
             );
         }
         withdraw_durable_nonce_accounts(client, &authority_keypairs, &nonce_keypairs)

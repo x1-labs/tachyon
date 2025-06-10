@@ -1626,7 +1626,8 @@ mod tests {
         let incremental_snapshot_archives_dir = tempfile::TempDir::new().unwrap();
         let snapshot_archive_format = ArchiveFormat::Tar;
 
-        let (mut genesis_config, mint_keypair) = create_genesis_config(sol_to_lamports(1_000_000.));
+        let (mut genesis_config, mint_keypair) =
+            create_genesis_config(sol_to_lamports(20_000_000.));
         // test expects 0 transaction fee
         genesis_config.fee_rate_governor = solana_sdk::fee_calculator::FeeRateGovernor::new(0, 0);
 
@@ -1670,19 +1671,8 @@ mod tests {
         let bank2 =
             new_bank_from_parent_with_bank_forks(bank_forks.as_ref(), bank1, &collector, slot);
         let blockhash = bank2.last_blockhash();
-        let tx = SanitizedTransaction::from_transaction_for_tests(system_transaction::transfer(
-            &key1,
-            &key2.pubkey(),
-            lamports_to_transfer,
-            blockhash,
-        ));
-        let fee = bank2.get_fee_for_message(tx.message()).unwrap();
-        let tx = system_transaction::transfer(
-            &key1,
-            &key2.pubkey(),
-            lamports_to_transfer - fee,
-            blockhash,
-        );
+        let tx =
+            system_transaction::transfer(&key1, &key2.pubkey(), lamports_to_transfer, blockhash);
         bank2.process_transaction(&tx).unwrap();
         assert_eq!(
             bank2.get_balance(&key1.pubkey()),

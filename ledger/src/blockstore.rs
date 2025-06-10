@@ -203,12 +203,12 @@ impl LastFECSetCheckResults {
         &self,
         feature_set: &FeatureSet,
     ) -> std::result::Result<Option<Hash>, BlockstoreProcessorError> {
-        if feature_set.is_active(&solana_sdk::feature_set::vote_only_full_fec_sets::id())
+        if feature_set.is_active(&agave_feature_set::vote_only_full_fec_sets::id())
             && self.last_fec_set_merkle_root.is_none()
         {
             return Err(BlockstoreProcessorError::IncompleteFinalFecSet);
         } else if feature_set
-            .is_active(&solana_sdk::feature_set::vote_only_retransmitter_signed_fec_sets::id())
+            .is_active(&agave_feature_set::vote_only_retransmitter_signed_fec_sets::id())
             && !self.is_retransmitter_signed
         {
             return Err(BlockstoreProcessorError::InvalidRetransmitterSignatureFinalFecSet);
@@ -5380,6 +5380,7 @@ pub mod tests {
             leader_schedule::{FixedSchedule, LeaderSchedule},
             shred::{max_ticks_per_n_shreds, ShredFlags, LEGACY_SHRED_DATA_CAPACITY},
         },
+        agave_feature_set::{vote_only_full_fec_sets, vote_only_retransmitter_signed_fec_sets},
         assert_matches::assert_matches,
         bincode::{serialize, Options},
         crossbeam_channel::unbounded,
@@ -5392,7 +5393,6 @@ pub mod tests {
         solana_runtime::bank::{Bank, RewardType},
         solana_sdk::{
             clock::{DEFAULT_MS_PER_SLOT, DEFAULT_TICKS_PER_SLOT},
-            feature_set::{vote_only_full_fec_sets, vote_only_retransmitter_signed_fec_sets},
             hash::{self, hash, Hash},
             instruction::CompiledInstruction,
             message::v0::LoadedAddresses,

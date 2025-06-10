@@ -58,7 +58,7 @@ fn test_bench_tps_local_cluster(config: Config) {
     let cluster = LocalCluster::new(
         &mut ClusterConfig {
             node_stakes: vec![999_990; NUM_NODES],
-            mint_lamports: 200_000_000,
+            mint_lamports: 200_000_000_000,
             validator_configs: make_identical_validator_configs(
                 &ValidatorConfig {
                     rpc_config: JsonRpcConfig {
@@ -76,7 +76,7 @@ fn test_bench_tps_local_cluster(config: Config) {
         SocketAddrSpace::Unspecified,
     );
 
-    cluster.transfer(&cluster.funding_keypair, &faucet_pubkey, 100_000_000);
+    cluster.transfer(&cluster.funding_keypair, &faucet_pubkey, 100_000_000_000);
 
     let client = Arc::new(
         cluster
@@ -86,7 +86,7 @@ fn test_bench_tps_local_cluster(config: Config) {
             }),
     );
 
-    let lamports_per_account = 100;
+    let lamports_per_account = 200000;
 
     let keypair_count = config.tx_count * config.keypair_multiplier;
     let keypairs = generate_and_fund_keypairs(
@@ -142,7 +142,7 @@ fn test_bench_tps_test_validator(config: Config) {
         .expect("Should build Quic Tpu Client."),
     );
 
-    let lamports_per_account = 1000;
+    let lamports_per_account = 2000;
 
     let keypair_count = config.tx_count * config.keypair_multiplier;
     let keypairs = generate_and_fund_keypairs(
