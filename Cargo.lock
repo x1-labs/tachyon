@@ -7593,6 +7593,8 @@ dependencies = [
  "solana-compute-budget-instruction",
  "solana-cost-model",
  "solana-fee-structure",
+ "solana-logger",
+ "solana-message",
  "solana-pubkey",
  "solana-runtime-transaction",
  "solana-sdk",
