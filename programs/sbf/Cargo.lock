@@ -6014,6 +6014,7 @@ name = "solana-fee"
 version = "2.2.15"
 dependencies = [
  "agave-feature-set",
+ "env_logger",
  "lazy_static",
  "log",
  "serde",
@@ -6022,6 +6023,8 @@ dependencies = [
  "solana-compute-budget-instruction",
  "solana-cost-model",
  "solana-fee-structure",
+ "solana-logger",
+ "solana-message",
  "solana-pubkey",
  "solana-runtime-transaction",
  "solana-sdk",

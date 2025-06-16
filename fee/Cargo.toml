@@ -26,3 +26,5 @@ solana-sdk = { workspace = true }
 solana-sdk-ids = { workspace = true }
 solana-svm-transaction = { workspace = true }
 solana-vote = { workspace = true }
+solana-message = { workspace = true }
+solana-logger = { workspace = true }
