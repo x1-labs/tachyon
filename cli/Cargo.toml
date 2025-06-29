@@ -9,6 +9,13 @@ homepage = { workspace = true }
 license = { workspace = true }
 edition = { workspace = true }
 
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[[bin]]
+name = "solana"
+path = "src/main.rs"
+
 [dependencies]
 agave-feature-set = { workspace = true }
 bincode = { workspace = true }
@@ -51,7 +58,7 @@ solana-feature-gate-interface = "=2.2.2"
 solana-hash = "=2.2.1"
 solana-instruction = "=2.2.1"
 solana-keypair = "=2.2.1"
-solana-loader-v3-interface = "=3.0.0"
+solana-loader-v3-interface = { version = "=4.0.1", features = ["bincode"] }
 solana-loader-v4-interface = "=2.2.1"
 solana-loader-v4-program = { workspace = true }
 solana-logger = "=2.3.1"
@@ -102,10 +109,3 @@ solana-streamer = { workspace = true }
 solana-test-validator = { workspace = true }
 tempfile = { workspace = true }
 test-case = { workspace = true }
-
-[[bin]]
-name = "solana"
-path = "src/main.rs"
-
-[package.metadata.docs.rs]
-targets = ["x86_64-unknown-linux-gnu"]
