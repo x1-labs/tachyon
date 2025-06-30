@@ -50,6 +50,7 @@ members = [
     "faucet",
     "feature-set",
     "fee",
+    "fee-v0",
     "genesis",
     "genesis-utils",
     "geyser-plugin-interface",
@@ -423,6 +424,7 @@ solana-feature-gate-client = "0.0.2"
 solana-feature-gate-interface = "2.2.2"
 solana-fee-calculator = "2.2.1"
 solana-fee = { path = "fee", version = "=2.2.15" }
+solana-fee-v0 = { path = "fee-v0", version = "=2.2.15" }
 solana-fee-structure = "2.2.1"
 solana-frozen-abi = "2.2.1"
 solana-frozen-abi-macro = "2.2.1"

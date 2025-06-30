@@ -1,5 +1,5 @@
 use {
-    agave_feature_set::FeatureSet,
+    agave_feature_set::{enable_dynamic_fees_fixes_v1, FeatureSet},
     log::{debug, trace},
     solana_builtins_default_costs::get_builtin_instruction_cost,
     solana_compute_budget_instruction::instructions_processor::process_compute_budget_instructions,
@@ -40,6 +40,16 @@ pub fn calculate_fee_details(
 ) -> FeeDetails {
     if zero_fees_for_test {
         return FeeDetails::default();
+    }
+
+    if !feature_set.is_active(&enable_dynamic_fees_fixes_v1::id()) {
+        return solana_fee_v0::calculate_fee_details(
+            message,
+            zero_fees_for_test,
+            _lamports_per_signature,
+            prioritization_fee,
+            feature_set.into(),
+        );
     }
 
     if is_vote_transaction(message) {

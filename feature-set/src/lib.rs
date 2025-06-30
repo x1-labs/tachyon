@@ -1017,6 +1017,10 @@ pub mod mask_out_rent_epoch_in_vm_serialization {
     solana_pubkey::declare_id!("PQ2UuqjikpyASB7hUQ14BJLmLpbiTpe7tMF5QgbihLp");
 }
 
+pub mod enable_dynamic_fees_fixes_v1 {
+    solana_pubkey::declare_id!("BnVoGCqzC176Z2A4zWz3pNGAFT7DAABGoN9WsJe3N11D");
+}
+
 pub static FEATURE_NAMES: LazyLock<AHashMap<Pubkey, &'static str>> = LazyLock::new(|| {
     [
         (secp256k1_program_enabled::id(), "secp256k1 program"),
@@ -1247,6 +1251,7 @@ pub static FEATURE_NAMES: LazyLock<AHashMap<Pubkey, &'static str>> = LazyLock::n
         (disable_partitioned_rent_collection::id(), "SIMD-0175: Disable partitioned rent collection"),
         (raise_block_limits_to_60m::id(), "Raise block limit to 60M SIMD-0256"),
         (mask_out_rent_epoch_in_vm_serialization::id(), "SIMD-0267: Sets rent_epoch to a constant in the VM"),
+        (enable_dynamic_fees_fixes_v1::id(), "Enable dynamic fees fixes v1"),
         /*************** ADD NEW FEATURES HERE ***************/
     ]
     .iter()
