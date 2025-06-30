@@ -100,7 +100,7 @@ use {
         block_cost_limits::{simd_0207_block_limits, simd_0256_block_limits},
         cost_tracker::CostTracker,
     },
-    solana_fee::{calculate_fee, FeeFeatures},
+    solana_fee::calculate_fee,
     solana_lattice_hash::lt_hash::LtHash,
     solana_measure::{meas_dur, measure::Measure, measure_time, measure_us},
     solana_program_runtime::{
@@ -2877,7 +2877,7 @@ impl Bank {
             false,
             self.fee_rate_governor.lamports_per_signature,
             fee_budget_limits.prioritization_fee,
-            FeeFeatures::from(self.feature_set.as_ref()),
+            self.feature_set.as_ref(),
         ))
     }
 
@@ -2921,7 +2921,7 @@ impl Bank {
             lamports_per_signature == 0,
             self.fee_structure().lamports_per_signature,
             fee_budget_limits.prioritization_fee,
-            FeeFeatures::from(self.feature_set.as_ref()),
+            self.feature_set.as_ref(),
         )
     }
 
@@ -6976,7 +6976,7 @@ impl TransactionProcessingCallback for Bank {
             false, /* zero_fees_for_test */
             lamports_per_signature,
             prioritization_fee,
-            FeeFeatures::from(feature_set),
+            &feature_set,
         )
     }
 }

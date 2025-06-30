@@ -3,7 +3,6 @@ use {
     crate::bank::CollectorFeeDetails,
     agave_feature_set::reward_full_priority_fee,
     log::{debug, warn},
-    solana_fee::FeeFeatures,
     solana_runtime_transaction::transaction_with_meta::TransactionWithMeta,
     solana_sdk::{
         account::{ReadableAccount, WritableAccount},
@@ -82,7 +81,7 @@ impl Bank {
             self.get_lamports_per_signature() == 0,
             self.fee_structure().lamports_per_signature,
             fee_budget_limits.prioritization_fee,
-            FeeFeatures::from(self.feature_set.as_ref()),
+            self.feature_set.as_ref(),
         );
         let (reward, _burn) = if self.feature_set.is_active(&reward_full_priority_fee::id()) {
             self.calculate_reward_and_burn_fee_details(&CollectorFeeDetails::from(fee_details))
