@@ -1,7 +1,6 @@
-use log::trace;
 use {
     agave_feature_set::FeatureSet,
-    log::debug,
+    log::{debug, trace},
     solana_builtins_default_costs::get_builtin_instruction_cost,
     solana_compute_budget_instruction::instructions_processor::process_compute_budget_instructions,
     solana_fee_structure::FeeDetails,
@@ -54,10 +53,7 @@ pub fn calculate_fee_details(
         return FeeDetails::default();
     }
 
-    trace!(
-        "Request fee calculation for message: {:?}",
-        message,
-    );
+    trace!("Request fee calculation for message: {:?}", message,);
 
     let compute_units_derived = get_transaction_cost(message, feature_set);
 
@@ -107,7 +103,8 @@ fn get_transaction_cost(message: &impl SVMMessage, feature_set: &FeatureSet) -> 
 
         if check_id(program_id) {
             if let Ok(ComputeBudgetInstruction::SetComputeUnitLimit(_)) =
-                try_from_slice_unchecked(&instruction.data) {
+                try_from_slice_unchecked(&instruction.data)
+            {
                 compute_unit_limit_is_set = true;
                 debug!("Found SetComputeUnitLimit instruction");
             }
@@ -119,7 +116,8 @@ fn get_transaction_cost(message: &impl SVMMessage, feature_set: &FeatureSet) -> 
     );
 
     if let Ok(compute_budget_limits) =
-        process_compute_budget_instructions(message.program_instructions_iter(), feature_set) {
+        process_compute_budget_instructions(message.program_instructions_iter(), feature_set)
+    {
         debug!(
             "Processed compute_budget_instructions, got compute_unit_limit: {}",
             compute_budget_limits.compute_unit_limit
@@ -135,28 +133,35 @@ fn get_transaction_cost(message: &impl SVMMessage, feature_set: &FeatureSet) -> 
         debug!("Failed to process compute_budget_instructions");
     }
 
-    debug!("Final builtin_costs: {}, Final bpf_costs: {}", builtin_costs, bpf_costs);
+    debug!(
+        "Final builtin_costs: {}, Final bpf_costs: {}",
+        builtin_costs, bpf_costs
+    );
     builtin_costs.saturating_add(bpf_costs)
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use solana_message::Message;
-    use solana_sdk::native_token::sol_to_lamports;
-    use solana_sdk::reserved_account_keys::ReservedAccountKeys;
-    use solana_sdk::system_instruction;
-    use solana_sdk::message::SanitizedMessage;
-    use solana_sdk::signature::Keypair;
-    use solana_sdk::signer::Signer;
-    use test_case::test_case;
-    use spl_memo::build_memo;
+    use {
+        super::*,
+        solana_message::Message,
+        solana_sdk::{
+            message::SanitizedMessage, native_token::sol_to_lamports,
+            reserved_account_keys::ReservedAccountKeys, signature::Keypair, signer::Signer,
+            system_instruction,
+        },
+        spl_memo::build_memo,
+        test_case::test_case,
+    };
 
     type MicroLamports = u128;
     const MICRO_LAMPORTS_PER_LAMPORT: u64 = 1_000_000;
 
     pub fn get_prioritization_fee(compute_unit_price: u64, compute_unit_limit: u64) -> u64 {
-        debug!("get_prioritization_fee compute_unit_price: {}, compute_unit_limit: {}", compute_unit_price, compute_unit_limit);
+        debug!(
+            "get_prioritization_fee compute_unit_price: {}, compute_unit_limit: {}",
+            compute_unit_price, compute_unit_limit
+        );
         let micro_lamport_fee: MicroLamports =
             (compute_unit_price as u128).saturating_mul(compute_unit_limit as u128);
         micro_lamport_fee
@@ -177,13 +182,11 @@ mod tests {
         let receiver = Keypair::new();
 
         let message = new_sanitized_message(Message::new(
-            &[
-                system_instruction::transfer(
-                    &sender.pubkey(),
-                    &receiver.pubkey(),
-                    sol_to_lamports(1.),
-                )
-            ],
+            &[system_instruction::transfer(
+                &sender.pubkey(),
+                &receiver.pubkey(),
+                sol_to_lamports(1.),
+            )],
             Some(&sender.pubkey()),
         ));
 
@@ -207,28 +210,37 @@ mod tests {
     #[test_case(100_000, 10_000_000, 1004500; "compute_unit_limit 100_000, price 10_000_000")]
     #[test_case(1_400_000, 1_000_000, 1404500; "Max allowed compute_unit_limit, price 1_000_000")]
     #[test_case(1_400_000, u64::MAX, u64::MAX; "Max allowed compute_unit_limit, max price, saturate")]
-    fn test_calculate_fee_simple_transfer_with_priority_fee(compute_unit_limit: u32, compute_unit_price: u64, actual: u64) {
+    fn test_calculate_fee_simple_transfer_with_priority_fee(
+        compute_unit_limit: u32,
+        compute_unit_price: u64,
+        actual: u64,
+    ) {
         solana_logger::setup();
         let sender = Keypair::new();
         let receiver = Keypair::new();
 
         let message = new_sanitized_message(Message::new(
             &[
-                ComputeBudgetInstruction::set_compute_unit_limit(
-                    compute_unit_limit,
-                ),
+                ComputeBudgetInstruction::set_compute_unit_limit(compute_unit_limit),
                 ComputeBudgetInstruction::set_compute_unit_price(compute_unit_price),
                 system_instruction::transfer(
                     &sender.pubkey(),
                     &receiver.pubkey(),
                     sol_to_lamports(1.),
-                )
+                ),
             ],
             Some(&sender.pubkey()),
         ));
 
-        let prioritization_fee = get_prioritization_fee(u64::from(compute_unit_limit), compute_unit_price);
-        let fee = calculate_fee(&message, false, 5000, prioritization_fee, &FeatureSet::all_enabled());
+        let prioritization_fee =
+            get_prioritization_fee(u64::from(compute_unit_limit), compute_unit_price);
+        let fee = calculate_fee(
+            &message,
+            false,
+            5000,
+            prioritization_fee,
+            &FeatureSet::all_enabled(),
+        );
         assert_eq!(fee, actual);
     }
 
@@ -242,18 +254,11 @@ mod tests {
 
         let memo_instruction = build_memo(b"Test memo", &[]);
         let instructions = vec![
-            system_instruction::transfer(
-                &sender.pubkey(),
-                &receiver.pubkey(),
-                sol_to_lamports(1.),
-            ),
+            system_instruction::transfer(&sender.pubkey(), &receiver.pubkey(), sol_to_lamports(1.)),
             memo_instruction,
         ];
 
-        let message = new_sanitized_message(Message::new(
-            &instructions,
-            Some(&sender.pubkey()),
-        ));
+        let message = new_sanitized_message(Message::new(&instructions, Some(&sender.pubkey())));
 
         let fee = calculate_fee(&message, false, 5000, 0, &FeatureSet::all_enabled());
         assert_eq!(fee, 2001500);
@@ -267,31 +272,33 @@ mod tests {
     #[test_case(1_400_000, 0, 14004500; "Test with compute unit limit 1_400_000 and price 0")]
     #[test_case(1_401_000, 0, 14004500; "Test with compute unit limit 1_401_000 and price 0")]
     #[test_case(1_401_000, 1_000_000, 15405500; "Test with compute unit limit 1_401_000 and price 1_000_000")]
-    fn test_calculate_fee_with_bpf_memo_instruction_with_compute_limits(compute_unit_limit: u32, compute_unit_price: u64, actual: u64) {
+    fn test_calculate_fee_with_bpf_memo_instruction_with_compute_limits(
+        compute_unit_limit: u32,
+        compute_unit_price: u64,
+        actual: u64,
+    ) {
         solana_logger::setup();
         let sender = Keypair::new();
         let receiver = Keypair::new();
 
         let instructions = vec![
-            ComputeBudgetInstruction::set_compute_unit_limit(
-                compute_unit_limit,
-            ),
+            ComputeBudgetInstruction::set_compute_unit_limit(compute_unit_limit),
             ComputeBudgetInstruction::set_compute_unit_price(compute_unit_price),
-            system_instruction::transfer(
-                &sender.pubkey(),
-                &receiver.pubkey(),
-                sol_to_lamports(1.),
-            ),
+            system_instruction::transfer(&sender.pubkey(), &receiver.pubkey(), sol_to_lamports(1.)),
             build_memo(b"Test memo", &[]),
         ];
 
-        let message = new_sanitized_message(Message::new(
-            &instructions,
-            Some(&sender.pubkey()),
-        ));
+        let message = new_sanitized_message(Message::new(&instructions, Some(&sender.pubkey())));
 
-        let prioritization_fee = get_prioritization_fee(u64::from(compute_unit_limit), compute_unit_price);
-        let fee = calculate_fee(&message, false, 5000, prioritization_fee, &FeatureSet::all_enabled());
+        let prioritization_fee =
+            get_prioritization_fee(u64::from(compute_unit_limit), compute_unit_price);
+        let fee = calculate_fee(
+            &message,
+            false,
+            5000,
+            prioritization_fee,
+            &FeatureSet::all_enabled(),
+        );
         assert_eq!(fee, actual);
     }
 }
