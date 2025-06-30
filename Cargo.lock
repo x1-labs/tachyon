@@ -7601,6 +7601,8 @@ dependencies = [
  "solana-sdk-ids",
  "solana-svm-transaction",
  "solana-vote",
+ "spl-memo",
+ "test-case",
 ]
 
 [[package]]
