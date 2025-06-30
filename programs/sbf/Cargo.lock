@@ -6022,6 +6022,7 @@ dependencies = [
  "solana-compute-budget-instruction",
  "solana-cost-model",
  "solana-fee-structure",
+ "solana-fee-v0",
  "solana-logger",
  "solana-message",
  "solana-pubkey",
@@ -6055,6 +6056,31 @@ dependencies = [
  "serde_derive",
  "solana-message",
  "solana-native-token",
+]
+
+[[package]]
+name = "solana-fee-v0"
+version = "2.2.15"
+dependencies = [
+ "agave-feature-set",
+ "lazy_static",
+ "log",
+ "serde",
+ "solana-builtins-default-costs",
+ "solana-compute-budget",
+ "solana-compute-budget-instruction",
+ "solana-cost-model",
+ "solana-fee-structure",
+ "solana-logger",
+ "solana-message",
+ "solana-pubkey",
+ "solana-runtime-transaction",
+ "solana-sdk",
+ "solana-sdk-ids",
+ "solana-svm-transaction",
+ "solana-vote",
+ "spl-memo",
+ "test-case",
 ]
 
 [[package]]

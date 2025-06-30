@@ -1,5 +1,5 @@
 [package]
-name = "solana-fee"
+name = "solana-fee-v0"
 description = "Solana fee calculation"
 documentation = "https://docs.rs/solana-fee"
 version = { workspace = true }
@@ -30,4 +30,3 @@ solana-message = { workspace = true }
 solana-logger = { workspace = true }
 test-case = { workspace = true }
 spl-memo = { workspace = true }
-solana-fee-v0 = { workspace = true }

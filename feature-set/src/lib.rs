@@ -1064,6 +1064,10 @@ pub mod reenable_zk_elgamal_proof_program {
     // solana zkemPXcuM3G4wpMDZ36Cpw34EjUpvm1nuioiSGbGZPR
 }
 
+pub mod enable_dynamic_fees_fixes_v1 {
+    solana_pubkey::declare_id!("BnVoGCqzC176Z2A4zWz3pNGAFT7DAABGoN9WsJe3N11D");
+}
+
 pub static FEATURE_NAMES: LazyLock<AHashMap<Pubkey, &'static str>> = LazyLock::new(|| {
     [
         (secp256k1_program_enabled::id(), "secp256k1 program"),
@@ -1297,6 +1301,7 @@ pub static FEATURE_NAMES: LazyLock<AHashMap<Pubkey, &'static str>> = LazyLock::n
         (enable_extend_program_checked::id(), "Enable ExtendProgramChecked instruction"),
         (disable_zk_elgamal_proof_program::id(), "Disables zk-elgamal-proof program"),
         (reenable_zk_elgamal_proof_program::id(), "Re-enables zk-elgamal-proof program"),
+        (enable_dynamic_fees_fixes_v1::id(), "Enable dynamic fees fixes v1"),
         /*************** ADD NEW FEATURES HERE ***************/
     ]
     .iter()
