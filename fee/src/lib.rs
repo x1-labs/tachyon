@@ -11,13 +11,7 @@ use {
     solana_svm_transaction::svm_message::SVMMessage,
 };
 
-pub const DEFAULT_INSTRUCTION_COMPUTE_UNIT_LIMIT: u32 = 200_000;
-pub const MAX_COMPUTE_UNIT_LIMIT: u32 = 1_400_000;
-pub const HEAP_LENGTH: usize = 32 * 1024;
-pub const MIN_COMPUTE_UNITS_THRESHOLD: u64 = 1_000;
-pub const MIN_COMPUTE_UNIT_PRICE_MICROLAMPORTS: u64 = 1_000_000;
 pub const BASE_FEE_MULTIPLIER: u64 = 10;
-pub const MICROLAMPORTS_PER_LAMPORT: u64 = 1_000_000;
 
 /// Calculate fee for `SanitizedMessage`
 pub fn calculate_fee(
