@@ -198,6 +198,27 @@ mod tests {
         assert_eq!(fee, 1500);
     }
 
+    #[test]
+    fn test_calculate_fee_simple_transfer_v0() {
+        let sender = Keypair::new();
+        let receiver = Keypair::new();
+
+        let message = new_sanitized_message(Message::new(
+            &[system_instruction::transfer(
+                &sender.pubkey(),
+                &receiver.pubkey(),
+                sol_to_lamports(1.),
+            )],
+            Some(&sender.pubkey()),
+        ));
+
+        let mut feature_set = FeatureSet::all_enabled();
+        feature_set.deactivate(&enable_dynamic_fees_fixes_v1::id());
+
+        let fee = calculate_fee(&message, false, 5000, 0, &feature_set);
+        assert_eq!(fee, 1650);
+    }
+
     #[test_case(300, 1_000_000, 4800; "Test with compute unit limit 300 and price 1_000_000")]
     #[test_case(300, 10_000_000, 7500; "Test with compute unit limit 300 and price 10_000_000")]
     #[test_case(0, 0, 4500; "Zero compute_unit_limit and price, only base fee")]
@@ -266,6 +287,31 @@ mod tests {
 
         let fee = calculate_fee(&message, false, 5000, 0, &FeatureSet::all_enabled());
         assert_eq!(fee, 2001500);
+    }
+
+    #[test]
+    fn test_calculate_fee_with_bpf_memo_instruction_v0() {
+        solana_logger::setup();
+        let sender = Keypair::new();
+        let receiver = Keypair::new();
+
+        let memo_instruction = build_memo(b"Test memo", &[]);
+        let instructions = vec![
+            ComputeBudgetInstruction::set_compute_unit_limit(500_000),
+            ComputeBudgetInstruction::set_compute_unit_price(10_000_000),
+            system_instruction::transfer(&sender.pubkey(), &receiver.pubkey(), sol_to_lamports(1.)),
+            memo_instruction,
+        ];
+
+        let message = new_sanitized_message(Message::new(&instructions, Some(&sender.pubkey())));
+
+        let mut feature_set = FeatureSet::all_enabled();
+        feature_set.deactivate(&enable_dynamic_fees_fixes_v1::id());
+
+        let prioritization_fee =
+            get_prioritization_fee(500_000, 10_000_000);
+        let fee = calculate_fee(&message, false, 5000, prioritization_fee, &feature_set);
+        assert_eq!(fee, 5003000);
     }
 
     #[test_case(20_003, 1_000_000, 224533; "Test with compute unit limit 20_003 and price 1_000_000")]

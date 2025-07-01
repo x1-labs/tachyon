@@ -2495,6 +2495,10 @@ fn test_one_tx_two_out_atomic_pass() {
 fn test_detect_failed_duplicate_transactions() {
     let (mut genesis_config, mint_keypair) = create_genesis_config(10_000);
     genesis_config.fee_rate_governor = FeeRateGovernor::new(5_000, 0);
+    activate_feature(
+        &mut genesis_config,
+        agave_feature_set::enable_dynamic_fees_fixes_v1::id(),
+    );
     let (bank, _bank_forks) = Bank::new_with_bank_forks_for_tests(&genesis_config);
 
     let dest = Keypair::new();
@@ -2517,7 +2521,7 @@ fn test_detect_failed_duplicate_transactions() {
     assert_eq!(bank.get_balance(&dest.pubkey()), 0);
 
     // This should be the original balance minus the transaction fee.
-    assert_eq!(bank.get_balance(&mint_keypair.pubkey()), 8350);
+    assert_eq!(bank.get_balance(&mint_keypair.pubkey()), 8500);
 }
 
 #[test]
@@ -6046,6 +6050,10 @@ fn test_pre_post_transaction_balances() {
     let (mut genesis_config, _mint_keypair) = create_genesis_config(500_000);
     let fee_rate_governor = FeeRateGovernor::new(5000, 0);
     genesis_config.fee_rate_governor = fee_rate_governor;
+    activate_feature(
+        &mut genesis_config,
+        agave_feature_set::enable_dynamic_fees_fixes_v1::id(),
+    );
     let (parent, bank_forks) = Bank::new_with_bank_forks_for_tests(&genesis_config);
     let bank0 = new_from_parent_with_fork_next_slot(parent, bank_forks.as_ref());
 
@@ -6088,7 +6096,7 @@ fn test_pre_post_transaction_balances() {
     );
     assert_eq!(
         transaction_balances_set.post_balances[0],
-        vec![904_350, 913_000, 1]
+        vec![904_500, 913_000, 1]
     );
 
     // Failed transactions still produce balance sets
@@ -6112,7 +6120,7 @@ fn test_pre_post_transaction_balances() {
     );
     assert_eq!(
         transaction_balances_set.post_balances[2],
-        vec![907_350, 0, 1]
+        vec![907_500, 0, 1]
     );
 }
 
@@ -10640,6 +10648,8 @@ fn calculate_test_fee(
 
 #[test]
 fn test_calculate_fee() {
+    solana_logger::setup();
+
     // Default: no fee.
     let message = new_sanitized_message(Message::new(&[], Some(&Pubkey::new_unique())));
     assert_eq!(
@@ -10669,7 +10679,7 @@ fn test_calculate_fee() {
                 ..FeeStructure::default()
             },
         ),
-        3300
+        3000
     );
 }
 
@@ -10688,7 +10698,9 @@ fn test_calculate_fee_compute_units() {
     let ix0 = system_instruction::transfer(&Pubkey::new_unique(), &Pubkey::new_unique(), 1);
     let ix1 = system_instruction::transfer(&Pubkey::new_unique(), &Pubkey::new_unique(), 1);
     let message = new_sanitized_message(Message::new(&[ix0, ix1], Some(&Pubkey::new_unique())));
-    assert_eq!(calculate_test_fee(&message, 1, &fee_structure,), 3300);
+    assert_eq!(calculate_test_fee(&message, 1, &fee_structure,), 3000);
+
+    let builtin_cu = 300;
 
     // Explicit fee schedule
 
@@ -10720,7 +10732,11 @@ fn test_calculate_fee_compute_units() {
             compute_unit_limit: requested_compute_units,
             ..ComputeBudgetLimits::default()
         });
-        assert_eq!(fee, 1650 + fee_budget_limits.prioritization_fee);
+        let compute_cost = (requested_compute_units
+            .saturating_add(builtin_cu)
+            .saturating_mul(10) as u64)
+        .saturating_add(fee_budget_limits.prioritization_fee);
+        assert_eq!(fee, compute_cost);
     }
 }
 
@@ -10747,7 +10763,7 @@ fn test_calculate_prioritization_fee() {
         fee_structure.lamports_per_signature,
         &fee_structure,
     );
-    assert_eq!(fee, 2000301500);
+    assert_eq!(fee, 2000003000);
 }
 
 #[test]
@@ -10779,7 +10795,7 @@ fn test_calculate_fee_secp256k1() {
         ],
         Some(&key0),
     ));
-    assert_eq!(calculate_test_fee(&message, 1, &fee_structure,), 1650);
+    assert_eq!(calculate_test_fee(&message, 1, &fee_structure,), 1500);
 
     secp_instruction1.data = vec![0];
     secp_instruction2.data = vec![10];
@@ -10787,7 +10803,7 @@ fn test_calculate_fee_secp256k1() {
         &[ix0, secp_instruction1, secp_instruction2],
         Some(&key0),
     ));
-    assert_eq!(calculate_test_fee(&message, 1, &fee_structure,), 1650);
+    assert_eq!(calculate_test_fee(&message, 1, &fee_structure,), 1500);
 }
 
 #[test]
@@ -12392,14 +12408,14 @@ fn test_calculate_fee_with_congestion_multiplier() {
     // congestion_multiplier has no effect on fee.
     assert_eq!(
         calculate_test_fee(&message, cheap_lamports_per_signature, &fee_structure),
-        3300
+        3000
     );
 
     // assert when lamports_per_signature is more than BASE_LAMPORTS, turnning on/off
     // congestion_multiplier will change calculated fee.
     assert_eq!(
         calculate_test_fee(&message, expensive_lamports_per_signature, &fee_structure,),
-        3300
+        3000
     );
 }
 
@@ -12429,7 +12445,7 @@ fn test_calculate_fee_with_request_heap_frame_flag() {
     // into transaction fee
     assert_eq!(
         calculate_test_fee(&message, lamports_per_signature, &fee_structure),
-        4505
+        6005
     );
 }
 

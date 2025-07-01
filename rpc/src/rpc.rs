@@ -4588,7 +4588,7 @@ pub mod tests {
     };
 
     const TEST_MINT_LAMPORTS: u64 = 1_000_000_000;
-    const TEST_SIGNATURE_FEE: u64 = 1650;
+    const TEST_SIGNATURE_FEE: u64 = 1500;
     const TEST_SLOTS_PER_EPOCH: u64 = DELINQUENT_VALIDATOR_SLOT_DISTANCE + 1;
 
     pub(crate) fn new_test_cluster_info() -> ClusterInfo {
