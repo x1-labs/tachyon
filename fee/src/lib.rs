@@ -308,8 +308,7 @@ mod tests {
         let mut feature_set = FeatureSet::all_enabled();
         feature_set.deactivate(&enable_dynamic_fees_fixes_v1::id());
 
-        let prioritization_fee =
-            get_prioritization_fee(500_000, 10_000_000);
+        let prioritization_fee = get_prioritization_fee(500_000, 10_000_000);
         let fee = calculate_fee(&message, false, 5000, prioritization_fee, &feature_set);
         assert_eq!(fee, 5003000);
     }

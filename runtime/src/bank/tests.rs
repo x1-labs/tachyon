@@ -10735,7 +10735,7 @@ fn test_calculate_fee_compute_units() {
         let compute_cost = (requested_compute_units
             .saturating_add(builtin_cu)
             .saturating_mul(10) as u64)
-        .saturating_add(fee_budget_limits.prioritization_fee);
+            .saturating_add(fee_budget_limits.prioritization_fee);
         assert_eq!(fee, compute_cost);
     }
 }
