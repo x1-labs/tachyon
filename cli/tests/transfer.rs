@@ -29,11 +29,11 @@ use {
 fn test_transfer(skip_preflight: bool) {
     solana_logger::setup();
     let fee_one_sig = FeeStructure::default().get_max_fee(1, 0);
-    let fee1 = 1650;
-    let fee2 = 5158;
-    let fee3 = 8458;
-    let fee4 = 10108;
-    let fee5 = 4950;
+    let fee1 = 1500;
+    let fee2 = 4708;
+    let fee3 = 7708;
+    let fee4 = 9208;
+    let fee5 = 4500;
     let mint_keypair = Keypair::new();
     let mint_pubkey = mint_keypair.pubkey();
     let faucet_addr = run_local_faucet(mint_keypair, None);
@@ -305,7 +305,7 @@ fn test_transfer_multisession_signing() {
     solana_logger::setup();
     let fee_one_sig = FeeStructure::default().get_max_fee(1, 0);
     let fee_two_sig = FeeStructure::default().get_max_fee(2, 0);
-    let fee1 = 10000 + 8350;
+    let fee1 = 18500;
     let mint_keypair = Keypair::new();
     let mint_pubkey = mint_keypair.pubkey();
     let faucet_addr = run_local_faucet(mint_keypair, None);
@@ -476,9 +476,9 @@ fn test_transfer_all(compute_unit_price: Option<u64>) {
     let recipient_pubkey = Pubkey::from([1u8; 32]);
 
     let fee = if compute_unit_price.is_some() {
-        4995
+        4545
     } else {
-        1650
+        1500
     };
 
     let mut config = CliConfig::recent_for_tests();
@@ -574,7 +574,7 @@ fn test_transfer_unfunded_recipient() {
 #[test]
 fn test_transfer_with_seed() {
     solana_logger::setup();
-    let fee = 1650;
+    let fee = 1500;
     let mint_keypair = Keypair::new();
     let mint_pubkey = mint_keypair.pubkey();
     let faucet_addr = run_local_faucet(mint_keypair, None);
