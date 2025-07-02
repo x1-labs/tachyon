@@ -6976,7 +6976,7 @@ impl TransactionProcessingCallback for Bank {
             false, /* zero_fees_for_test */
             lamports_per_signature,
             prioritization_fee,
-            &feature_set,
+            feature_set,
         )
     }
 }

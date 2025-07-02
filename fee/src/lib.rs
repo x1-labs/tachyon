@@ -34,7 +34,7 @@ pub fn calculate_fee(
 pub fn calculate_fee_details(
     message: &impl SVMMessage,
     zero_fees_for_test: bool,
-    _lamports_per_signature: u64,
+    lamports_per_signature: u64,
     prioritization_fee: u64,
     feature_set: &FeatureSet,
 ) -> FeeDetails {
@@ -46,7 +46,7 @@ pub fn calculate_fee_details(
         return solana_fee_v0::calculate_fee_details(
             message,
             zero_fees_for_test,
-            _lamports_per_signature,
+            lamports_per_signature,
             prioritization_fee,
             feature_set.into(),
         );
@@ -107,7 +107,7 @@ fn get_transaction_cost(message: &impl SVMMessage, feature_set: &FeatureSet) -> 
 
         if check_id(program_id) {
             if let Ok(ComputeBudgetInstruction::SetComputeUnitLimit(_)) =
-                try_from_slice_unchecked(&instruction.data)
+                try_from_slice_unchecked(instruction.data)
             {
                 compute_unit_limit_is_set = true;
                 debug!("Found SetComputeUnitLimit instruction");
