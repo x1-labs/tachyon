@@ -253,7 +253,7 @@ fn test_cli_program_deploy_non_upgradeable() {
     });
     expect_command_failure(
         &config,
-        "The CLI blocks deployments into accounts that hold more than the necessary amount of SOL",
+        "The CLI blocks deployments into accounts that hold more than the necessary amount of XNT",
         &format!(
             "Account {} is not an upgradeable program or already in use",
             custom_address_keypair.pubkey()

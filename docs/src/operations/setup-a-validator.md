@@ -119,7 +119,7 @@ Now verify your account balance of `0`:
 solana balance
 ```
 
-Next, you need to deposit some SOL into that keypair account in order create a
+Next, you need to deposit some XNT into that keypair account in order create a
 transaction (in this case, making your vote account):
 
 ```
@@ -127,7 +127,7 @@ solana airdrop 1
 ```
 
 > **NOTE** The `airdrop` sub command does not work on mainnet, so you will have
-> to acquire SOL and transfer it into this keypair's account if you are setting
+> to acquire XNT and transfer it into this keypair's account if you are setting
 > up a mainnet validator.
 
 Now, use the Solana cluster to create a vote account.
@@ -511,7 +511,7 @@ through the validator log output.
 ### Solana Validators
 
 After you have verified that your validator is in gossip, you should stake some
-SOL to your validator. Once the stake has activated (which happens at the start
+XNT to your validator. Once the stake has activated (which happens at the start
 of the next epoch), you can verify that your validator is ready to be a voting
 participant of the network with the `solana validators` command. The command
 lists all validators in the network, but like before, we can `grep` the output
@@ -524,7 +524,7 @@ solana validators | grep <pubkey>
 You should see a line of output that looks like this:
 
 ```
-5D1fNXzvv5NjV1ysLjirC4WY92RNsVH18vjmcszZd8on  FX6NNbS5GHc2kuzgTZetup6GZX6ReaWyki8Z8jC7rbNG  100%  197434166 (  0)  197434133 (  0)   2.11%   323614  1.14.17   2450110.588302720 SOL (1.74%)
+5D1fNXzvv5NjV1ysLjirC4WY92RNsVH18vjmcszZd8on  FX6NNbS5GHc2kuzgTZetup6GZX6ReaWyki8Z8jC7rbNG  100%  197434166 (  0)  197434133 (  0)   2.11%   323614  1.14.17   2450110.588302720 XNT (1.74%)
 ```
 
 ### Solana Catchup

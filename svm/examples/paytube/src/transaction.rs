@@ -1,4 +1,4 @@
-//! PayTube's custom transaction format, tailored specifically for SOL or SPL
+//! PayTube's custom transaction format, tailored specifically for XNT or SPL
 //! token transfers.
 //!
 //! Mostly for demonstration purposes, to show how projects may use completely
@@ -19,10 +19,10 @@ use {
     std::collections::HashSet,
 };
 
-/// A simple PayTube transaction. Transfers SPL tokens or SOL from one account
+/// A simple PayTube transaction. Transfers SPL tokens or XNT from one account
 /// to another.
 ///
-/// A `None` value for `mint` represents native SOL.
+/// A `None` value for `mint` represents native XNT.
 pub struct PayTubeTransaction {
     pub mint: Option<Pubkey>,
     pub from: Pubkey,
