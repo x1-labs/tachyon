@@ -8,7 +8,7 @@ here=$(dirname "$0")
 # shellcheck source=multinode-demo/common.sh
 source "$here"/common.sh
 
-stake_sol=10   # default number of SOL to assign as stake (10 SOL)
+stake_sol=10   # default number of XNT to assign as stake (10 XNT)
 url=http://127.0.0.1:8899   # default RPC url
 
 usage() {
@@ -18,7 +18,7 @@ usage() {
   fi
   cat <<EOF
 
-usage: $0 [OPTIONS] <SOL to stake ($stake_sol)>
+usage: $0 [OPTIONS] <XNT to stake ($stake_sol)>
 
 Add stake to a validator
 

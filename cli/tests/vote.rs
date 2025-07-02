@@ -73,7 +73,7 @@ fn test_vote_authorize_and_withdraw(compute_unit_price: Option<u64>) {
         .max(1);
     check_balance!(expected_balance, &rpc_client, &vote_account_pubkey);
 
-    // Transfer in some more SOL
+    // Transfer in some more XNT
     config.signers = vec![&default_signer];
     config.command = CliCommand::Transfer {
         amount: SpendAmount::Some(10_000),
@@ -301,7 +301,7 @@ fn test_offline_vote_authorize_and_withdraw(compute_unit_price: Option<u64>) {
         .max(1);
     check_balance!(expected_balance, &rpc_client, &vote_account_pubkey);
 
-    // Transfer in some more SOL
+    // Transfer in some more XNT
     config_payer.signers = vec![&default_signer];
     config_payer.command = CliCommand::Transfer {
         amount: SpendAmount::Some(10_000),

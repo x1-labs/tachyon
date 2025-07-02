@@ -6,7 +6,7 @@
 //! channel is closed by submitting the final payment ledger to Solana.
 //!
 //! The final ledger tracks debits and credits to all registered token accounts
-//! or system accounts (native SOL) during the lifetime of a channel. It is
+//! or system accounts (native XNT) during the lifetime of a channel. It is
 //! then used to to craft a batch of transactions to submit to the settlement
 //! chain (Solana).
 //!
@@ -81,7 +81,7 @@ use {
 
 /// A PayTube channel instance.
 ///
-/// Facilitates native SOL or SPL token transfers amongst various channel
+/// Facilitates native XNT or SPL token transfers amongst various channel
 /// participants, settling the final changes in balances to the base chain.
 pub struct PayTubeChannel {
     /// I think you know why this is a bad idea...
