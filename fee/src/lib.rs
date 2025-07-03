@@ -91,7 +91,7 @@ fn get_transaction_cost(message: &impl SVMMessage, feature_set: &FeatureSet) -> 
     for (program_id, instruction) in message.program_instructions_iter() {
         if let Some(builtin_cost) = get_builtin_instruction_cost(program_id, feature_set) {
             builtin_costs = builtin_costs.saturating_add(builtin_cost);
-            debug!(
+            trace!(
                 "Added builtin cost for program {:?}: {}, total builtin_costs: {}",
                 program_id, builtin_cost, builtin_costs
             );
@@ -99,7 +99,7 @@ fn get_transaction_cost(message: &impl SVMMessage, feature_set: &FeatureSet) -> 
             bpf_costs = bpf_costs
                 .saturating_add(solana_compute_budget::compute_budget_limits::DEFAULT_INSTRUCTION_COMPUTE_UNIT_LIMIT.into())
                 .min(solana_compute_budget::compute_budget_limits::MAX_COMPUTE_UNIT_LIMIT.into());
-            debug!(
+            trace!(
                 "Assumed BPF instruction for program {:?}, total bpf_costs so far: {}",
                 program_id, bpf_costs
             );
@@ -110,11 +110,11 @@ fn get_transaction_cost(message: &impl SVMMessage, feature_set: &FeatureSet) -> 
                 try_from_slice_unchecked(instruction.data)
             {
                 compute_unit_limit_is_set = true;
-                debug!("Found SetComputeUnitLimit instruction");
+                trace!("Found SetComputeUnitLimit instruction");
             }
         }
     }
-    debug!(
+    trace!(
         "After iterating instructions: builtin_costs: {}, bpf_costs: {}, compute_unit_limit_is_set: {}",
         builtin_costs, bpf_costs, compute_unit_limit_is_set
     );
@@ -122,22 +122,22 @@ fn get_transaction_cost(message: &impl SVMMessage, feature_set: &FeatureSet) -> 
     if let Ok(compute_budget_limits) =
         process_compute_budget_instructions(message.program_instructions_iter(), feature_set)
     {
-        debug!(
+        trace!(
             "Processed compute_budget_instructions, got compute_unit_limit: {}",
             compute_budget_limits.compute_unit_limit
         );
         if bpf_costs > 0 && compute_unit_limit_is_set {
             bpf_costs = u64::from(compute_budget_limits.compute_unit_limit);
-            debug!(
+            trace!(
                 "Overriding bpf_costs using SetComputeUnitLimit: {}",
                 bpf_costs
             );
         }
     } else {
-        debug!("Failed to process compute_budget_instructions");
+        trace!("Failed to process compute_budget_instructions");
     }
 
-    debug!(
+    trace!(
         "Final builtin_costs: {}, Final bpf_costs: {}",
         builtin_costs, bpf_costs
     );
