@@ -93,7 +93,9 @@ fn get_transaction_cost(message: &impl SVMMessage, feature_set: &FeatureSet) -> 
             builtin_costs = builtin_costs.saturating_add(builtin_cost);
             trace!(
                 "Added builtin cost for program {:?}: {}, total builtin_costs: {}",
-                program_id, builtin_cost, builtin_costs
+                program_id,
+                builtin_cost,
+                builtin_costs
             );
         } else {
             bpf_costs = bpf_costs
@@ -101,7 +103,8 @@ fn get_transaction_cost(message: &impl SVMMessage, feature_set: &FeatureSet) -> 
                 .min(solana_compute_budget::compute_budget_limits::MAX_COMPUTE_UNIT_LIMIT.into());
             trace!(
                 "Assumed BPF instruction for program {:?}, total bpf_costs so far: {}",
-                program_id, bpf_costs
+                program_id,
+                bpf_costs
             );
         };
 
@@ -139,7 +142,8 @@ fn get_transaction_cost(message: &impl SVMMessage, feature_set: &FeatureSet) -> 
 
     trace!(
         "Final builtin_costs: {}, Final bpf_costs: {}",
-        builtin_costs, bpf_costs
+        builtin_costs,
+        bpf_costs
     );
     builtin_costs.saturating_add(bpf_costs)
 }
