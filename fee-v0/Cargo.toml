@@ -1,5 +1,5 @@
 [package]
-name = "solana-fee"
+name = "solana-fee-v0"
 description = "Solana fee calculation"
 documentation = "https://docs.rs/solana-fee"
 version = { workspace = true }
@@ -20,7 +20,6 @@ solana-compute-budget = { workspace = true }
 solana-compute-budget-instruction = { workspace = true }
 solana-cost-model = { workspace = true }
 solana-fee-structure = { workspace = true }
-solana-fee-v0 = { workspace = true }
 solana-logger = { workspace = true }
 solana-message = { workspace = true }
 solana-pubkey = { workspace = true }
