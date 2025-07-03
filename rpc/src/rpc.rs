@@ -8953,7 +8953,7 @@ pub mod tests {
 
         let sender = Keypair::new();
         let recipient = Keypair::new();
-        let transfer_amount = TEST_MINT_LAMPORTS / 100; // 0.01 SOL
+        let transfer_amount = TEST_MINT_LAMPORTS / 100; // 0.01 XNT
 
         let transfer_instruction =
             system_instruction::transfer(&sender.pubkey(), &recipient.pubkey(), transfer_amount);
