@@ -6,19 +6,13 @@
 set -e
 cd "$(dirname "$0")"/..
 
-source ci/env.sh
-
 output_file=${1:-/dev/stderr}
 
 if [[ -n $CI_PULL_REQUEST ]]; then
-	if [[ -n $BUILDKITE_PULL_REQUEST ]]; then
-		pr_number=$BUILDKITE_PULL_REQUEST
-	else
-		# filter pr number from ci branch.
-		[[ $CI_BRANCH =~ pull/([0-9]+)/head ]]
-		pr_number=${BASH_REMATCH[1]}
-	fi
-	echo "get affected files from PR: $pr_number"
+  # filter pr number from ci branch.
+  [[ $CI_BRANCH =~ pull/([0-9]+)/head ]]
+  pr_number=${BASH_REMATCH[1]}
+  echo "get affected files from PR: $pr_number"
 
   if [[ $BUILDKITE_REPO =~ ^https:\/\/github\.com\/([^\/]+)\/([^\/\.]+) ]]; then
     owner="${BASH_REMATCH[1]}"
@@ -147,6 +141,7 @@ affects_other_than() {
   return 1 # not affected
 }
 
+
 start_pipeline() {
   echo "# $*" > "$output_file"
   echo "steps:" >> "$output_file"
@@ -163,45 +158,6 @@ command_step() {
 EOF
 }
 
-docker_command_step() {
-  cat >> "$output_file" <<EOF
-  - name: "$1"
-    command: "$2"
-    plugins:
-      - docker#v5.12.0:
-          image: "$3"
-          workdir: /solana
-          propagate-environment: true
-          propagate-uid-gid: true
-          environment:
-            - "RUSTC_WRAPPER=/usr/local/cargo/bin/sccache"
-            - BUILDKITE_AGENT_ACCESS_TOKEN
-            - AWS_SECRET_ACCESS_KEY
-            - AWS_ACCESS_KEY_ID
-            - SCCACHE_BUCKET
-            - SCCACHE_REGION
-            - SCCACHE_S3_KEY_PREFIX
-            - BUILDKITE_PARALLEL_JOB
-            - BUILDKITE_PARALLEL_JOB_COUNT
-            - CI
-            - CI_BRANCH
-            - CI_BASE_BRANCH
-            - CI_TAG
-            - CI_BUILD_ID
-            - CI_COMMIT
-            - CI_JOB_ID
-            - CI_PULL_REQUEST
-            - CI_REPO_SLUG
-            - CRATES_IO_TOKEN
-            - THREADS_OVERRIDE
-    timeout_in_minutes: $4
-    artifact_paths:
-      - "log-*.txt"
-      - "sbf-dumps.tar.bz2"
-    agents:
-      queue: "${5:-solana}"
-EOF
-}
 
 trigger_secondary_step() {
   cat  >> "$output_file" <<"EOF"
@@ -224,13 +180,12 @@ wait_step() {
 }
 
 all_test_steps() {
-  . ci/docker/env.sh
-  docker_command_step checks1 "ci/test-checks.sh" "$CI_DOCKER_IMAGE" 20 check
-  docker_command_step dcou-1-of-3 "ci/test-dev-context-only-utils.sh --partition 1/3" "$CI_DOCKER_IMAGE" 20 check
-  docker_command_step dcou-2-of-3 "ci/test-dev-context-only-utils.sh --partition 2/3" "$CI_DOCKER_IMAGE" 20 check
-  docker_command_step dcou-3-of-3 "ci/test-dev-context-only-utils.sh --partition 3/3" "$CI_DOCKER_IMAGE" 20 check
-  docker_command_step miri "ci/test-miri.sh" "$CI_DOCKER_IMAGE" 5 check
-  docker_command_step frozen-abi "./test-abi.sh" "$CI_DOCKER_IMAGE" 15 check
+  command_step checks1 "ci/docker-run-default-image.sh ci/test-checks.sh" 20 check
+  command_step dcou-1-of-3 "ci/docker-run-default-image.sh ci/test-dev-context-only-utils.sh --partition 1/3" 20 check
+  command_step dcou-2-of-3 "ci/docker-run-default-image.sh ci/test-dev-context-only-utils.sh --partition 2/3" 20 check
+  command_step dcou-3-of-3 "ci/docker-run-default-image.sh ci/test-dev-context-only-utils.sh --partition 3/3" 20 check
+  command_step miri "ci/docker-run-default-image.sh ci/test-miri.sh" 5 check
+  command_step frozen-abi "ci/docker-run-default-image.sh ./test-abi.sh" 15 check
   wait_step
 
   # Full test suite
@@ -244,7 +199,7 @@ all_test_steps() {
              ^ci/rust-version.sh \
              ^ci/test-docs.sh \
       ; then
-    docker_command_step doctest "ci/test-docs.sh" "$CI_DOCKER_IMAGE" 15
+    command_step doctest "ci/docker-run-default-image.sh ci/test-docs.sh" 15
   else
     annotate --style info --context test-docs \
       "Docs skipped as no .rs files were modified"
@@ -267,7 +222,14 @@ all_test_steps() {
              cargo-build-sbf$ \
              cargo-test-sbf$ \
       ; then
-    docker_command_step stable-sbf "ci/test-stable-sbf.sh" "$CI_DOCKER_IMAGE" 35 solana
+    cat >> "$output_file" <<"EOF"
+  - command: "ci/docker-run-default-image.sh ci/test-stable-sbf.sh"
+    name: "stable-sbf"
+    timeout_in_minutes: 35
+    artifact_paths: "sbf-dumps.tar.bz2"
+    agents:
+      queue: "solana"
+EOF
   else
     annotate --style info \
       "Stable-SBF skipped as no relevant files were modified"
@@ -280,7 +242,7 @@ all_test_steps() {
              Cargo.toml$ \
              ^ci/rust-version.sh \
       ; then
-    docker_command_step shuttle "ci/test-shuttle.sh" "$CI_DOCKER_IMAGE" 10 check
+    command_step shuttle "ci/docker-run-default-image.sh ci/test-shuttle.sh" 10
   else
     annotate --style info \
       "test-shuttle skipped as no relevant files were modified"
@@ -319,7 +281,7 @@ all_test_steps() {
              ^ci/test-coverage.sh \
              ^scripts/coverage.sh \
       ; then
-    docker_command_step coverage "ci/test-coverage.sh" "$CI_DOCKER_IMAGE" 180
+    command_step coverage "ci/docker-run-default-image.sh ci/test-coverage.sh" 80
   else
     annotate --style info --context test-coverage \
       "Coverage skipped as no .rs files were modified"
@@ -357,7 +319,7 @@ pull_or_push_steps() {
 
     if [ -z "$diff_other_than_version_bump" ]; then
       echo "Diff only contains version bump."
-      docker_command_step checks "ci/test-checks.sh" "$CI_DOCKER_IMAGE" 20
+      command_step checks "ci/docker-run-default-image.sh ci/test-checks.sh" 20
       exit 0
     fi
   fi

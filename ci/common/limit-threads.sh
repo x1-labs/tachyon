@@ -11,9 +11,6 @@ fi
 
 NPROC=$(nproc)
 JOBS=$((JOBS > NPROC ? NPROC : JOBS))
-if [[ -n $THREADS_OVERRIDE ]]; then
-  JOBS=$THREADS_OVERRIDE
-fi
 
 export NPROC
 export JOBS

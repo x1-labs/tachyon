@@ -114,8 +114,8 @@ EOF
 
 trigger_secondary_step() {
   cat  >> "$output_file" <<"EOF"
-  - name: "Trigger Build on tachyon-secondary"
-    trigger: "tachyon-secondary"
+  - name: "Trigger Build on solana-secondary"
+    trigger: "solana-secondary"
     branches: "!pull/*"
     async: true
     build:
@@ -187,6 +187,7 @@ all_test_steps() {
   - command: "ci/test-stable-sbf.sh"
     name: "stable-sbf"
     timeout_in_minutes: 35
+    artifact_paths: "sbf-dumps.tar.bz2"
     agents:
       queue: "gcp"
 EOF
