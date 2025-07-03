@@ -13,7 +13,6 @@ use {
     },
     agave_feature_set as feature_set,
     itertools::Itertools,
-    solana_fee::FeeFeatures,
     solana_ledger::token_balances::collect_token_balances,
     solana_measure::{measure::Measure, measure_us},
     solana_poh::poh_recorder::{
@@ -772,7 +771,7 @@ impl Consumer {
             bank.get_lamports_per_signature() == 0,
             bank.fee_structure().lamports_per_signature,
             fee_budget_limits.prioritization_fee,
-            FeeFeatures::from(bank.feature_set.as_ref()),
+            bank.feature_set.as_ref(),
         );
         let (mut fee_payer_account, _slot) = bank
             .rc

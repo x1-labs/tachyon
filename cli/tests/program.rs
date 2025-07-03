@@ -121,7 +121,7 @@ fn test_cli_program_deploy_non_upgradeable() {
     config.signers = vec![&keypair];
     config.command = CliCommand::Airdrop {
         pubkey: None,
-        lamports: 200 * minimum_balance_for_programdata, // min balance for rent exemption for three programs + leftover for tx processing
+        lamports: 500 * minimum_balance_for_programdata, // min balance for rent exemption for three programs + leftover for tx processing
     };
     process_command(&config).unwrap();
 
@@ -253,7 +253,7 @@ fn test_cli_program_deploy_non_upgradeable() {
     });
     expect_command_failure(
         &config,
-        "The CLI blocks deployments into accounts that hold more than the necessary amount of SOL",
+        "The CLI blocks deployments into accounts that hold more than the necessary amount of XNT",
         &format!(
             "Account {} is not an upgradeable program or already in use",
             custom_address_keypair.pubkey()
@@ -327,7 +327,7 @@ fn test_cli_program_deploy_no_authority() {
     config.json_rpc_url = test_validator.rpc_url();
     config.command = CliCommand::Airdrop {
         pubkey: None,
-        lamports: 200 * minimum_balance_for_programdata + minimum_balance_for_program,
+        lamports: 500 * minimum_balance_for_programdata + minimum_balance_for_program,
     };
     config.signers = vec![&keypair];
     process_command(&config).unwrap();
@@ -437,7 +437,7 @@ fn test_cli_program_deploy_feature(enable_feature: bool, skip_preflight: bool) {
     config.json_rpc_url = test_validator.rpc_url();
     config.command = CliCommand::Airdrop {
         pubkey: None,
-        lamports: 200 * minimum_balance_for_programdata + minimum_balance_for_program,
+        lamports: 500 * minimum_balance_for_programdata + minimum_balance_for_program,
     };
     config.signers = vec![&keypair];
     config.send_transaction_config.skip_preflight = skip_preflight;
@@ -711,7 +711,7 @@ fn test_cli_program_deploy_with_authority() {
     config.signers = vec![&keypair];
     config.command = CliCommand::Airdrop {
         pubkey: None,
-        lamports: 200 * minimum_balance_for_programdata + minimum_balance_for_program,
+        lamports: 500 * minimum_balance_for_programdata + minimum_balance_for_program,
     };
     process_command(&config).unwrap();
 
@@ -1119,7 +1119,7 @@ fn test_cli_program_upgrade_auto_extend(skip_preflight: bool) {
     config.signers = vec![&keypair];
     config.command = CliCommand::Airdrop {
         pubkey: None,
-        lamports: 200 * minimum_balance_for_programdata + minimum_balance_for_program,
+        lamports: 500 * minimum_balance_for_programdata + minimum_balance_for_program,
     };
     process_command(&config).unwrap();
 
@@ -1275,7 +1275,7 @@ fn test_cli_program_close_program() {
     config.signers = vec![&keypair];
     config.command = CliCommand::Airdrop {
         pubkey: None,
-        lamports: 200 * minimum_balance_for_programdata + minimum_balance_for_program,
+        lamports: 500 * minimum_balance_for_programdata + minimum_balance_for_program,
     };
     process_command(&config).unwrap();
 
@@ -1394,7 +1394,7 @@ fn test_cli_program_extend_program() {
     config.signers = vec![&keypair];
     config.command = CliCommand::Airdrop {
         pubkey: None,
-        lamports: 200 * minimum_balance_for_programdata + minimum_balance_for_program,
+        lamports: 500 * minimum_balance_for_programdata + minimum_balance_for_program,
     };
     config.send_transaction_config = RpcSendTransactionConfig {
         skip_preflight: false,
@@ -1444,9 +1444,10 @@ fn test_cli_program_extend_program() {
     file.read_to_end(&mut new_program_data).unwrap();
     let new_max_len = new_program_data.len();
     let additional_bytes = (new_max_len - max_len) as u32;
-    config.signers = vec![&keypair];
-    config.command = CliCommand::Program(ProgramCliCommand::ExtendProgram {
+    config.signers = vec![&keypair, &upgrade_authority];
+    config.command = CliCommand::Program(ProgramCliCommand::ExtendProgramChecked {
         program_pubkey: program_keypair.pubkey(),
+        authority_signer_index: 1,
         additional_bytes: additional_bytes - 1,
     });
     process_command(&config).unwrap();
@@ -1492,9 +1493,10 @@ fn test_cli_program_extend_program() {
     wait_n_slots(&rpc_client, 1);
 
     // Extend 1 last byte
-    config.signers = vec![&keypair];
-    config.command = CliCommand::Program(ProgramCliCommand::ExtendProgram {
+    config.signers = vec![&keypair, &upgrade_authority];
+    config.command = CliCommand::Program(ProgramCliCommand::ExtendProgramChecked {
         program_pubkey: program_keypair.pubkey(),
+        authority_signer_index: 1,
         additional_bytes: 1,
     });
     process_command(&config).unwrap();
@@ -1564,7 +1566,7 @@ fn test_cli_program_migrate_program() {
     config.signers = vec![&keypair];
     config.command = CliCommand::Airdrop {
         pubkey: None,
-        lamports: 200 * minimum_balance_for_programdata + minimum_balance_for_program,
+        lamports: 500 * minimum_balance_for_programdata + minimum_balance_for_program,
     };
     process_command(&config).unwrap();
 
@@ -2429,13 +2431,13 @@ fn test_cli_program_deploy_with_offline_signing(use_offline_signer_as_fee_payer:
 
     config.command = CliCommand::Airdrop {
         pubkey: None,
-        lamports: 200 * minimum_balance_for_large_buffer, // gotta be enough for this test
+        lamports: 500 * minimum_balance_for_large_buffer, // gotta be enough for this test
     };
     config.signers = vec![&online_signer];
     process_command(&config).unwrap();
     config.command = CliCommand::Airdrop {
         pubkey: None,
-        lamports: 200 * minimum_balance_for_large_buffer, // gotta be enough for this test
+        lamports: 500 * minimum_balance_for_large_buffer, // gotta be enough for this test
     };
     config.signers = vec![&offline_signer];
     process_command(&config).unwrap();
@@ -2813,7 +2815,7 @@ fn test_cli_program_dump() {
     config.signers = vec![&keypair];
     config.command = CliCommand::Airdrop {
         pubkey: None,
-        lamports: 100 * minimum_balance_for_buffer,
+        lamports: 500 * minimum_balance_for_buffer,
     };
     process_command(&config).unwrap();
 
@@ -2958,7 +2960,7 @@ fn test_cli_program_deploy_with_args(compute_unit_price: Option<u64>, use_rpc: b
     config.signers = vec![&keypair];
     config.command = CliCommand::Airdrop {
         pubkey: None,
-        lamports: 200 * minimum_balance_for_programdata + minimum_balance_for_program,
+        lamports: 500 * minimum_balance_for_programdata + minimum_balance_for_program,
     };
     process_command(&config).unwrap();
 

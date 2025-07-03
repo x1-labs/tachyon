@@ -28,7 +28,7 @@ use {
 
 /// The key used for storing ledger entries.
 ///
-/// Each entry in the ledger represents the movement of SOL or tokens between
+/// Each entry in the ledger represents the movement of XNT or tokens between
 /// two parties. The two keys of the two parties are stored in a sorted array
 /// of length two, and the value's sign determines the direction of transfer.
 ///

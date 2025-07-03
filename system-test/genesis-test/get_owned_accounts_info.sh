@@ -72,13 +72,13 @@ function display_results_summary {
   echo ""
   printf "Number of STAKE accounts: %'d\n" "$num_stake_accounts"
   printf "Balance of all STAKE accounts: %'d lamports\n" "$stake_account_balance_total"
-  printf "Balance of all STAKE accounts: %'.3f SOL\n" "$stake_account_balance_total_sol"
+  printf "Balance of all STAKE accounts: %'.3f XNT\n" "$stake_account_balance_total_sol"
   printf "\n"
   printf "Balance of SYSTEM account: %'d lamports\n" "$system_account_balance"
-  printf "Balance of SYSTEM account: %'.3f SOL\n" "$system_account_balance_sol"
+  printf "Balance of SYSTEM account: %'.3f XNT\n" "$system_account_balance_sol"
   printf "\n"
   printf "Total Balance of ALL accounts: %'d lamports\n" "$all_account_total_balance"
-  printf "Total Balance of ALL accounts: %'.3f SOL\n" "$all_account_total_balance_sol"
+  printf "Total Balance of ALL accounts: %'.3f XNT\n" "$all_account_total_balance_sol"
   echo "--------------------------------------------------------------------------------------"
 }
 

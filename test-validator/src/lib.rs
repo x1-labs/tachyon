@@ -1226,8 +1226,8 @@ mod test {
         let mut control = FeatureSet::default().inactive().clone();
         let mut deactivate_features = Vec::new();
         [
-            solana_sdk::feature_set::deprecate_rewards_sysvar::id(),
-            solana_sdk::feature_set::disable_fees_sysvar::id(),
+            agave_feature_set::deprecate_rewards_sysvar::id(),
+            agave_feature_set::disable_fees_sysvar::id(),
         ]
         .into_iter()
         .for_each(|feature| {
@@ -1267,8 +1267,8 @@ mod test {
 
     #[tokio::test]
     async fn test_override_feature_account() {
-        let with_deactivate_flag = solana_sdk::feature_set::deprecate_rewards_sysvar::id();
-        let without_deactivate_flag = solana_sdk::feature_set::disable_fees_sysvar::id();
+        let with_deactivate_flag = agave_feature_set::deprecate_rewards_sysvar::id();
+        let without_deactivate_flag = agave_feature_set::disable_fees_sysvar::id();
 
         let owner = Pubkey::new_unique();
         let account = || AccountSharedData::new(100_000, 0, &owner);
@@ -1308,7 +1308,7 @@ mod test {
         let (test_validator, _payer) = TestValidatorGenesis::default()
             .deactivate_features(&[
                 // Don't migrate the config program.
-                solana_sdk::feature_set::migrate_config_program_to_core_bpf::id(),
+                agave_feature_set::migrate_config_program_to_core_bpf::id(),
             ])
             .start_async()
             .await;

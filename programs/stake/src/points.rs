@@ -217,7 +217,7 @@ mod tests {
         let mut vote_state = VoteState::default();
 
         // bootstrap means fully-vested stake at epoch 0 with
-        //  10_000_000 SOL is a big but not unreasaonable stake
+        //  10_000_000 XNT is a big but not unreasaonable stake
         let stake = new_stake(
             sol_to_lamports(10_000_000f64),
             &Pubkey::default(),

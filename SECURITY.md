@@ -89,46 +89,46 @@ mitigation to qualify.
 
 #### IMPORTANT | PLEASE NOTE
 _Beginning February 1st 2024, the Security bounty program payouts will be updated in the following ways:_
-- _Bug Bounty rewards will be denominated in SOL tokens, rather than USD value._
+- _Bug Bounty rewards will be denominated in XNT tokens, rather than USD value._
 _This change is to better reflect for changing value of the Solana network._
 - _Categories will now have a discretionary range to distinguish the varying severity_
 _and impact of bugs reported within each broader category._
 
-_Note: Payments will continue to be paid out in 12-month locked SOL._
+_Note: Payments will continue to be paid out in 12-month locked XNT._
 
 
 #### Loss of Funds:
-_Max: 25,000 SOL tokens. Min: 6,250 SOL tokens_
+_Max: 25,000 XNT tokens. Min: 6,250 XNT tokens_
 
 * Theft of funds without users signature from any account
 * Theft of funds without users interaction in system, stake, vote programs
 * Theft of funds that requires users signature - creating a vote program that drains the delegated stakes.
 
 #### Consensus/Safety Violations:
-_Max: 12,500 SOL tokens. Min: 3,125 SOL tokens_
+_Max: 12,500 XNT tokens. Min: 3,125 XNT tokens_
 
 * Consensus safety violation
 * Tricking a validator to accept an optimistic confirmation or rooted slot without a double vote, etc.
 
 #### Liveness / Loss of Availability:
-_Max: 5,000 SOL tokens. Min: 1,250 SOL tokens_
+_Max: 5,000 XNT tokens. Min: 1,250 XNT tokens_
 
 * Whereby consensus halts and requires human intervention
 * Eclipse attacks,
 * Remote attacks that partition the network,
 
 #### DoS Attacks:
-_Max: 1,250 SOL tokens. Min: 315 SOL tokens_
+_Max: 1,250 XNT tokens. Min: 315 XNT tokens_
 
 * Remote resource exhaustion via Non-RPC protocols
 
 #### Supply Chain Attacks:
-_Max: 1,250 SOL tokens. Min: 315 SOL tokens_
+_Max: 1,250 XNT tokens. Min: 315 XNT tokens_
 
 * Non-social attacks against source code change management, automated testing, release build, release publication and release hosting infrastructure of the monorepo.
 
 #### RPC DoS/Crashes:
-_Max: 65 SOL tokens. Min: 20 SOL tokens_
+_Max: 65 XNT tokens. Min: 20 XNT tokens_
 
 * RPC attacks
 
@@ -172,5 +172,5 @@ bi = 2 ^ (R - ri) / ((2^R) - 1)
 
 ### Payment of Bug Bounties:
 * Bounties are currently awarded on a rolling/weekly basis and paid out within 30 days upon receipt of an invoice.
-* Bug bounties that are paid out in SOL are paid to stake accounts with a lockup expiring 12 months from the date of delivery of SOL.
+* Bug bounties that are paid out in XNT are paid to stake accounts with a lockup expiring 12 months from the date of delivery of XNT.
 * **Note: payment notices need to be sent to ap@solana.org within 90 days of receiving payment advice instructions.** Failure to do so may result in forfeiture of the bug bounty reward.
