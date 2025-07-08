@@ -9,7 +9,7 @@ There are a number of initiatives that may help operators get started or grow th
 
 ## Solana Foundation Delegation Program
 
-The Solana Foundation helps facilitate the growth of the consensus validator network by running a SOL delegation program. The program is open to new applicants. You can find out more information [here](https://solana.org/delegation-program)
+The Solana Foundation helps facilitate the growth of the consensus validator network by running a XNT delegation program. The program is open to new applicants. You can find out more information [here](https://solana.org/delegation-program)
 
 ## Tour De Sun 22
 

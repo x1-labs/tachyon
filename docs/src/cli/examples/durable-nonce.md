@@ -111,8 +111,8 @@ solana nonce-account nonce-keypair.json
 - Output
 
 ```text
-balance: 0.5 SOL
-minimum balance required: 0.00136416 SOL
+balance: 0.5 XNT
+minimum balance required: 0.00136416 XNT
 nonce: DZar6t2EaCFQTbUP4DHKwZ1wT8gCPW2aRfkVWhydkBvS
 ```
 
@@ -172,7 +172,7 @@ The following subcommands have received this treatment so far
 
 ### Example Pay Using Durable Nonce
 
-Here we demonstrate Alice paying Bob 1 SOL using a durable nonce. The procedure
+Here we demonstrate Alice paying Bob 1 XNT using a durable nonce. The procedure
 is the same for all subcommands supporting durable nonces
 
 #### - Create accounts
@@ -188,11 +188,11 @@ $ solana-keygen new -o bob.json
 #### - Fund Alice's account
 
 Alice will need some funds to create a nonce account and send to Bob. Airdrop
-her some SOL
+her some XNT
 
 ```bash
 $ solana airdrop -k alice.json 1
-1 SOL
+1 XNT
 ```
 
 #### - Create Alice's nonce account
@@ -228,8 +228,8 @@ blockhash stored there
 
 ```bash
 $ solana nonce-account nonce.json
-balance: 0.1 SOL
-minimum balance required: 0.00136416 SOL
+balance: 0.1 XNT
+minimum balance required: 0.00136416 XNT
 nonce: F7vmkY3DTaxfagttWjQweib42b6ZHADSx94Tw8gHx3W7
 ```
 
@@ -240,17 +240,17 @@ HR1368UKHVZyenmH7yVz5sBAijV6XAPeWbEiXEGVYQorRMcoijeNAbzZqEZiH8cDB8tk65ckqeegFjK8
 
 #### - Success!
 
-The transaction succeeds! Bob receives 0.01 SOL from Alice and Alice's stored
+The transaction succeeds! Bob receives 0.01 XNT from Alice and Alice's stored
 nonce advances to a new value
 
 ```bash
 $ solana balance -k bob.json
-0.01 SOL
+0.01 XNT
 ```
 
 ```bash
 $ solana nonce-account nonce.json
-balance: 0.1 SOL
-minimum balance required: 0.00136416 SOL
+balance: 0.1 XNT
+minimum balance required: 0.00136416 XNT
 nonce: 6bjroqDcZgTv6Vavhqf81oBHTv3aMnX19UTB51YhAZnN
 ```

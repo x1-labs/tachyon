@@ -215,7 +215,7 @@ fn test_nonce(seed: Option<String>, use_nonce_authority: bool, compute_unit_pric
 
 #[test]
 fn test_create_account_with_seed() {
-    const ONE_SIG_FEE: f64 = 0.0000033;
+    const ONE_SIG_FEE: f64 = 0.000003;
     solana_logger::setup();
     let mint_keypair = Keypair::new();
     let mint_pubkey = mint_keypair.pubkey();

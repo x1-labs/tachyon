@@ -1,14 +1,14 @@
 ---
-title: Staking SOL with the Solana CLI
+title: Staking XNT with the Solana CLI
 pagination_label: "Solana CLI: Staking"
 sidebar_label: Staking
 ---
 
-After you have [received SOL](./transfer-tokens.md), you might consider putting it
+After you have [received XNT](./transfer-tokens.md), you might consider putting it
 to use by delegating _stake_ to a validator. Stake is what we call tokens in a
 _stake account_. Solana weights validator votes by the amount of stake delegated
 to them, which gives those validators more influence in determining the next
-valid block of transactions in the blockchain. Solana then generates new SOL
+valid block of transactions in the blockchain. Solana then generates new XNT
 periodically to reward stakers and validators. You earn more rewards the more
 stake you delegate.
 
@@ -63,7 +63,7 @@ solana stake-account <STAKE_ACCOUNT_ADDRESS>
 The output will look similar to this:
 
 ```text
-Total Stake: 5000 SOL
+Total Stake: 5000 XNT
 Stake account is undelegated
 Stake Authority: EXU95vqs93yPeCeAU7mPPu6HbRUmTFPEiGug9oCdvQ5F
 Withdraw Authority: EXU95vqs93yPeCeAU7mPPu6HbRUmTFPEiGug9oCdvQ5F
@@ -149,9 +149,9 @@ You will see new fields "Delegated Stake" and "Delegated Vote Account Address"
 in the output. The output will look similar to this:
 
 ```text
-Total Stake: 5000 SOL
+Total Stake: 5000 XNT
 Credits Observed: 147462
-Delegated Stake: 4999.99771712 SOL
+Delegated Stake: 4999.99771712 XNT
 Delegated Vote Account Address: CcaHc2L43ZWjwCHART3oZoJvHLAe9hzT2DJNUpBzoTN1
 Stake activates starting from epoch: 42
 Stake Authority: EXU95vqs93yPeCeAU7mPPu6HbRUmTFPEiGug9oCdvQ5F

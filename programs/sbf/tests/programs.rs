@@ -3443,7 +3443,7 @@ fn test_program_fees() {
         congestion_multiplier == 0,
         fee_structure.lamports_per_signature,
         fee_budget_limits.prioritization_fee,
-        bank.feature_set.as_ref().into(),
+        bank.feature_set.as_ref(),
     );
     bank_client
         .send_and_confirm_message(&[&mint_keypair], message)
@@ -3476,7 +3476,7 @@ fn test_program_fees() {
         congestion_multiplier == 0,
         fee_structure.lamports_per_signature,
         fee_budget_limits.prioritization_fee,
-        bank.feature_set.as_ref().into(),
+        bank.feature_set.as_ref(),
     );
     assert!(expected_normal_fee < expected_prioritized_fee);
 

@@ -5,14 +5,14 @@ sidebar_label: Requirements
 pagination_label: Requirements to Operate a Validator
 ---
 
-## Minimum SOL requirements
+## Minimum XNT requirements
 
-There is no strict minimum amount of SOL required to run an Agave validator on Solana.
+There is no strict minimum amount of XNT required to run an Agave validator on Solana.
 
 However in order to participate in consensus, a vote account is required which
-has a rent-exempt reserve of 0.02685864 SOL. Voting also requires sending a vote
+has a rent-exempt reserve of 0.02685864 XNT. Voting also requires sending a vote
 transaction for each block the validator agrees with, which can cost up to
-1.1 SOL per day.
+1.1 XNT per day.
 
 ## Hardware Recommendations
 

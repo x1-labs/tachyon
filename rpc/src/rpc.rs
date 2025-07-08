@@ -4588,7 +4588,7 @@ pub mod tests {
     };
 
     const TEST_MINT_LAMPORTS: u64 = 1_000_000_000;
-    const TEST_SIGNATURE_FEE: u64 = 1650;
+    const TEST_SIGNATURE_FEE: u64 = 1500;
     const TEST_SLOTS_PER_EPOCH: u64 = DELINQUENT_VALIDATOR_SLOT_DISTANCE + 1;
 
     pub(crate) fn new_test_cluster_info() -> ClusterInfo {
@@ -8953,7 +8953,7 @@ pub mod tests {
 
         let sender = Keypair::new();
         let recipient = Keypair::new();
-        let transfer_amount = TEST_MINT_LAMPORTS / 100; // 0.01 SOL
+        let transfer_amount = TEST_MINT_LAMPORTS / 100; // 0.01 XNT
 
         let transfer_instruction =
             system_instruction::transfer(&sender.pubkey(), &recipient.pubkey(), transfer_amount);

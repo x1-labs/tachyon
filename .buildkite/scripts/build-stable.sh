@@ -15,7 +15,7 @@ partitions=$(
   "command": "ci/stable/run-partition.sh",
   "timeout_in_minutes": 30,
   "agent": "$agent",
-  "parallelism": 2,
+  "parallelism": 5,
   "retry": 3
 }
 EOF

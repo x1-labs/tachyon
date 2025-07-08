@@ -55,7 +55,7 @@ must be stored as a "hot wallet" in a keypair file on the same system the
 validator process is running.
 
 Because a hot wallet is generally less secure than an offline or "cold" wallet,
-the validator operator may choose to store only enough SOL on the identity
+the validator operator may choose to store only enough XNT on the identity
 account to cover voting fees for a limited amount of time, such as a few weeks
 or months. The validator identity account could be periodically topped off from
 a more secure wallet.
@@ -277,6 +277,6 @@ keypairs to the other even though both entities signed the transaction.
 
 A vote account can be closed with the
 [close-vote-account](../../cli/usage.md#solana-close-vote-account) command. Closing
-a vote account withdraws all remaining SOL funds to a supplied recipient address
+a vote account withdraws all remaining XNT funds to a supplied recipient address
 and renders it invalid as a vote account. It is not possible to close a vote
 account with active stake.

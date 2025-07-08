@@ -129,7 +129,7 @@ The identities of the
 
 A permissionless, persistent cluster for Solana users, builders, validators and token holders.
 
-- Tokens that are issued on Mainnet Beta are **real** SOL
+- Tokens that are issued on Mainnet Beta are **real** XNT
 - Gossip entrypoint for Mainnet Beta: `entrypoint.mainnet-beta.solana.com:8001`
 - Metrics environment variable for Mainnet Beta:
 
