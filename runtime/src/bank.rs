@@ -136,7 +136,8 @@ use {
         inner_instruction::InnerInstructions,
         message::{AccountKeys, SanitizedMessage},
         native_loader,
-        native_token::LAMPORTS_PER_SOL,
+        native_token::{LAMPORTS_PER_SOL, sol_to_lamports},
+
         packet::PACKET_DATA_SIZE,
         pubkey::Pubkey,
         rent_collector::{CollectedInfo, RentCollector},
