@@ -19,7 +19,7 @@ fetch_program() {
   declare so=spl_$name-$version.so
 
   if [[ $loader == "$upgradeableLoader" ]]; then
-    genesis_args+=(--upgradeable-program "$address" "$loader" "$so" $upgrade_auth)
+    genesis_args+=(--upgradeable-program "$address" "$loader" "$so" "$upgrade_auth")
   else
     genesis_args+=(--bpf-program "$address" "$loader" "$so")
   fi

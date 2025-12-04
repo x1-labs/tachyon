@@ -1068,6 +1068,10 @@ pub mod enable_dynamic_fees_fixes_v1 {
     solana_pubkey::declare_id!("BnVoGCqzC176Z2A4zWz3pNGAFT7DAABGoN9WsJe3N11D");
 }
 
+pub mod enable_native_mint_wrap_account {
+    solana_pubkey::declare_id!("BeCY6VL4CKQR2QUwe9w3iRtNMN91FMW1sXbRzwfc3WYc");
+}
+
 pub static FEATURE_NAMES: LazyLock<AHashMap<Pubkey, &'static str>> = LazyLock::new(|| {
     [
         (secp256k1_program_enabled::id(), "secp256k1 program"),
@@ -1302,6 +1306,7 @@ pub static FEATURE_NAMES: LazyLock<AHashMap<Pubkey, &'static str>> = LazyLock::n
         (disable_zk_elgamal_proof_program::id(), "Disables zk-elgamal-proof program"),
         (reenable_zk_elgamal_proof_program::id(), "Re-enables zk-elgamal-proof program"),
         (enable_dynamic_fees_fixes_v1::id(), "Enable dynamic fees fixes v1"),
+        (enable_native_mint_wrap_account::id(), "enable the native mint wrap account"),
         /*************** ADD NEW FEATURES HERE ***************/
     ]
     .iter()

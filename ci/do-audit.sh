@@ -91,6 +91,17 @@ cargo_audit_ignores=(
   # Dependency tree:
   # openssl 0.10.70
   --ignore RUSTSEC-2025-0022
+
+  #Crate:     tracing-subscriber
+  #Version:   0.3.7
+  #Title:     Logging user input may result in poisoning logs with ANSI escape sequences
+  #Date:      2025-08-29
+  #ID:        RUSTSEC-2025-0055
+  #URL:       https://rustsec.org/advisories/RUSTSEC-2025-0055
+  #Solution:  Upgrade to >=0.3.20
+  #Dependency tree:
+  #tracing-subscriber 0.3.7
+  --ignore RUSTSEC-2025-0055
 )
 scripts/cargo-for-all-lock-files.sh audit "${cargo_audit_ignores[@]}" | $dep_tree_filter
 # we want the `cargo audit` exit code, not `$dep_tree_filter`'s
