@@ -26,7 +26,8 @@ depends = "$auto"
 assets = [
     ["target/release/tachyon-validator", "usr/bin/", "755"],
     ["target/release/tachyon-ledger-tool", "usr/bin/", "755"],
-    ["../README.md", "usr/share/doc/tachyon-validator/README.md", "644"],
+    ["target/release/tachyon-test-validator", "usr/bin/", "755"],
+    ["../README.md", "usr/share/doc/solana-validator/README.md", "644"],
 ]
 
 [dependencies]
