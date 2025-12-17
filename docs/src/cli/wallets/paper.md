@@ -195,7 +195,7 @@ Next, configure the `solana` CLI tool to
 [connect to a particular cluster](../examples/choose-a-cluster.md):
 
 ```bash
-solana config set --url <CLUSTER URL> # (i.e. https://api.mainnet-beta.solana.com)
+solana config set --url <CLUSTER URL> # (i.e. https://rpc.mainnet.x1.xyz)
 ```
 
 Finally, to check the balance, run the following command:

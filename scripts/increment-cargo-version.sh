@@ -129,7 +129,7 @@ for Cargo_toml in "${Cargo_tomls[@]}"; do
   # Set new crate version
   (
     set -x
-    sed -i "$Cargo_toml" -e "0,/^version =/{s/^version = \"[^\"]*\"$/version = \"$newVersion\"/}"
+    sed -i "$Cargo_toml" -e "s/^version = \"$currentVersion\"$/version = \"$newVersion\"/"
   )
 
   # Fix up the version references to other internal crates
