@@ -7,8 +7,8 @@ S3_PATH="debs"
 REPO_DIR="$(mktemp -d)"
 DIST="stable"
 COMPONENT="main"
-ARCH="amd64"
 AWS_PROFILE="${AWS_PROFILE:-default}"
+KEEP_VERSIONS="${KEEP_VERSIONS:-20}"
 
 cleanup() {
     rm -rf "$REPO_DIR"
@@ -20,23 +20,44 @@ aws --profile $AWS_PROFILE s3 sync "s3://${S3_BUCKET}/${S3_PATH}/" "$REPO_DIR/" 
 
 echo "==> Setting up repo structure..."
 mkdir -p "$REPO_DIR/pool/${COMPONENT}"
-mkdir -p "$REPO_DIR/dists/${DIST}/${COMPONENT}/binary-${ARCH}"
 
 echo "==> Copying new .deb files to pool..."
 cp target/debian/*.deb "$REPO_DIR/pool/${COMPONENT}/"
 
-echo "==> Generating Packages file..."
+echo "==> Pruning old versions (keeping last ${KEEP_VERSIONS})..."
+cd "$REPO_DIR/pool/${COMPONENT}"
+# Get unique package names (everything before the first _)
+for pkg in $(ls -1 *.deb 2>/dev/null | sed 's/_.*$//' | sort -u); do
+    # List all versions of this package, sort by version, keep only old ones to delete
+    ls -1 ${pkg}_*.deb 2>/dev/null | sort -V | head -n -${KEEP_VERSIONS} | while read old_deb; do
+        echo "  Removing old: $old_deb"
+        rm -f "$old_deb"
+    done
+done
 cd "$REPO_DIR"
-apt-ftparchive packages "pool/${COMPONENT}" > "dists/${DIST}/${COMPONENT}/binary-${ARCH}/Packages"
-gzip -k -f "dists/${DIST}/${COMPONENT}/binary-${ARCH}/Packages"
+
+# Detect architectures from .deb files in pool
+ARCHS=$(ls -1 "$REPO_DIR/pool/${COMPONENT}/"*.deb 2>/dev/null | sed 's/.*_\([^_]*\)\.deb$/\1/' | sort -u | tr '\n' ' ')
+ARCHS="${ARCHS:-amd64}"
+echo "==> Detected architectures: ${ARCHS}"
+
+echo "==> Generating Packages files..."
+cd "$REPO_DIR"
+for ARCH in $ARCHS; do
+    echo "  Processing ${ARCH}..."
+    mkdir -p "dists/${DIST}/${COMPONENT}/binary-${ARCH}"
+    apt-ftparchive --arch "$ARCH" packages "pool/${COMPONENT}" > "dists/${DIST}/${COMPONENT}/binary-${ARCH}/Packages"
+    gzip -k -f "dists/${DIST}/${COMPONENT}/binary-${ARCH}/Packages"
+done
 
 echo "==> Generating Release files..."
+ARCH_LIST=$(echo $ARCHS | tr ' ' '\n' | paste -sd ' ')
 cat > apt-ftparchive.conf << CONF
 APT::FTPArchive::Release::Origin "X1 Labs";
 APT::FTPArchive::Release::Label "X1 Tachyon";
 APT::FTPArchive::Release::Suite "${DIST}";
 APT::FTPArchive::Release::Codename "${DIST}";
-APT::FTPArchive::Release::Architectures "${ARCH}";
+APT::FTPArchive::Release::Architectures "${ARCH_LIST}";
 APT::FTPArchive::Release::Components "${COMPONENT}";
 CONF
 
@@ -59,4 +80,4 @@ echo "# To use this repository:"
 echo "curl -fsSL https://release.x1.xyz/x1-archive-keyring-binary.gpg > /usr/share/keyrings/x1-archive-keyring.gpg"
 echo "echo \"deb [signed-by=/usr/share/keyrings/x1-archive-keyring.gpg] https://release.x1.xyz/${S3_PATH} ${DIST} ${COMPONENT}\" | tee /etc/apt/sources.list.d/x1-tachyon.list"
 echo "# To install packages:"
-echo "apt update && apt install tachyon-validator x1-tools"
+echo "apt update && apt install x1-tachyon-validator2.2 x1-tools"

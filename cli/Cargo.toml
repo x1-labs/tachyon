@@ -24,16 +24,20 @@ section = "utils"
 priority = "optional"
 depends = "$auto"
 assets = [
-    ["target/release/solana", "usr/bin/", "755"],
-    ["target/release/solana-keygen", "usr/bin/", "755"],
-    ["target/release/solana-faucet", "usr/bin/", "755"],
-    ["target/release/solana-genesis", "usr/bin/", "755"],
-    ["target/release/solana-gossip", "usr/bin/", "755"],
+    ["target/release/x1", "usr/bin/", "755"],
+    ["target/release/x1-keygen", "usr/bin/", "755"],
+    ["target/release/x1-faucet", "usr/bin/", "755"],
+    ["target/release/x1-genesis", "usr/bin/", "755"],
+    ["target/release/x1-gossip", "usr/bin/", "755"],
     ["../README.md", "usr/share/doc/tachyon-cli/README.md", "644"],
 ]
 
 [[bin]]
 name = "solana"
+path = "src/main.rs"
+
+[[bin]]
+name = "x1"
 path = "src/main.rs"
 
 [dependencies]

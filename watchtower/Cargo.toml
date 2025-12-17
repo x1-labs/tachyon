@@ -28,3 +28,7 @@ solana-pubkey = { version = "=2.2.1", default-features = false }
 solana-rpc-client = { workspace = true }
 solana-rpc-client-api = { workspace = true }
 solana-version = { workspace = true }
+
+[[bin]]
+name = "tachyon-watchtower"
+path = "src/main.rs"

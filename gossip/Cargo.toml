@@ -16,6 +16,10 @@ targets = ["x86_64-unknown-linux-gnu"]
 name = "solana-gossip"
 path = "src/main.rs"
 
+[[bin]]
+name = "x1-gossip"
+path = "src/main.rs"
+
 [features]
 frozen-abi = [
     "dep:solana-frozen-abi",

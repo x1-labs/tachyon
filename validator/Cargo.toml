@@ -14,8 +14,8 @@ edition = { workspace = true }
 targets = ["x86_64-unknown-linux-gnu"]
 
 [package.metadata.deb]
-maintainer = "X1 Labs maintainers <maintainers@x1.xyz>"
-copyright = "2024-2025, X1 Labs"
+name = "x1-tachyon-validator2.2"
+maintainer = "X1 Labs <maintainers@x1.xyz>"
 license-file = ["../LICENSE", "0"]
 extended-description = """\
 Tachyon is a high-performance validator node for the X1 blockchain network. \
@@ -23,10 +23,13 @@ This package contains the tachyon-validator binary which runs a full validator n
 section = "net"
 priority = "optional"
 depends = "$auto"
+conflicts = "x1-tachyon-validator2.1, x1-tachyon-validator2.0"
+replaces = "x1-tachyon-validator2.1, x1-tachyon-validator2.0"
 assets = [
     ["target/release/tachyon-validator", "usr/bin/", "755"],
     ["target/release/tachyon-ledger-tool", "usr/bin/", "755"],
     ["target/release/tachyon-test-validator", "usr/bin/", "755"],
+    ["target/release/tachyon-watchtower", "usr/bin/", "755"],
     ["../README.md", "usr/share/doc/solana-validator/README.md", "644"],
 ]
 
