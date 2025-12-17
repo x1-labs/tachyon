@@ -137,12 +137,12 @@ A permissionless, persistent cluster for Solana users, builders, validators and 
 export SOLANA_METRICS_CONFIG="host=https://metrics.solana.com:8086,db=mainnet-beta,u=mainnet-beta_write,p=password"
 ```
 
-- RPC URL for Mainnet Beta: `https://api.mainnet-beta.solana.com`
+- RPC URL for Mainnet Beta: `https://rpc.mainnet.x1.xyz`
 
 ##### Example `solana` command-line configuration
 
 ```bash
-solana config set --url https://api.mainnet-beta.solana.com
+solana config set --url https://rpc.mainnet.x1.xyz
 ```
 
 ##### Example `tachyon-validator` command-line

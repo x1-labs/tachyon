@@ -252,7 +252,7 @@ where
 
 pub fn normalize_to_url_if_moniker<T: AsRef<str>>(url_or_moniker: T) -> String {
     match url_or_moniker.as_ref() {
-        "m" | "mainnet-beta" => "https://api.mainnet-beta.solana.com",
+        "m" | "mainnet-beta" => "https://rpc.mainnet.x1.xyz",
         "t" | "testnet" => "https://rpc.testnet.x1.xyz",
         "d" | "devnet" => "https://api.devnet.solana.com",
         "l" | "localhost" => "http://localhost:8899",
