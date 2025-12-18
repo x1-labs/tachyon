@@ -18,10 +18,10 @@ command -v dpkg-scanpackages >/dev/null || apt-get install -y dpkg-dev
 # Get version from workspace Cargo.toml
 VERSION=$(grep -m1 '^version = ' Cargo.toml | sed 's/version = "\(.*\)"/\1/')
 
-# Build target flag
-TARGET_FLAG=""
+# Build target args (using array to avoid quoting issues)
+TARGET_ARGS=()
 if [ -n "$TARGET" ]; then
-    TARGET_FLAG="--target $TARGET"
+    TARGET_ARGS=("--target" "$TARGET")
     # Ensure target is installed
     rustup target add "$TARGET" 2>/dev/null || true
     echo "==> Cross-compiling for ${TARGET}"
@@ -67,18 +67,18 @@ DEB_ARCH=$(get_deb_arch)
 REVISION=$(get_next_revision "x1-tachyon-validator2.2" "$DEB_ARCH")
 if [ -n "$REVISION" ]; then
     echo "==> Building x1-tachyon-validator2.2 ${VERSION}-${REVISION} (${DEB_ARCH})"
-    cargo deb -p tachyon-validator $TARGET_FLAG --deb-revision "$REVISION"
+    cargo deb -p tachyon-validator "${TARGET_ARGS[@]}" --deb-revision "$REVISION"
 else
     echo "==> Building x1-tachyon-validator2.2 ${VERSION} (${DEB_ARCH})"
-    cargo deb -p tachyon-validator $TARGET_FLAG
+    cargo deb -p tachyon-validator "${TARGET_ARGS[@]}"
 fi
 
 # Build x1-tools (solana-cli)
 REVISION=$(get_next_revision "x1-tools" "$DEB_ARCH")
 if [ -n "$REVISION" ]; then
     echo "==> Building x1-tools ${VERSION}-${REVISION} (${DEB_ARCH})"
-    cargo deb -p solana-cli $TARGET_FLAG --deb-revision "$REVISION"
+    cargo deb -p solana-cli "${TARGET_ARGS[@]}" --deb-revision "$REVISION"
 else
     echo "==> Building x1-tools ${VERSION} (${DEB_ARCH})"
-    cargo deb -p solana-cli $TARGET_FLAG
+    cargo deb -p solana-cli "${TARGET_ARGS[@]}"
 fi

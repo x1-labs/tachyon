@@ -16,7 +16,7 @@ $SUDO apt-get update
 $SUDO apt-get install -y --no-install-recommends apt-utils unzip gnupg ca-certificates dpkg-dev git curl libssl-dev libudev-dev pkg-config zlib1g-dev llvm clang cmake make libprotobuf-dev protobuf-compiler
 
 curl https://sh.rustup.rs -sSf | sh -s -- -y
-. $HOME/.cargo/env
+. "$HOME/.cargo/env"
 export PATH="$HOME/.cargo/bin:$PATH"
 cargo install cargo-deb
 

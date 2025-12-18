@@ -16,7 +16,7 @@ cleanup() {
 trap cleanup EXIT
 
 echo "==> Syncing existing repo from S3..."
-aws --profile $AWS_PROFILE s3 sync "s3://${S3_BUCKET}/${S3_PATH}/" "$REPO_DIR/" --delete 2>/dev/null || true
+aws --profile "$AWS_PROFILE" s3 sync "s3://${S3_BUCKET}/${S3_PATH}/" "$REPO_DIR/" --delete 2>/dev/null || true
 
 echo "==> Setting up repo structure..."
 mkdir -p "$REPO_DIR/pool/${COMPONENT}"
@@ -27,9 +27,9 @@ cp target/debian/*.deb "$REPO_DIR/pool/${COMPONENT}/"
 echo "==> Pruning old versions (keeping last ${KEEP_VERSIONS})..."
 cd "$REPO_DIR/pool/${COMPONENT}"
 # Get unique package names (everything before the first _)
-for pkg in $(ls -1 *.deb 2>/dev/null | sed 's/_.*$//' | sort -u); do
+for pkg in $(find . -maxdepth 1 -name "*.deb" -printf '%f\n' 2>/dev/null | sed 's/_.*$//' | sort -u); do
     # List all versions of this package, sort by version, keep only old ones to delete
-    ls -1 ${pkg}_*.deb 2>/dev/null | sort -V | head -n -${KEEP_VERSIONS} | while read old_deb; do
+    find . -maxdepth 1 -name "${pkg}_*.deb" -printf '%f\n' 2>/dev/null | sort -V | head -n -"${KEEP_VERSIONS}" | while read -r old_deb; do
         echo "  Removing old: $old_deb"
         rm -f "$old_deb"
     done
@@ -37,7 +37,7 @@ done
 cd "$REPO_DIR"
 
 # Detect architectures from .deb files in pool
-ARCHS=$(ls -1 "$REPO_DIR/pool/${COMPONENT}/"*.deb 2>/dev/null | sed 's/.*_\([^_]*\)\.deb$/\1/' | sort -u | tr '\n' ' ')
+ARCHS=$(find "$REPO_DIR/pool/${COMPONENT}/" -maxdepth 1 -name "*.deb" -printf '%f\n' 2>/dev/null | sed 's/.*_\([^_]*\)\.deb$/\1/' | sort -u | tr '\n' ' ')
 ARCHS="${ARCHS:-amd64}"
 echo "==> Detected architectures: ${ARCHS}"
 
@@ -51,7 +51,7 @@ for ARCH in $ARCHS; do
 done
 
 echo "==> Generating Release files..."
-ARCH_LIST=$(echo $ARCHS | tr ' ' '\n' | paste -sd ' ')
+ARCH_LIST=$(echo "$ARCHS" | tr ' ' '\n' | paste -sd ' ')
 cat > apt-ftparchive.conf << CONF
 APT::FTPArchive::Release::Origin "X1 Labs";
 APT::FTPArchive::Release::Label "X1 Tachyon";
@@ -72,7 +72,7 @@ if [ -n "$GPG_KEY_ID" ]; then
 fi
 
 echo "==> Syncing repo back to S3..."
-aws --profile $AWS_PROFILE s3 sync --acl public-read "$REPO_DIR/" "s3://${S3_BUCKET}/${S3_PATH}/" --delete
+aws --profile "$AWS_PROFILE" s3 sync --acl public-read "$REPO_DIR/" "s3://${S3_BUCKET}/${S3_PATH}/" --delete
 
 echo "==> Done! Repository published to https://release.x1.xyz/${S3_PATH}/"
 echo ""
