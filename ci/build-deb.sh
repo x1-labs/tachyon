@@ -3,6 +3,7 @@
 set -e
 
 # Source cargo environment if not in PATH
+# shellcheck source=/dev/null
 [ -f "$HOME/.cargo/env" ] && source "$HOME/.cargo/env"
 
 S3_BUCKET="x1-tachyon-release"
