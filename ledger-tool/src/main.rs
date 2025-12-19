@@ -15,8 +15,8 @@ use {
     agave_feature_set::{self as feature_set, FeatureSet},
     agave_reserved_account_keys::ReservedAccountKeys,
     clap::{
-        crate_description, crate_name, value_t, value_t_or_exit, values_t_or_exit, App,
-        AppSettings, Arg, ArgMatches, SubCommand,
+        crate_description, value_t, value_t_or_exit, values_t_or_exit, App, AppSettings, Arg,
+        ArgMatches, SubCommand,
     },
     dashmap::DashMap,
     log::*,
@@ -951,7 +951,7 @@ fn main() {
 
     let mut measure_total_execution_time = Measure::start("ledger tool");
 
-    let matches = App::new(crate_name!())
+    let matches = App::new("x1-ledger-tool")
         .about(crate_description!())
         .version(solana_version::version!())
         .global_setting(AppSettings::ColoredHelp)
@@ -1686,7 +1686,7 @@ fn main() {
         .program_subcommand()
         .get_matches();
 
-    info!("{} {}", crate_name!(), solana_version::version!());
+    info!("x1-ledger-tool {}", solana_version::version!());
 
     let ledger_path = PathBuf::from(value_t_or_exit!(matches, "ledger_path", String));
     let verbose_level = matches.occurrences_of("verbose");

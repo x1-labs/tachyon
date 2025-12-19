@@ -3,7 +3,7 @@ use {
         admin_rpc_service, cli, dashboard::Dashboard, ledger_lockfile, lock_ledger,
         println_name_value,
     },
-    clap::{crate_name, value_t, value_t_or_exit, values_t_or_exit},
+    clap::{value_t, value_t_or_exit, values_t_or_exit},
     crossbeam_channel::unbounded,
     itertools::Itertools,
     log::*,
@@ -129,7 +129,7 @@ fn main() {
     };
     let _logger_thread = redirect_stderr_to_file(logfile);
 
-    info!("{} {}", crate_name!(), solana_version::version!());
+    info!("x1-test-validator {}", solana_version::version!());
     info!("Starting validator with: {:#?}", std::env::args_os());
     solana_core::validator::report_target_features();
 

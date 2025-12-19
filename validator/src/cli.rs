@@ -1,6 +1,6 @@
 use {
     crate::commands,
-    clap::{crate_description, crate_name, App, AppSettings, Arg, ArgMatches, SubCommand},
+    clap::{crate_description, App, AppSettings, Arg, ArgMatches, SubCommand},
     solana_accounts_db::{
         accounts_db::{
             DEFAULT_ACCOUNTS_SHRINK_OPTIMIZE_TOTAL_SPACE, DEFAULT_ACCOUNTS_SHRINK_RATIO,
@@ -51,7 +51,7 @@ const MAX_SNAPSHOT_DOWNLOAD_ABORT: u32 = 5;
 const MINIMUM_TICKS_PER_SLOT: u64 = 2;
 
 pub fn app<'a>(version: &'a str, default_args: &'a DefaultArgs) -> App<'a, 'a> {
-    let app = App::new(crate_name!())
+    let app = App::new("x1-validator")
         .about(crate_description!())
         .version(version)
         .global_setting(AppSettings::ColoredHelp)
@@ -472,7 +472,7 @@ pub fn test_app<'a>(version: &'a str, default_args: &'a DefaultTestArgs) -> App<
                 .takes_value(true)
                 .validator(is_url_or_moniker)
                 .help(
-                    "URL for Solana's JSON RPC or moniker (or their first letter): [mainnet-beta, \
+                    "URL for X1's JSON RPC or moniker (or their first letter): [mainnet-beta, \
                      testnet, devnet, localhost]",
                 ),
         )

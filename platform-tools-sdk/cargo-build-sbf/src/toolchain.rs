@@ -545,7 +545,7 @@ fn check_solana_target_installed(target: &str) {
     let output = spawn(&rustc, ["--print", "target-list"], false);
     if !output.contains(target) {
         error!(
-            "Provided {rustc:?} does not have {target} target. The Solana rustc must be available \
+            "Provided {rustc:?} does not have {target} target. The X1 rustc must be available \
              in $PATH or the $RUSTC environment variable for the build to succeed."
         );
         exit(1);

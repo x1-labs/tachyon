@@ -1,5 +1,5 @@
 use {
-    clap::{crate_description, crate_name, values_t, App, Arg},
+    clap::{crate_description, values_t, App, Arg},
     log::*,
     solana_clap_utils::input_parsers::{lamports_of_sol, value_of},
     solana_faucet::{
@@ -21,7 +21,7 @@ async fn main() {
 
     solana_logger::setup_with_default_filter();
     solana_metrics::set_panic_hook("faucet", /*version:*/ None);
-    let matches = App::new(crate_name!())
+    let matches = App::new("x1-faucet")
         .about(crate_description!())
         .version(solana_version::version!())
         .arg(

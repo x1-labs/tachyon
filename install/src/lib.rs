@@ -124,7 +124,7 @@ pub fn main() -> Result<(), String> {
                         .takes_value(true)
                         .default_value(defaults::JSON_RPC_URL)
                         .validator(is_url)
-                        .help("JSON RPC URL for the solana cluster"),
+                        .help("JSON RPC URL for the x1 cluster"),
                 )
                 .arg(
                     Arg::with_name("no_modify_path")
@@ -190,7 +190,7 @@ pub fn main() -> Result<(), String> {
                         .takes_value(true)
                         .default_value(defaults::JSON_RPC_URL)
                         .validator(is_url)
-                        .help("JSON RPC URL for the solana cluster"),
+                        .help("JSON RPC URL for the x1 cluster"),
                 )
                 .arg(
                     Arg::with_name("download_url")

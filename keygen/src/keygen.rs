@@ -2,8 +2,7 @@
 use {
     bip39::{Mnemonic, MnemonicType, Seed},
     clap::{
-        builder::ValueParser, crate_description, crate_name, value_parser, Arg, ArgAction,
-        ArgMatches, Command,
+        builder::ValueParser, crate_description, value_parser, Arg, ArgAction, ArgMatches, Command,
     },
     solana_clap_v3_utils::{
         input_parsers::{
@@ -213,7 +212,7 @@ fn grind_parse_args(
 }
 
 fn app<'a>(num_threads: &'a str, crate_version: &'a str) -> Command<'a> {
-    Command::new(crate_name!())
+    Command::new("x1-keygen")
         .about(crate_description!())
         .version(crate_version)
         .subcommand_required(true)

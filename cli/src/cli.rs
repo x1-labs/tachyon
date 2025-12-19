@@ -614,7 +614,7 @@ pub fn parse_command(
                 crate_description!(),
                 solana_version::version!(),
             )
-            .gen_completions_to("solana", shell_choice, &mut stdout());
+            .gen_completions_to("x1", shell_choice, &mut stdout());
             std::process::exit(0);
         }
         // Cluster Query Commands
@@ -689,7 +689,7 @@ pub fn parse_command(
         ("upgrade-nonce-account", Some(matches)) => parse_upgrade_nonce_account(matches),
         // Program Deployment
         ("deploy", Some(_matches)) => clap::Error::with_description(
-            "`solana deploy` has been replaced with `solana program deploy`",
+            "`x1 deploy` has been replaced with `x1 program deploy`",
             clap::ErrorKind::UnrecognizedSubcommand,
         )
         .exit(),
@@ -2795,7 +2795,7 @@ mod tests {
         for shell in shells {
             let mut buf: Vec<u8> = vec![];
 
-            clap_app.gen_completions_to("solana", shell, &mut buf);
+            clap_app.gen_completions_to("x1", shell, &mut buf);
 
             assert!(!buf.is_empty());
         }
