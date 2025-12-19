@@ -36,7 +36,7 @@ FLAGS:
 
 OPTIONS:
     -d, --data-dir <PATH>    Directory to store install data
-    -u, --url <URL>          JSON RPC URL for the solana cluster
+    -u, --url <URL>          JSON RPC URL for the x1 cluster
     -p, --pubkey <PUBKEY>    Public key of the update manifest
 EOF
 }

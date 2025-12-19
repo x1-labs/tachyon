@@ -352,7 +352,7 @@ mod internal {
         #[rpc(name = "rootUnsubscribe")]
         fn root_unsubscribe(&self, id: SubscriptionId) -> Result<bool>;
 
-        // Get the current solana version running on the node
+        // Get the current x1 version running on the node
         #[rpc(name = "getVersion")]
         fn get_version(&self) -> Result<RpcVersionInfo>;
     }

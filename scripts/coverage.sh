@@ -61,7 +61,7 @@ TEST_ARGS=(
   --skip shred::merkle::test::test_recover_merkle_shreds::
 )
 
-# Most verbose log level (trace) is enabled for all solana code to make log!
+# Most verbose log level (trace) is enabled for all x1 code to make log!
 # macro code green always. Also, forcibly discard the vast amount of log by
 # redirecting the stderr altogether on CI, where all tests are run unlike
 # developing.

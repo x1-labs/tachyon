@@ -23,7 +23,7 @@ You will need:
 Both validators need to have secondary (unstaked) identities to assume when not actively voting.
 You can generate these secondary identities on each of your validators like so:
 ```
-solana-keygen new -s --no-bip39-passphrase -o unstaked-identity.json
+x1-keygen new -s --no-bip39-passphrase -o unstaked-identity.json
 ```
 ### Validator Startup Script Modifications
 
@@ -83,7 +83,7 @@ If you have done this - great! You're ready to transition!
 tachyon-validator -l /mnt/ledger wait-for-restart-window --min-idle-time 2 --skip-new-snapshot-check
 tachyon-validator -l /mnt/ledger set-identity /home/sol/unstaked-identity.json
 ln -sf /home/sol/unstaked-identity.json /home/sol/identity.json
-scp /mnt/ledger/tower-1_9-$(solana-keygen pubkey /home/sol/staked-identity.json).bin <user>@<IP>/mnt/ledger
+scp /mnt/ledger/tower-1_9-$(x1-keygen pubkey /home/sol/staked-identity.json).bin <user>@<IP>/mnt/ledger
 ```
 
 (At this point your primary identity is no longer voting)
@@ -101,4 +101,4 @@ ln -sf /home/sol/staked-identity.json /home/sol/identity.json
 ```
 
 ### Verification
-Verify identities transitioned successfully using either `tachyon-validator monitor` or `solana catchup --our-localhost 8899`
+Verify identities transitioned successfully using either `tachyon-validator monitor` or `x1 catchup --our-localhost 8899`

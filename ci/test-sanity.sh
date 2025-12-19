@@ -71,7 +71,7 @@ EOF
 )
 fi
 
-# Disallow (re)introduction of solana sdk dependencies
+# Disallow (re)introduction of x1 sdk dependencies
 (
   if git diff "$target" | grep -v '+++' | grep '^+.*solana[-_]sdk[: =]'; then
     cat <<'EOF' 1>&2

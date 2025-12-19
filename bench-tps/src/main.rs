@@ -261,7 +261,7 @@ fn main() {
             .get_account(&instruction_padding_config.program_id)
             .expect(
                 "Instruction padding program must be deployed to this cluster. Deploy the program \
-                 using `solana program deploy \
+                 using `x1 program deploy \
                  ./bench-tps/tests/fixtures/spl_instruction_padding.so` and pass the resulting \
                  program id with `--instruction-padding-program-id`",
             );

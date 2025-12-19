@@ -218,7 +218,7 @@ pub trait RemoteWallet<T> {
         unimplemented!();
     }
 
-    /// Get solana pubkey from a RemoteWallet
+    /// Get x1 pubkey from a RemoteWallet
     fn get_pubkey(
         &self,
         derivation_path: &DerivationPath,

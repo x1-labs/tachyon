@@ -26,7 +26,7 @@ solanaInstallGlobalOpts=(
   --no-modify-path
 )
 
-# Install all the solana versions
+# Install all the x1 versions
 bootstrapInstall() {
   declare v=$1
   if [[ ! -h $solanaInstallDataDir/active_release ]]; then

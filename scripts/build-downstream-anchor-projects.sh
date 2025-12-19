@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Builds known downstream projects against local solana source
+# Builds known downstream projects against local x1 source
 #
 
 set -e
@@ -71,7 +71,7 @@ anchor() {
 
   # Exclude `avm` tests because they don't depend on Solana or SPL
   $cargo test --workspace --exclude avm
-  # serum_dex and mpl-token-metadata are using caret versions of solana and SPL dependencies
+  # serum_dex and mpl-token-metadata are using caret versions of x1 and SPL dependencies
   # rather pull and patch those as well, ignore for now
   # (cd spl && $cargo_build_sbf --features dex metadata stake)
   (cd spl && $cargo_build_sbf --features stake)

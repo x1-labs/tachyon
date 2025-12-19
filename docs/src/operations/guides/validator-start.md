@@ -7,11 +7,11 @@ pagination_label: "Validator Guides: Starting a Validator"
 
 ## Configure Solana CLI
 
-The solana cli includes `get` and `set` configuration commands to automatically
+The x1 cli includes `get` and `set` configuration commands to automatically
 set the `--url` argument for cli commands. For example:
 
 ```bash
-solana config set --url http://api.devnet.solana.com
+x1 config set --url http://api.devnet.solana.com
 ```
 
 While this section demonstrates how to connect to the Devnet cluster, the steps
@@ -23,7 +23,7 @@ Before attaching a validator node, sanity check that the cluster is accessible
 to your machine by fetching the transaction count:
 
 ```bash
-solana transaction-count
+x1 transaction-count
 ```
 
 View the [metrics dashboard](https://metrics.solana.com:3000/d/monitor-edge/cluster-telemetry) for more
@@ -115,13 +115,13 @@ Operators commonly use an ntp server to maintain an accurate system clock.
 Create an identity keypair for your validator by running:
 
 ```bash
-solana-keygen new -o ~/validator-keypair.json
+x1-keygen new -o ~/validator-keypair.json
 ```
 
 The identity public key can now be viewed by running:
 
 ```bash
-solana-keygen pubkey ~/validator-keypair.json
+x1-keygen pubkey ~/validator-keypair.json
 ```
 
 > Note: The "validator-keypair.json” file is also your \(ed25519\) private key.
@@ -132,13 +132,13 @@ You can create a paper wallet for your identity file instead of writing the
 keypair file to disk with:
 
 ```bash
-solana-keygen new --no-outfile
+x1-keygen new --no-outfile
 ```
 
 The corresponding identity public key can now be viewed by running:
 
 ```bash
-solana-keygen pubkey ASK
+x1-keygen pubkey ASK
 ```
 
 and then entering your seed phrase.
@@ -149,10 +149,10 @@ See [Paper Wallet Usage](../../cli/wallets/paper.md) for more info.
 
 ### Vanity Keypair
 
-You can generate a custom vanity keypair using solana-keygen. For instance:
+You can generate a custom vanity keypair using x1-keygen. For instance:
 
 ```bash
-solana-keygen grind --starts-with e1v1s:1
+x1-keygen grind --starts-with e1v1s:1
 ```
 
 You may request that the generated vanity keypair be expressed as a seed phrase
@@ -161,7 +161,7 @@ supplied passphrase (note that this is significantly slower than grinding withou
 a mnemonic):
 
 ```bash
-solana-keygen grind --use-mnemonic --starts-with e1v1s:1
+x1-keygen grind --use-mnemonic --starts-with e1v1s:1
 ```
 
 Depending on the string requested, it may take days to find a match...
@@ -180,11 +180,11 @@ To back-up your validator identify keypair, **back-up your
 
 ## More Solana CLI Configuration
 
-Now that you have a keypair, set the solana configuration to use your validator
+Now that you have a keypair, set the x1 configuration to use your validator
 keypair for all following commands:
 
 ```bash
-solana config set --keypair ~/validator-keypair.json
+x1 config set --keypair ~/validator-keypair.json
 ```
 
 You should see the following output:
@@ -202,7 +202,7 @@ Commitment: confirmed
 Airdrop yourself some SOL to get started:
 
 ```bash
-solana airdrop 1
+x1 airdrop 1
 ```
 
 Note that airdrops are only available on Devnet and Testnet. Both are limited
@@ -211,13 +211,13 @@ to 1 SOL per request.
 To view your current balance:
 
 ```text
-solana balance
+x1 balance
 ```
 
 Or to see in finer detail:
 
 ```text
-solana balance --lamports
+x1 balance --lamports
 ```
 
 Read more about the difference between SOL and lamports here: [What is SOL?](https://solana.com/docs/references/terminology#sol), [What is a lamport?](https://solana.com/docs/references/terminology#lamport).
@@ -236,7 +236,7 @@ stored anywhere from where it could be accessed by unauthorized parties. To
 create your authorized-withdrawer keypair:
 
 ```bash
-solana-keygen new -o ~/authorized-withdrawer-keypair.json
+x1-keygen new -o ~/authorized-withdrawer-keypair.json
 ```
 
 ## Create Vote Account
@@ -246,14 +246,14 @@ vote account on the network. If you have completed this step, you should see the
 “vote-account-keypair.json” in your Solana runtime directory:
 
 ```bash
-solana-keygen new -o ~/vote-account-keypair.json
+x1-keygen new -o ~/vote-account-keypair.json
 ```
 
 The following command can be used to create your vote account on the blockchain
 with all the default options:
 
 ```bash
-solana create-vote-account ~/vote-account-keypair.json ~/validator-keypair.json ~/authorized-withdrawer-keypair.json
+x1 create-vote-account ~/vote-account-keypair.json ~/validator-keypair.json ~/authorized-withdrawer-keypair.json
 ```
 
 Remember to move your authorized withdrawer keypair into a very secure location after running the above command.
@@ -303,7 +303,7 @@ Confirm your validator is connected to the network by opening a new terminal and
 running:
 
 ```bash
-solana gossip
+x1 gossip
 ```
 
 If your validator is connected, its public key and IP address will appear in the list.
@@ -435,7 +435,7 @@ systemctl restart logrotate.service
 ```
 
 As mentioned earlier, be sure that if you use logrotate, any script you create
-which starts the solana validator process uses "exec" to do so (example: "exec
+which starts the x1 validator process uses "exec" to do so (example: "exec
 tachyon-validator ..."); otherwise, when logrotate sends its signal to the
 validator, the enclosing script will die and take the validator process with
 it.

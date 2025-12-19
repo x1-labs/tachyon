@@ -1,6 +1,6 @@
 [package]
 name = "agave-install"
-description = "The solana cluster software installer"
+description = "The x1 cluster software installer"
 documentation = "https://docs.rs/agave-install"
 version = { workspace = true }
 authors = { workspace = true }

@@ -114,7 +114,7 @@ RUST_LOG=info ./net.sh start
 * If you expect metrics to work, make sure you have configured them before proceeding
 * Go to `./net/` directory in agave repo
 * `./gce.sh` command controls creation and destruction of the nodes in the test net. It does not actually run any software.
-  * `./gce.sh create \-n 4 \-c 2` creates cluster with 4 validators and 1 node for load generation, this is minimal viable setup for all solana features to work
+  * `./gce.sh create \-n 4 \-c 2` creates cluster with 4 validators and 1 node for load generation, this is minimal viable setup for all x1 features to work
     * If the creation succeeds, `net/config/config` will contain the config file of the testnet just created
     * If you do not have `SOLANA_METRICS_CONFIG` set in your shell env, `gce.sh` may complain about metrics not being configured, this is perfectly fine
   * `./gce.sh info`  lists active test cluster nodes, this allows you to get their IP addresses for SSH access and/or debugging
@@ -145,22 +145,22 @@ RUST_LOG=info ./net.sh start
   * `./ssh.sh <IP> ` to get a shell on the node
   * `sudo su` will give you root access on the nodes
   * Nodes run latest ubuntu LTS image
-* You can also interact with the nodes using solana cli:
+* You can also interact with the nodes using x1 cli:
 ```bash
 # source ip list  use as ${validatorIpList[4]}
 source net/config/config
 
 # airdrop
-../target/release/solana -u http://${validatorIpList[1]}:8899 airdrop 1
+../target/release/x1 -u http://${validatorIpList[1]}:8899 airdrop 1
 
 # check feature
-../target/release/solana -u http://${validatorIpList[1]}:8899 feature status
+../target/release/x1 -u http://${validatorIpList[1]}:8899 feature status
 
 # activate a feature
-../target/release/solana -u http://${validatorIpList[1]}:8899 feature activate <path to .json>
+../target/release/x1 -u http://${validatorIpList[1]}:8899 feature activate <path to .json>
 
 # check the stakes on current validators
-../target/release/solana --url http://${validatorIpList[0]}:8899 validators
+../target/release/x1 --url http://${validatorIpList[0]}:8899 validators
 ```
 
 ## Tips

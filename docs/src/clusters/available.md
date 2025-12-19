@@ -38,7 +38,7 @@ export SOLANA_METRICS_CONFIG="host=https://metrics.solana.com:8086,db=devnet,u=s
 ##### Example `solana` command-line configuration
 
 ```bash
-solana config set --url https://api.devnet.solana.com
+x1 config set --url https://api.devnet.solana.com
 ```
 
 ##### Example `tachyon-validator` command-line
@@ -90,7 +90,7 @@ export SOLANA_METRICS_CONFIG="host=https://metrics.solana.com:8086,db=tds,u=test
 ##### Example `solana` command-line configuration
 
 ```bash
-solana config set --url https://api.testnet.solana.com
+x1 config set --url https://api.testnet.solana.com
 ```
 
 ##### Example `tachyon-validator` command-line
@@ -142,7 +142,7 @@ export SOLANA_METRICS_CONFIG="host=https://metrics.solana.com:8086,db=mainnet-be
 ##### Example `solana` command-line configuration
 
 ```bash
-solana config set --url https://api.mainnet-beta.solana.com
+x1 config set --url https://api.mainnet-beta.solana.com
 ```
 
 ##### Example `tachyon-validator` command-line

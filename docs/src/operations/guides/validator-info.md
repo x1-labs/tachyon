@@ -7,18 +7,18 @@ pagination_label: "Validator Guides: Publishing Validator Info"
 
 You can publish your validator information to the chain to be publicly visible to other users.
 
-## Run solana validator-info
+## Run x1 validator-info
 
-Run the solana CLI to populate a validator info account:
+Run the x1 CLI to populate a validator info account:
 
 ```bash
-solana validator-info publish --keypair ~/validator-keypair.json <VALIDATOR_INFO_ARGS> <VALIDATOR_NAME>
+x1 validator-info publish --keypair ~/validator-keypair.json <VALIDATOR_INFO_ARGS> <VALIDATOR_NAME>
 ```
 
 For details about optional fields for VALIDATOR_INFO_ARGS:
 
 ```bash
-solana validator-info publish --help
+x1 validator-info publish --help
 ```
 
 The recommended dimensions for the validator icon are 360x360px and PNG format.
@@ -28,13 +28,13 @@ The recommended dimensions for the validator icon are 360x360px and PNG format.
 Example publish command:
 
 ```bash
-solana validator-info publish "Elvis Validator" -w "https://elvis-validates.com" -i "https://elvis-validates.com/my-icon.png"
+x1 validator-info publish "Elvis Validator" -w "https://elvis-validates.com" -i "https://elvis-validates.com/my-icon.png"
 ```
 
 Example query command:
 
 ```bash
-solana validator-info get
+x1 validator-info get
 ```
 
 which outputs

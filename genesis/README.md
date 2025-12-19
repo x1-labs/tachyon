@@ -10,7 +10,7 @@
 Note: you can pass in `--bootstrap-validator ...` multiple times but the lamports associated with `--bootstrap-validator-lamports` and `--bootstrap-validator-stake-lamports` will apply to all `--bootstrap-validator` arguments.
 For example:
 ```
-cargo run --bin solana-genesis --
+cargo run --bin x1-genesis --
     --bootstrap-validator <IDENTITY_PUBKEY_0> <VOTE_PUBKEY_0> <STAKE_PUBKEY_0>
     --bootstrap-validator <IDENTITY_PUBKEY_1> <VOTE_PUBKEY_1> <STAKE_PUBKEY_1>
     ...

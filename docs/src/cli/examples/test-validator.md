@@ -68,13 +68,13 @@ software.
 #### Configure the CLI Tool Suite to target a local cluster by default
 
 ```
-solana config set --url http://127.0.0.1:8899
+x1 config set --url http://127.0.0.1:8899
 ```
 
 #### Verify the CLI Tool Suite configuration
 
 ```
-solana genesis-hash
+x1 genesis-hash
 ```
 
 - **NOTE:** The result should match the `Genesis Hash:` field in the
@@ -83,24 +83,24 @@ solana genesis-hash
 #### Check the wallet balance
 
 ```
-solana balance
+x1 balance
 ```
 
 - **NOTE:** `Error: No such file or directory (os error 2)` means that the default
-  wallet does not yet exist. Create it with `solana-keygen new`.
+  wallet does not yet exist. Create it with `x1-keygen new`.
 - **NOTE:** If the wallet has a zero SOL balance, airdrop some localnet SOL with
-  `solana airdrop 10`
+  `x1 airdrop 10`
 
 #### Perform a basic transfer transaction
 
 ```
-solana transfer EPhgPANa5Rh2wa4V2jxt7YbtWa3Uyw4sTeZ13cQjDDB8 1
+x1 transfer EPhgPANa5Rh2wa4V2jxt7YbtWa3Uyw4sTeZ13cQjDDB8 1
 ```
 
 #### Monitor `msg!()` output from on-chain programs
 
 ```
-solana logs
+x1 logs
 ```
 
 - **NOTE:** This command needs to be running when the target transaction is
@@ -161,7 +161,7 @@ By default, the test validator runs with all [runtime features](https://solana.c
 You can verify this using the [Solana command-line tools](../install.md):
 
 ```bash
-solana feature status -ul
+x1 feature status -ul
 ```
 
 Since this may not always be desired, especially when testing programs meant for deployment to mainnet, the CLI provides an option to deactivate specific features:

@@ -145,7 +145,7 @@ pub(crate) fn post_process(config: &Config, target_directory: &Path, program_nam
         }
 
         info!("To deploy this program:");
-        info!("  $ solana program deploy {}", program_so.display());
+        info!("  $ x1 program deploy {}", program_so.display());
         info!("The program address will default to this keypair (override with --program-id):");
         info!("  {}", program_keypair.display());
     } else if config.dump {

@@ -39,7 +39,7 @@ able to run two commands and get an answer on your terminal.
 First, run the following command to verify that the Solana CLI is installed:
 
 ```
-solana --version
+x1 --version
 ```
 
 You should see an output that looks similar to this (note your version number
@@ -67,13 +67,13 @@ Once you have successfully installed the cli and validator binary, the next step
 config so that it is making requests to the `testnet` cluster:
 
 ```
-solana config set --url https://api.testnet.solana.com
+x1 config set --url https://api.testnet.solana.com
 ```
 
 To verify that your config has changed, run:
 
 ```
-solana config get
+x1 config get
 ```
 
 You should see a line that says: `RPC URL: https://api.testnet.solana.com`
@@ -88,15 +88,15 @@ validator ([docs for reference](./guides/validator-start.md#generate-identity)):
 > ([docs for reference](./guides/validator-start.md#vanity-keypair)).
 
 ```
-solana-keygen new -o validator-keypair.json
+x1-keygen new -o validator-keypair.json
 ```
 
 ```
-solana-keygen new -o vote-account-keypair.json
+x1-keygen new -o vote-account-keypair.json
 ```
 
 ```
-solana-keygen new -o authorized-withdrawer-keypair.json
+x1-keygen new -o authorized-withdrawer-keypair.json
 ```
 
 > **IMPORTANT** the `authorized-withdrawer-keypair.json` should be considered
@@ -117,20 +117,20 @@ The below command sets the default keypair that the Solana CLI uses to the
 `validator-keypair.json` file that you just created in the terminal:
 
 ```
-solana config set --keypair ./validator-keypair.json
+x1 config set --keypair ./validator-keypair.json
 ```
 
 Now verify your account balance of `0`:
 
 ```
-solana balance
+x1 balance
 ```
 
 Next, you need to deposit some SOL into that keypair account in order create a
 transaction (in this case, making your vote account):
 
 ```
-solana airdrop 1
+x1 airdrop 1
 ```
 
 > **NOTE** The `airdrop` sub command does not work on mainnet, so you will have
@@ -145,7 +145,7 @@ especially important that the following command is done on a **trusted
 computer**:
 
 ```
-solana create-vote-account -ut \
+x1 create-vote-account -ut \
     --fee-payer ./validator-keypair.json \
     ./vote-account-keypair.json \
     ./validator-keypair.json \
@@ -496,15 +496,15 @@ In a new terminal window, connect to your server via ssh. Identify your
 validator's pubkey:
 
 ```
-solana-keygen pubkey ~/validator-keypair.json
+x1-keygen pubkey ~/validator-keypair.json
 ```
 
-The command `solana gossip` lists all validators that have registered with the
+The command `x1 gossip` lists all validators that have registered with the
 protocol. To check that the newly setup validator is in gossip, we will `grep`
 for our pubkey in the output:
 
 ```
-solana gossip | grep <pubkey>
+x1 gossip | grep <pubkey>
 ```
 
 After running the command, you should see a single line that looks like this:
@@ -522,12 +522,12 @@ through the validator log output.
 After you have verified that your validator is in gossip, you should stake some
 SOL to your validator. Once the stake has activated (which happens at the start
 of the next epoch), you can verify that your validator is ready to be a voting
-participant of the network with the `solana validators` command. The command
+participant of the network with the `x1 validators` command. The command
 lists all validators in the network, but like before, we can `grep` the output
 for the validator we care about:
 
 ```
-solana validators | grep <pubkey>
+x1 validators | grep <pubkey>
 ```
 
 You should see a line of output that looks like this:
@@ -538,7 +538,7 @@ You should see a line of output that looks like this:
 
 ### Solana Catchup
 
-The `solana catchup` command is a useful tool for seeing how quickly your
+The `x1 catchup` command is a useful tool for seeing how quickly your
 validator is processing blocks. The Solana network has the capability to produce
 many transactions per second. Since your validator is new to the network, it has
 to ask another validator (listed as a `--known-validator` in your startup
@@ -548,16 +548,16 @@ processed and finalized in that time. In order for your validator to participate
 in consensus, it must _catchup_ to the rest of the network by asking for the
 more recent transactions that it does not have.
 
-The `solana catchup` command is a tool that tells you how far behind the network
+The `x1 catchup` command is a tool that tells you how far behind the network
 your validator is and how quickly you are catching up:
 
 ```
-solana catchup <pubkey>
+x1 catchup <pubkey>
 ```
 
 If you see a message about trying to connect, your validator may not be part of
-the network yet. Make sure to check the logs and double check `solana gossip`
-and `solana validators` to make sure your validator is running properly.
+the network yet. Make sure to check the logs and double check `x1 gossip`
+and `x1 validators` to make sure your validator is running properly.
 
 Once you are happy that the validator can start up without errors, the next step
 is to create a system service to run the `validator.sh` file automatically. Stop

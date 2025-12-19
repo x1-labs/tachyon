@@ -65,7 +65,7 @@ not want your validator to be offline during an opportunity to produce blocks.
 To see the full leader schedule for an epoch, use the following command:
 
 ```
-solana leader-schedule
+x1 leader-schedule
 ```
 
 Based on the current slot and the leader schedule, you can calculate open time
@@ -134,7 +134,7 @@ To avoid downloading a snapshot on restart, add the following flag to the
 ```
 
 If you use this flag with the `tachyon-validator` command, make sure that you run
-`solana catchup <pubkey>` after your validator starts to make sure that the
+`x1 catchup <pubkey>` after your validator starts to make sure that the
 validator is catching up in a reasonable time. After some time (potentially a
 few hours), if it appears that your validator continues to fall behind, then you
 may have to download a new snapshot.
@@ -158,12 +158,12 @@ threshold that you set.
 In the case that there are network troubles with one or more of your known
 validators, then you may have to manually download the snapshot. To manually
 download a snapshot from one of your known validators, first, find the IP
-address of the validator in using the `solana gossip` command. In the example
+address of the validator in using the `x1 gossip` command. In the example
 below, `5D1fNXzvv5NjV1ysLjirC4WY92RNsVH18vjmcszZd8on` is the pubkey of one of my
 known validators:
 
 ```
-solana gossip | grep 5D1fNXzvv5NjV1ysLjirC4WY92RNsVH18vjmcszZd8on
+x1 gossip | grep 5D1fNXzvv5NjV1ysLjirC4WY92RNsVH18vjmcszZd8on
 ```
 
 The IP address of the validators is `139.178.68.207` and the open port on this
@@ -199,7 +199,7 @@ up to you. As a best practice, make sure to check the account regularly and
 refill or deduct from it as needed. To check the account balance do:
 
 ```
-solana balance validator-keypair.json
+x1 balance validator-keypair.json
 ```
 
 > **Note** `tachyon-watchtower` can monitor for a minimum validator identity
@@ -212,20 +212,20 @@ server. It should be stored on a hardware wallet, paper wallet, or multisig
 mitigates the risk of hacking and theft of funds.
 
 To withdraw your funds from your vote account, you will need to run
-`solana withdraw-from-vote-account` on a trusted computer. For example, on a
+`x1 withdraw-from-vote-account` on a trusted computer. For example, on a
 trusted computer, you could withdraw all of the funds from your vote account
 (excluding the rent exempt minimum). The below example assumes you have a
 separate keypair to store your funds called `person-keypair.json`
 
 ```
-solana withdraw-from-vote-account \
+x1 withdraw-from-vote-account \
    vote-account-keypair.json \
    person-keypair.json ALL \
    --authorized-withdrawer authorized-withdrawer-keypair.json
 ```
 
 To get more information on the command, use
-`solana withdraw-from-vote-account --help`.
+`x1 withdraw-from-vote-account --help`.
 
 For a more detailed explanation of the different keypairs and other related
 operations refer to

@@ -15,7 +15,7 @@ solanaInstallGlobalOpts=(
   --no-modify-path
 )
 
-# Install all the solana versions
+# Install all the x1 versions
 bootstrapInstall() {
   declare v=$1
   if [[ ! -h $solanaInstallDataDir/active_release ]]; then
@@ -27,13 +27,13 @@ bootstrapInstall() {
 bootstrapInstall "edge"
 agave-install-init --version
 agave-install-init edge
-solana-gossip --version
+x1-gossip --version
 solana-dos --version
 
-killall solana-gossip || true
-solana-gossip spy --gossip-port 8001 > "$logDir"/gossip.log 2>&1 &
+killall x1-gossip || true
+x1-gossip spy --gossip-port 8001 > "$logDir"/gossip.log 2>&1 &
 solanaGossipPid=$!
-echo "solana-gossip pid: $solanaGossipPid"
+echo "x1-gossip pid: $solanaGossipPid"
 sleep 5
 solana-dos --mode gossip --data-type random --data-size 1232 &
 dosPid=$!
@@ -44,7 +44,7 @@ pass=true
 SECONDS=
 while ((SECONDS < 600)); do
   if ! kill -0 $solanaGossipPid; then
-    echo "solana-gossip is no longer running after $SECONDS seconds"
+    echo "x1-gossip is no longer running after $SECONDS seconds"
     pass=false
     break
   fi

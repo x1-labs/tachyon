@@ -2880,7 +2880,7 @@ impl RpcClient {
         self.invoke((self.rpc_client.as_ref()).get_inflation_reward(addresses, epoch))
     }
 
-    /// Returns the current solana version running on the node.
+    /// Returns the current x1 version running on the node.
     ///
     /// # RPC Reference
     ///

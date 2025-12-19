@@ -689,7 +689,7 @@ pub fn parse_command(
         ("upgrade-nonce-account", Some(matches)) => parse_upgrade_nonce_account(matches),
         // Program Deployment
         ("deploy", Some(_matches)) => clap::Error::with_description(
-            "`solana deploy` has been replaced with `solana program deploy`",
+            "`x1 deploy` has been replaced with `x1 program deploy`",
             clap::ErrorKind::UnrecognizedSubcommand,
         )
         .exit(),

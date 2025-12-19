@@ -13,7 +13,7 @@ proof of wallet ownership.
 To sign an arbitrary off-chain message, run the following command:
 
 ```bash
-solana sign-offchain-message <MESSAGE>
+x1 sign-offchain-message <MESSAGE>
 ```
 
 The message will be encoded and signed with CLI's default private key and
@@ -21,7 +21,7 @@ signature printed to the output. If you want to sign it with another key, just
 use the `-k/--keypair` option:
 
 ```bash
-solana sign-offchain-message -k <KEYPAIR> <MESSAGE>
+x1 sign-offchain-message -k <KEYPAIR> <MESSAGE>
 ```
 
 By default, the messages constructed are version 0, the only version currently
@@ -29,7 +29,7 @@ supported. When other versions become available, you can override the default
 value with the `--version` option:
 
 ```bash
-solana sign-offchain-message -k <KEYPAIR> --version <VERSION> <MESSAGE>
+x1 sign-offchain-message -k <KEYPAIR> --version <VERSION> <MESSAGE>
 ```
 
 The message format is determined automatically based on the version and text
@@ -55,7 +55,7 @@ firmware and Solana Ledger App version 1.3.0 or later. After Ledger is
 unlocked and Solana Ledger App is open, run:
 
 ```bash
-solana sign-offchain-message -k usb://ledger <MESSAGE>
+x1 sign-offchain-message -k usb://ledger <MESSAGE>
 ```
 
 For more information on how to setup and work with the ledger device see this
@@ -73,27 +73,27 @@ information about the message to be signed.
 To verify the off-chain message signature, run the following command:
 
 ```bash
-solana verify-offchain-signature <MESSAGE> <SIGNATURE>
+x1 verify-offchain-signature <MESSAGE> <SIGNATURE>
 ```
 
 The public key of the default CLI signer will be used. You can specify another
 key with the `--signer` option:
 
 ```bash
-solana verify-offchain-signature --signer <PUBKEY> <MESSAGE> <SIGNATURE>
+x1 verify-offchain-signature --signer <PUBKEY> <MESSAGE> <SIGNATURE>
 ```
 
 If the signed message has a version different from the default, you need to
 specify the matching version explicitly:
 
 ```bash
-solana verify-offchain-signature --version <VERSION> <MESSAGE> <SIGNATURE>
+x1 verify-offchain-signature --version <VERSION> <MESSAGE> <SIGNATURE>
 ```
 
 ## Protocol Specification
 
 To ensure that off-chain messages are not valid transactions, they are encoded
-with a fixed prefix: `\xffsolana offchain`, where first byte is chosen such
+with a fixed prefix: `\xffx1 offchain`, where first byte is chosen such
 that it is implicitly illegal as the first byte in a transaction
 `MessageHeader` today. More details about the payload format and other
 considerations are available in the

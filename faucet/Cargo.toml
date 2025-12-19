@@ -17,7 +17,7 @@ crate-type = ["lib"]
 name = "solana_faucet"
 
 [[bin]]
-name = "solana-faucet"
+name = "x1-faucet"
 path = "src/bin/faucet.rs"
 
 [dependencies]
@@ -46,3 +46,4 @@ solana-version = { workspace = true }
 spl-memo-interface = { version = "=2.0.0" }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
+

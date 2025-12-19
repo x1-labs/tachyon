@@ -36,14 +36,14 @@ Some inspiration can be gleaned from relevant portions of Ethereum's
 The signing domain specifier is a prefix byte string used to give similar structure
 to all off-chain message signatures. We assign its value to be:
 ```
-b"\xffsolana offchain"
+b"\xffx1 offchain"
 ```
 The first byte, `\xff`, was chosen for the following reasons
 1. It corresponds to a value that is illegal as the first byte in a transaction
 `MessageHeader`.
 1. It avoids unintentional misuse in languages with C-like, null-terminated strings.
 
-The remaining bytes, `b"solana offchain"`, were chosen to be descriptive and
+The remaining bytes, `b"x1 offchain"`, were chosen to be descriptive and
 reasonably long, but are otherwise arbitrary.
 
 This field **SHOULD NOT** be displayed to users

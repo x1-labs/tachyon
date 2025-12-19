@@ -179,11 +179,11 @@ to change the validator identity. The following steps assume that
 `~/authorized_withdrawer.json` is that keypair.
 
 1. Create the new validator identity keypair,
-   `solana-keygen new -o ~/new-validator-keypair.json`.
+   `x1-keygen new -o ~/new-validator-keypair.json`.
 2. Ensure that the new identity account has been funded,
-   `solana transfer ~/new-validator-keypair.json 500`.
+   `x1 transfer ~/new-validator-keypair.json 500`.
 3. Run
-   `solana vote-update-validator ~/vote-account-keypair.json ~/new-validator-keypair.json ~/authorized_withdrawer.json`
+   `x1 vote-update-validator ~/vote-account-keypair.json ~/new-validator-keypair.json ~/authorized_withdrawer.json`
    to modify the validator identity in your vote account
 4. Restart your validator with the new identity keypair for the `--identity`
    argument
@@ -208,7 +208,7 @@ will:
 - Receive the transaction fees and rent rewards for your old validator identity
 
 It is safe to stop this temporary validator when your old validator identity is
-no longer listed in the `solana leader-schedule` output.
+no longer listed in the `x1 leader-schedule` output.
 
 ### Vote Account Authorized Voter
 
@@ -216,17 +216,17 @@ The _vote authority_ keypair may only be changed at epoch boundaries and
 requires some additional arguments to `tachyon-validator` for a seamless
 migration.
 
-1. Run `solana epoch-info`. If there is not much time remaining time in the
+1. Run `x1 epoch-info`. If there is not much time remaining time in the
    current epoch, consider waiting for the next epoch to allow your validator
    plenty of time to restart and catch up.
 2. Create the new vote authority keypair,
-   `solana-keygen new -o ~/new-vote-authority.json`.
+   `x1-keygen new -o ~/new-vote-authority.json`.
 3. Determine the current _vote authority_ keypair by running
-   `solana vote-account ~/vote-account-keypair.json`. It may be validator's
+   `x1 vote-account ~/vote-account-keypair.json`. It may be validator's
    identity account (the default) or some other keypair. The following steps
    assume that `~/validator-keypair.json` is that keypair.
 4. Run
-   `solana vote-authorize-voter-checked ~/vote-account-keypair.json ~/validator-keypair.json ~/new-vote-authority.json`.
+   `x1 vote-authorize-voter-checked ~/vote-account-keypair.json ~/validator-keypair.json ~/new-vote-authority.json`.
    The new vote authority is scheduled to become active starting at the next
    epoch.
 5. `tachyon-validator` now needs to be restarted with the old and new vote
@@ -240,7 +240,7 @@ migration.
 ### Vote Account Authorized Withdrawer
 
 No special handling or timing considerations are required. Use the
-`solana vote-authorize-withdrawer-checked` command as needed.
+`x1 vote-authorize-withdrawer-checked` command as needed.
 
 ### Consider Durable Nonces for a Trustless Transfer of the Authorized Voter or Withdrawer
 
@@ -248,9 +248,9 @@ If the Authorized Voter or Withdrawer is to be transferred to another entity
 then a two-stage signing process using a
 [Durable Nonce](../../cli/examples/durable-nonce.md) is recommended.
 
-1. Entity B creates a durable nonce using `solana create-nonce-account`
-2. Entity B then runs a `solana vote-authorize-voter-checked` or
-   `solana vote-authorize-withdrawer-checked` command, including:
+1. Entity B creates a durable nonce using `x1 create-nonce-account`
+2. Entity B then runs a `x1 vote-authorize-voter-checked` or
+   `x1 vote-authorize-withdrawer-checked` command, including:
 
 - the `--sign-only` argument
 - the `--nonce`, `--nonce-authority`, and `--blockhash` arguments to specify the
@@ -258,10 +258,10 @@ then a two-stage signing process using a
 - the address of the Entity A's existing authority, and the keypair for Entity
   B's new authority
 
-3. When the `solana vote-authorize-...-checked` command successfully executes,
+3. When the `x1 vote-authorize-...-checked` command successfully executes,
    it will output transaction signatures that Entity B must share with Entity A
-4. Entity A then runs a similar `solana vote-authorize-voter-checked` or
-   `solana vote-authorize-withdrawer-checked` command with the following
+4. Entity A then runs a similar `x1 vote-authorize-voter-checked` or
+   `x1 vote-authorize-withdrawer-checked` command with the following
    changes:
 
 - the `--sign-only` argument is removed, and replaced with a `--signer` argument

@@ -629,7 +629,7 @@ deploy() {
 
   if [[ -n "$copyProgramPubkey" ]]; then
       echo "Copying program from ${copyProgramUrl}"
-      solana -u "${copyProgramUrl}" program dump "${copyProgramPubkey}" "${copyProgramPubkey}".so || exit 1
+      x1 -u "${copyProgramUrl}" program dump "${copyProgramPubkey}" "${copyProgramPubkey}".so || exit 1
 
       genesisOptions="${genesisOptions} --bpf-program ${copyProgramPubkey} BPFLoader2111111111111111111111111111111111 /home/solana/solana/net/${copyProgramPubkey}.so"
   fi

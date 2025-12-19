@@ -11,13 +11,13 @@ of different commands for each action you might want to take. You can view the l
 of all possible commands by running:
 
 ```bash
-solana --help
+x1 --help
 ```
 
 To zoom in on how to use a particular command, run:
 
 ```bash
-solana <COMMAND> --help
+x1 <COMMAND> --help
 ```
 
 where you replace the text `<COMMAND>` with the name of the command you want
@@ -40,7 +40,7 @@ For example, the CLI help shows that the way to display any wallet's address
 (also known as the keypair's pubkey), is:
 
 ```bash
-solana-keygen pubkey <KEYPAIR>
+x1-keygen pubkey <KEYPAIR>
 ```
 
 Below, we show how to resolve what you should put in `<KEYPAIR>` depending
@@ -57,7 +57,7 @@ enter your seed words when you run the command.
 To display the wallet address of a Paper Wallet:
 
 ```bash
-solana-keygen pubkey prompt://
+x1-keygen pubkey prompt://
 ```
 
 ## File System Wallet
@@ -69,7 +69,7 @@ For example, if the file system keypair file location is
 `/home/solana/my_wallet.json`, to display the address, do:
 
 ```bash
-solana-keygen pubkey /home/solana/my_wallet.json
+x1-keygen pubkey /home/solana/my_wallet.json
 ```
 
 ## Hardware Wallet
@@ -79,5 +79,5 @@ If you chose a hardware wallet, use your
 such as `usb://ledger?key=0`.
 
 ```bash
-solana-keygen pubkey usb://ledger?key=0
+x1-keygen pubkey usb://ledger?key=0
 ```

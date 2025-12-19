@@ -43,8 +43,8 @@ account on chain
 - Command
 
 ```bash
-solana-keygen new -o nonce-keypair.json
-solana create-nonce-account nonce-keypair.json 1
+x1-keygen new -o nonce-keypair.json
+x1 create-nonce-account nonce-keypair.json 1
 ```
 
 - Output
@@ -68,7 +68,7 @@ presently stored nonce value with
 - Command
 
 ```bash
-solana nonce nonce-keypair.json
+x1 nonce nonce-keypair.json
 ```
 
 - Output
@@ -87,7 +87,7 @@ value can be advanced by
 - Command
 
 ```bash
-solana new-nonce nonce-keypair.json
+x1 new-nonce nonce-keypair.json
 ```
 
 - Output
@@ -105,7 +105,7 @@ Inspect a nonce account in a more human friendly format with
 - Command
 
 ```bash
-solana nonce-account nonce-keypair.json
+x1 nonce-account nonce-keypair.json
 ```
 
 - Output
@@ -125,7 +125,7 @@ Withdraw funds from a nonce account with
 - Command
 
 ```bash
-solana withdraw-from-nonce-account nonce-keypair.json ~/.config/solana/id.json 0.5
+x1 withdraw-from-nonce-account nonce-keypair.json ~/.config/solana/id.json 0.5
 ```
 
 - Output
@@ -145,7 +145,7 @@ Reassign the authority of a nonce account after creation with
 - Command
 
 ```bash
-solana authorize-nonce-account nonce-keypair.json nonce-authority.json
+x1 authorize-nonce-account nonce-keypair.json nonce-authority.json
 ```
 
 - Output
@@ -180,9 +180,9 @@ is the same for all subcommands supporting durable nonces
 First we need some accounts for Alice, Alice's nonce and Bob
 
 ```bash
-$ solana-keygen new -o alice.json
-$ solana-keygen new -o nonce.json
-$ solana-keygen new -o bob.json
+$ x1-keygen new -o alice.json
+$ x1-keygen new -o nonce.json
+$ x1-keygen new -o bob.json
 ```
 
 #### - Fund Alice's account
@@ -191,7 +191,7 @@ Alice will need some funds to create a nonce account and send to Bob. Airdrop
 her some SOL
 
 ```bash
-$ solana airdrop -k alice.json 1
+$ x1 airdrop -k alice.json 1
 1 SOL
 ```
 
@@ -203,7 +203,7 @@ Now Alice needs a nonce account. Create one
 > `alice.json` has full authority over the nonce account
 
 ```bash
-$ solana create-nonce-account -k alice.json nonce.json 0.1
+$ x1 create-nonce-account -k alice.json nonce.json 0.1
 3KPZr96BTsL3hqera9up82KAU462Gz31xjqJ6eHUAjF935Yf8i1kmfEbo6SVbNaACKE5z6gySrNjVRvmS8DcPuwV
 ```
 
@@ -213,7 +213,7 @@ Alice attempts to pay Bob, but takes too long to sign. The specified blockhash
 expires and the transaction fails
 
 ```bash
-$ solana transfer -k alice.json --blockhash expiredDTaxfagttWjQweib42b6ZHADSx94Tw8gHx11 bob.json 0.01
+$ x1 transfer -k alice.json --blockhash expiredDTaxfagttWjQweib42b6ZHADSx94Tw8gHx11 bob.json 0.01
 [2020-01-02T18:48:28.462911000Z ERROR solana_cli::cli] Io(Custom { kind: Other, error: "Transaction \"33gQQaoPc9jWePMvDAeyJpcnSPiGUAdtVg8zREWv4GiKjkcGNufgpcbFyRKRrA25NkgjZySEeKue5rawyeH5TzsV\" failed: None" })
 Error: Io(Custom { kind: Other, error: "Transaction \"33gQQaoPc9jWePMvDAeyJpcnSPiGUAdtVg8zREWv4GiKjkcGNufgpcbFyRKRrA25NkgjZySEeKue5rawyeH5TzsV\" failed: None" })
 ```
@@ -227,14 +227,14 @@ blockhash stored there
 > example
 
 ```bash
-$ solana nonce-account nonce.json
+$ x1 nonce-account nonce.json
 balance: 0.1 SOL
 minimum balance required: 0.00136416 SOL
 nonce: F7vmkY3DTaxfagttWjQweib42b6ZHADSx94Tw8gHx3W7
 ```
 
 ```bash
-$ solana transfer -k alice.json --blockhash F7vmkY3DTaxfagttWjQweib42b6ZHADSx94Tw8gHx3W7 --nonce nonce.json bob.json 0.01
+$ x1 transfer -k alice.json --blockhash F7vmkY3DTaxfagttWjQweib42b6ZHADSx94Tw8gHx3W7 --nonce nonce.json bob.json 0.01
 HR1368UKHVZyenmH7yVz5sBAijV6XAPeWbEiXEGVYQorRMcoijeNAbzZqEZiH8cDB8tk65ckqeegFjK8dHwNFgQ
 ```
 
@@ -244,12 +244,12 @@ The transaction succeeds! Bob receives 0.01 SOL from Alice and Alice's stored
 nonce advances to a new value
 
 ```bash
-$ solana balance -k bob.json
+$ x1 balance -k bob.json
 0.01 SOL
 ```
 
 ```bash
-$ solana nonce-account nonce.json
+$ x1 nonce-account nonce.json
 balance: 0.1 SOL
 minimum balance required: 0.00136416 SOL
 nonce: 6bjroqDcZgTv6Vavhqf81oBHTv3aMnX19UTB51YhAZnN

@@ -13,7 +13,7 @@ The [solana-cli crate](https://crates.io/crates/solana-cli) provides a command-l
 
 ```bash
 // Command
-$ solana-keygen pubkey
+$ x1-keygen pubkey
 
 // Return
 <PUBKEY>
@@ -23,7 +23,7 @@ $ solana-keygen pubkey
 
 ```bash
 // Command
-$ solana airdrop 1
+$ x1 airdrop 1
 
 // Return
 "1 SOL"
@@ -33,7 +33,7 @@ $ solana airdrop 1
 
 ```bash
 // Command
-$ solana balance
+$ x1 balance
 
 // Return
 "3.00050001 SOL"
@@ -43,7 +43,7 @@ $ solana balance
 
 ```bash
 // Command
-$ solana confirm <TX_SIGNATURE>
+$ x1 confirm <TX_SIGNATURE>
 
 // Return
 "Confirmed" / "Not found" / "Transaction failed with error <ERR>"
@@ -53,7 +53,7 @@ $ solana confirm <TX_SIGNATURE>
 
 ```bash
 // Command
-$ solana program deploy <PATH>
+$ x1 program deploy <PATH>
 
 // Return
 <PROGRAM_ID>

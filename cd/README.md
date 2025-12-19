@@ -18,9 +18,9 @@ The canaries update themselves every few days according to the schedule above. T
 
 These are handy commands to see what versions are currently running on each  node:
 ```
-solana gossip -um | grep -E " (edge|beta|mc[ebs]\d)"
+x1 gossip -um | grep -E " (edge|beta|mc[ebs]\d)"
 
-solana gossip -ut | grep -E " (tc[eb]\d)"
+x1 gossip -ut | grep -E " (tc[eb]\d)"
 ```
 
 Nodes update themselves when `(number of days since 1970-01-01)` mod `(days between updates)` is 0. Use this command (and the table above) to check when a node will update:

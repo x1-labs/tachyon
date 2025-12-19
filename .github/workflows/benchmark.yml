@@ -34,8 +34,8 @@ jobs:
               commands: ["cargo +$rust_nightly bench -p solana-runtime"],
             }
           - {
-              name: "solana-gossip",
-              commands: ["cargo bench -p solana-gossip -- --output-format bencher --noplot"],
+              name: "x1-gossip",
+              commands: ["cargo bench -p x1-gossip -- --output-format bencher --noplot"],
             }
           - {
               name: "solana-poh",

@@ -14,21 +14,21 @@
 AGAVE_BINS_DEV=(
   cargo-build-sbf
   cargo-test-sbf
-  solana-test-validator
+  x1-test-validator
 )
 
 AGAVE_BINS_END_USER=(
   agave-install
-  solana
-  solana-keygen
+  x1
+  x1-keygen
 )
 
 AGAVE_BINS_VAL_OP=(
   tachyon-validator
   tachyon-watchtower
-  solana-gossip
-  solana-genesis
-  solana-faucet
+  x1-gossip
+  x1-genesis
+  x1-faucet
 )
 
 AGAVE_BINS_DCOU=(
@@ -43,7 +43,7 @@ AGAVE_BINS_DEPRECATED=(
 )
 
 DCOU_TAINTED_PACKAGES=(
-  tachyon-ledger-tool
+  agave-ledger-tool
   agave-store-histogram
   agave-store-tool
   solana-accounts-cluster-bench

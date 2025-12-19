@@ -633,7 +633,7 @@ pub fn test_app<'a>(version: &'a str, default_args: &'a DefaultTestArgs) -> App<
                 .allow_hyphen_values(true)
                 .multiple(true)
                 .help(
-                    "Load an account from the provided JSON file (see `solana account --help` on \
+                    "Load an account from the provided JSON file (see `x1 account --help` on \
                      how to dump an account to file). Files are searched for relatively to CWD \
                      and tests/fixtures. If ADDRESS is omitted via the `-` placeholder, the one \
                      in the file will be used. If the ledger already exists then this parameter \

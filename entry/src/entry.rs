@@ -105,7 +105,7 @@ pub struct Api<'a> {
 /// a Verifiable Delay Function (VDF) and a Proof of Work (not to be confused with Proof of
 /// Work consensus!)
 ///
-/// The solana core protocol currently requires an `Entry` to contain `transactions` that are
+/// The x1 core protocol currently requires an `Entry` to contain `transactions` that are
 /// executable in parallel. Implemented in:
 ///
 /// * For TPU: `solana_core::banking_stage::BankingStage::process_and_record_transactions()`

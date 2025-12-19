@@ -151,17 +151,17 @@ EOF
             cp net/keypairs/"$name".json config/"$name".json
           fi
         else
-          solana-keygen new --no-passphrase -so config/"$name".json
+          x1-keygen new --no-passphrase -so config/"$name".json
           if [[ "$name" =~ ^validator-identity- ]]; then
             name="${name//-identity-/-vote-}"
-            solana-keygen new --no-passphrase -so config/"$name".json
+            x1-keygen new --no-passphrase -so config/"$name".json
             name="${name//-vote-/-stake-}"
-            solana-keygen new --no-passphrase -so config/"$name".json
+            x1-keygen new --no-passphrase -so config/"$name".json
           fi
         fi
         if [[ -n $internalNodesLamports ]]; then
           declare pubkey
-          pubkey="$(solana-keygen pubkey config/"$name".json)"
+          pubkey="$(x1-keygen pubkey config/"$name".json)"
           cat >> config/validator-balances.yml <<EOF
 $pubkey:
   balance: $internalNodesLamports
@@ -232,9 +232,9 @@ EOF
           extraPrimordialStakes=$numNodes
         fi
         for i in $(seq "$extraPrimordialStakes"); do
-          args+=(--bootstrap-validator "$(solana-keygen pubkey "config/validator-identity-$i.json")"
-                                       "$(solana-keygen pubkey "config/validator-vote-$i.json")"
-                                       "$(solana-keygen pubkey "config/validator-stake-$i.json")"
+          args+=(--bootstrap-validator "$(x1-keygen pubkey "config/validator-identity-$i.json")"
+                                       "$(x1-keygen pubkey "config/validator-vote-$i.json")"
+                                       "$(x1-keygen pubkey "config/validator-stake-$i.json")"
           )
         done
       fi
@@ -369,11 +369,11 @@ EOF
     fi
 
     if [[ ! -f "$SOLANA_CONFIG_DIR"/validator-identity.json ]]; then
-      solana-keygen new --no-passphrase -so "$SOLANA_CONFIG_DIR"/validator-identity.json
+      x1-keygen new --no-passphrase -so "$SOLANA_CONFIG_DIR"/validator-identity.json
     fi
     args+=(--identity "$SOLANA_CONFIG_DIR"/validator-identity.json)
     if [[ ! -f "$SOLANA_CONFIG_DIR"/vote-account.json ]]; then
-      solana-keygen new --no-passphrase -so "$SOLANA_CONFIG_DIR"/vote-account.json
+      x1-keygen new --no-passphrase -so "$SOLANA_CONFIG_DIR"/vote-account.json
     fi
     args+=(--vote-account "$SOLANA_CONFIG_DIR"/vote-account.json)
 
@@ -456,7 +456,7 @@ EOF
     if [[ $skipSetup != true && $nodeType != blockstreamer && -z $maybeSkipAccountsCreation ]]; then
       # Wait for the validator to catch up to the bootstrap validator before
       # delegating stake to it
-      solana --url http://"$entrypointIp":8899 catchup config/validator-identity.json
+      x1 --url http://"$entrypointIp":8899 catchup config/validator-identity.json
 
       args=(
         --url http://"$entrypointIp":8899

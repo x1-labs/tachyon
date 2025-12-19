@@ -34,15 +34,15 @@ come to the right place.
 
 ### Check your installation
 
-Check that `solana-keygen` is installed correctly by running:
+Check that `x1-keygen` is installed correctly by running:
 
 ```bash
-solana-keygen --version
+x1-keygen --version
 ```
 
 ## Creating a Paper Wallet
 
-Using the `solana-keygen` tool, it is possible to generate new seed phrases as
+Using the `x1-keygen` tool, it is possible to generate new seed phrases as
 well as derive a keypair from an existing seed phrase and (optional) passphrase.
 The seed phrase and passphrase can be used together as a paper wallet. As long
 as you keep your seed phrase and passphrase stored safely, you can use them to
@@ -53,7 +53,7 @@ access your account.
 
 ### Seed Phrase Generation
 
-Generating a new keypair can be done using the `solana-keygen new` command. The
+Generating a new keypair can be done using the `x1-keygen new` command. The
 command will generate a random seed phrase, ask you to enter an optional
 passphrase, and then will display the derived public key and the generated seed
 phrase for your paper wallet.
@@ -63,7 +63,7 @@ After copying down your seed phrase, you can use the
 have not made any errors.
 
 ```bash
-solana-keygen new --no-outfile
+x1-keygen new --no-outfile
 ```
 
 > If the `--no-outfile` flag is **omitted**, the default behavior is to write
@@ -87,37 +87,37 @@ The value shown after `pubkey:` is your _wallet address_.
 For full usage details, run:
 
 ```bash
-solana-keygen new --help
+x1-keygen new --help
 ```
 
 ### Public Key Derivation
 
 Public keys can be derived from a seed phrase and a passphrase if you choose to
 use one. This is useful for using an offline-generated seed phrase to derive a
-valid public key. The `solana-keygen pubkey` command will walk you through how
+valid public key. The `x1-keygen pubkey` command will walk you through how
 to use your seed phrase (and a passphrase if you chose to use one) as a signer
-with the solana command-line tools using the `prompt` URI scheme.
+with the x1 command-line tools using the `prompt` URI scheme.
 
 ```bash
-solana-keygen pubkey prompt://
+x1-keygen pubkey prompt://
 ```
 
 > Note that you could potentially use different passphrases for the same seed
 > phrase. Each unique passphrase will yield a different keypair.
 
-The `solana-keygen` tool uses the same BIP39 standard English word list as it
+The `x1-keygen` tool uses the same BIP39 standard English word list as it
 does to generate seed phrases. If your seed phrase was generated with another
-tool that uses a different word list, you can still use `solana-keygen`, but
+tool that uses a different word list, you can still use `x1-keygen`, but
 will need to pass the `--skip-seed-phrase-validation` argument and forego this
 validation.
 
 ```bash
-solana-keygen pubkey prompt:// --skip-seed-phrase-validation
+x1-keygen pubkey prompt:// --skip-seed-phrase-validation
 ```
 
-After entering your seed phrase with `solana-keygen pubkey prompt://` the
+After entering your seed phrase with `x1-keygen pubkey prompt://` the
 console will display a string of base-58 characters. This is the
-[derived](#hierarchical-derivation) solana BIP44 _wallet address_ associated
+[derived](#hierarchical-derivation) x1 BIP44 _wallet address_ associated
 with your seed phrase.
 
 > Copy the derived address to a USB stick for easy usage on networked computers
@@ -126,7 +126,7 @@ If needed, you can access the legacy, raw keypair's pubkey by instead passing
 the `ASK` keyword:
 
 ```bash
-solana-keygen pubkey ASK
+x1-keygen pubkey ASK
 ```
 
 > A common next step is to [check the balance](#checking-account-balance) of the
@@ -135,7 +135,7 @@ solana-keygen pubkey ASK
 For full usage details, run:
 
 ```bash
-solana-keygen pubkey --help
+x1-keygen pubkey --help
 ```
 
 ### Hierarchical Derivation
@@ -150,14 +150,14 @@ By default, `prompt:` will derive solana's base derivation path `m/44'/501'`. To
 derive a child key, supply the `?key=<ACCOUNT>/<CHANGE>` query string.
 
 ```bash
-solana-keygen pubkey 'prompt://?key=0/1'
+x1-keygen pubkey 'prompt://?key=0/1'
 ```
 
 To use a derivation path other than solana's standard BIP44, you can supply
 `?full-path=m/<PURPOSE>/<COIN_TYPE>/<ACCOUNT>/<CHANGE>`.
 
 ```bash
-solana-keygen pubkey 'prompt://?full-path=m/44/2017/0/1'
+x1-keygen pubkey 'prompt://?full-path=m/44/2017/0/1'
 ```
 
 Because Solana uses Ed25519 keypairs, as per
@@ -169,10 +169,10 @@ included in the query-string input.
 ## Verifying the Keypair
 
 To verify you control the private key of a paper wallet address, use
-`solana-keygen verify`:
+`x1-keygen verify`:
 
 ```bash
-solana-keygen verify <PUBKEY> prompt://
+x1-keygen verify <PUBKEY> prompt://
 ```
 
 where `<PUBKEY>` is replaced with the wallet address and the keyword `prompt://`
@@ -195,13 +195,13 @@ Next, configure the `solana` CLI tool to
 [connect to a particular cluster](../examples/choose-a-cluster.md):
 
 ```bash
-solana config set --url <CLUSTER URL> # (i.e. https://api.mainnet-beta.solana.com)
+x1 config set --url <CLUSTER URL> # (i.e. https://api.mainnet-beta.solana.com)
 ```
 
 Finally, to check the balance, run the following command:
 
 ```bash
-solana balance <PUBKEY>
+x1 balance <PUBKEY>
 ```
 
 ## Creating Multiple Paper Wallet Addresses

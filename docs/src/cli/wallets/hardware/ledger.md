@@ -24,7 +24,7 @@ interact with Solana using the command line tools.
 On your computer, run:
 
 ```bash
-solana-keygen pubkey usb://ledger
+x1-keygen pubkey usb://ledger
 ```
 
 This confirms your Ledger device is connected properly and in the correct state
@@ -39,7 +39,7 @@ specific Ledger, see
 ### View your Wallet Addresses
 
 Your Nano supports an arbitrary number of valid wallet addresses and signers. To
-view any address, use the `solana-keygen pubkey` command, as shown below,
+view any address, use the `x1-keygen pubkey` command, as shown below,
 followed by a valid [keypair URL](./index.md#specify-a-keypair-url).
 
 Multiple wallet addresses can be useful if you want to transfer tokens between
@@ -50,10 +50,10 @@ All of the following commands will display different addresses, associated with
 the keypair path given. Try them out!
 
 ```bash
-solana-keygen pubkey usb://ledger
-solana-keygen pubkey usb://ledger?key=0
-solana-keygen pubkey usb://ledger?key=1
-solana-keygen pubkey usb://ledger?key=2
+x1-keygen pubkey usb://ledger
+x1-keygen pubkey usb://ledger?key=0
+x1-keygen pubkey usb://ledger?key=1
+x1-keygen pubkey usb://ledger?key=2
 ```
 
 - NOTE: keypair url parameters are ignored in **zsh**
@@ -70,7 +70,7 @@ easy-to-remember path might be to use the address at `key=0`. View this address
 with:
 
 ```bash
-solana-keygen pubkey usb://ledger?key=0
+x1-keygen pubkey usb://ledger?key=0
 ```
 
 Now you have a wallet address (or multiple addresses), you can share any of
@@ -80,17 +80,17 @@ associated keypair URL as the signer for transactions from that address.
 ### View your Balance
 
 To view the balance of any account, regardless of which wallet it uses, use the
-`solana balance` command:
+`x1 balance` command:
 
 ```bash
-solana balance SOME_WALLET_ADDRESS
+x1 balance SOME_WALLET_ADDRESS
 ```
 
 For example, if your address is `7cvkjYAkUYs4W8XcXsca7cBrEGFeSUjeZmKoNBvEwyri`,
 then enter the following command to view the balance:
 
 ```bash
-solana balance 7cvkjYAkUYs4W8XcXsca7cBrEGFeSUjeZmKoNBvEwyri
+x1 balance 7cvkjYAkUYs4W8XcXsca7cBrEGFeSUjeZmKoNBvEwyri
 ```
 
 You can also view the balance of any account address on the Accounts tab in the
@@ -110,13 +110,13 @@ derive the address. To do this, make sure your Nano is plugged in, unlocked with
 the PIN, Ledger Live is not running, and the Solana App is open on the device,
 showing "Application is Ready".
 
-The `solana transfer` command is used to specify to which address to send
+The `x1 transfer` command is used to specify to which address to send
 tokens, how many tokens to send, and uses the `--keypair` argument to specify
 which keypair is sending the tokens, which will sign the transaction, and the
 balance from the associated address will decrease.
 
 ```bash
-solana transfer RECIPIENT_ADDRESS AMOUNT --keypair KEYPAIR_URL_OF_SENDER
+x1 transfer RECIPIENT_ADDRESS AMOUNT --keypair KEYPAIR_URL_OF_SENDER
 ```
 
 Below is a full example. First, an address is viewed at a certain keypair URL.
@@ -129,13 +129,13 @@ transaction details. If they look correct, click both buttons on the "Approve"
 screen, otherwise push both buttons on the "Reject" screen.
 
 ```bash
-~$ solana-keygen pubkey usb://ledger?key=42
+~$ x1-keygen pubkey usb://ledger?key=42
 CjeqzArkZt6xwdnZ9NZSf8D1CNJN1rjeFiyd8q7iLWAV
 
-~$ solana balance CjeqzArkZt6xwdnZ9NZSf8D1CNJN1rjeFiyd8q7iLWAV
+~$ x1 balance CjeqzArkZt6xwdnZ9NZSf8D1CNJN1rjeFiyd8q7iLWAV
 1.000005 SOL
 
-~$ solana transfer 7cvkjYAkUYs4W8XcXsca7cBrEGFeSUjeZmKoNBvEwyri 1 --keypair usb://ledger?key=42
+~$ x1 transfer 7cvkjYAkUYs4W8XcXsca7cBrEGFeSUjeZmKoNBvEwyri 1 --keypair usb://ledger?key=42
 Waiting for your approval on Ledger hardware wallet usb://ledger/2JT2Xvy6T8hSmT8g6WdeDbHUgoeGdj6bE2VueCZUJmyN
 ✅ Approved
 
@@ -165,7 +165,7 @@ using the Solana CLI `resolve-signer` command. For example, try connecting a
 Nano to USB, unlock it with your pin, and running the following command:
 
 ```text
-solana resolve-signer usb://ledger?key=0/0
+x1 resolve-signer usb://ledger?key=0/0
 ```
 
 You will see output similar to:
@@ -205,7 +205,7 @@ character, you can disable it explicitly with a backslash in your keypair URLs.
 For example:
 
 ```bash
-solana-keygen pubkey usb://ledger\?key=0
+x1-keygen pubkey usb://ledger\?key=0
 ```
 
 ## Support

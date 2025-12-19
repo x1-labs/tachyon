@@ -24,7 +24,7 @@ if [[ -n $CI ]]; then
   fi
 fi
 
-echo 'Building the solana cli from source...'
+echo 'Building the x1 cli from source...'
 
 # shellcheck source=ci/rust-version.sh
 source ../ci/rust-version.sh stable

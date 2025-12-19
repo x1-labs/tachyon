@@ -383,7 +383,7 @@ pub(crate) fn generate_toolchain_name(requested_toolchain_version: &str) -> Stri
     )
 }
 
-// check whether custom solana toolchain is linked, and link it if it is not.
+// check whether custom x1 toolchain is linked, and link it if it is not.
 fn link_solana_toolchain(config: &Config, requested_toolchain_version: &str) {
     let toolchain_path = config
         .sbf_sdk
@@ -528,7 +528,7 @@ pub(crate) fn install_and_link_tools(
         // this by removing RUSTC from the child process environment.
         if env::var("RUSTC").is_ok() {
             warn!(
-                "Removed RUSTC from cargo environment, because it overrides +solana cargo command \
+                "Removed RUSTC from cargo environment, because it overrides +x1 cargo command \
                  line option."
             );
             env::remove_var("RUSTC")

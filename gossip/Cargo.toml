@@ -16,7 +16,7 @@ targets = ["x86_64-unknown-linux-gnu"]
 bench = false
 
 [[bin]]
-name = "solana-gossip"
+name = "x1-gossip"
 path = "src/main.rs"
 bench = false
 

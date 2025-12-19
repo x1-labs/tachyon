@@ -19,7 +19,7 @@ You will want to be aware of the following flags:
 
 - `--full-rpc-api`: enables all RPC operations on this validator.
 - `--no-voting`: runs the validator without participating in consensus. Typically, you do not want to run a validator as _both_ a consensus node and a full RPC node due to resource constraints.
-- `--private-rpc`: does not publish the validator's open RPC port in the `solana gossip` command
+- `--private-rpc`: does not publish the validator's open RPC port in the `x1 gossip` command
 
 > For more explanation on the flags used in the command, refer to the `tachyon-validator --help` command
 

@@ -45,7 +45,7 @@ Update successful
 - Depending on your system, the end of the installer messaging may prompt you to
 
 ```bash
-Please update your PATH environment variable to include the solana programs:
+Please update your PATH environment variable to include the x1 programs:
 ```
 
 - If you get the above message, copy and paste the recommended command below it
@@ -53,7 +53,7 @@ Please update your PATH environment variable to include the solana programs:
 - Confirm you have the desired version of `solana` installed by running:
 
 ```bash
-solana --version
+x1 --version
 ```
 
 - After a successful install, `agave-install update` may be used to easily
@@ -94,7 +94,7 @@ C:\agave-install-tmp\agave-install-init.exe LATEST_AGAVE_RELEASE_VERSION
 - Confirm you have the desired version of `solana` installed by entering:
 
 ```bash
-solana --version
+x1 --version
 ```
 
 - After a successful install, `agave-install update` may be used to easily
@@ -253,5 +253,5 @@ version is outdated.
 - Confirm you have the desired version of `solana` installed by entering:
 
 ```bash
-solana --version
+x1 --version
 ```

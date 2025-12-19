@@ -1,6 +1,6 @@
 # Source this file.
 #
-# Fetches on-chain programs and produces the solana-genesis command-line
+# Fetches on-chain programs and produces the x1-genesis command-line
 # arguments needed to install them
 #
 
@@ -59,6 +59,6 @@ fetch_programs() {
   ls -l "$prefix"-*.so
 
   echo
-  echo "solana-genesis command-line arguments ($prefix-genesis-args.sh):"
+  echo "x1-genesis command-line arguments ($prefix-genesis-args.sh):"
   cat "$prefix"-genesis-args.sh
 }

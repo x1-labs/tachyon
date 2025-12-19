@@ -44,7 +44,7 @@ RUN \
   openssh-client \
   # docs
   mscgen \
-  # solana compiling
+  # x1 compiling
   libssl-dev \
   libudev-dev \
   pkg-config \

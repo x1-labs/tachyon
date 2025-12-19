@@ -3368,7 +3368,7 @@ impl RpcClient {
         .await
     }
 
-    /// Returns the current solana version running on the node.
+    /// Returns the current x1 version running on the node.
     ///
     /// # RPC Reference
     ///

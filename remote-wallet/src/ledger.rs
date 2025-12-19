@@ -440,7 +440,7 @@ impl RemoteWallet<hidapi::DeviceInfo> for LedgerWallet {
         data: &[u8],
     ) -> Result<Signature, RemoteWalletError> {
         // If the first byte of the data is 0xff then it is an off-chain message
-        // because it starts with the Domain Specifier b"\xffsolana offchain".
+        // because it starts with the Domain Specifier b"\xffx1 offchain".
         // On-chain messages, in contrast, start with either 0x80 (MESSAGE_VERSION_PREFIX)
         // or the number of signatures (0x00 - 0x13).
         if !data.is_empty() && data[0] == 0xff {
