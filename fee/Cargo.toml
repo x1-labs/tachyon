@@ -11,5 +11,24 @@ edition = { workspace = true }
 
 [dependencies]
 agave-feature-set = { workspace = true }
+log = { workspace = true }
+solana-borsh = { workspace = true }
+solana-builtins-default-costs = { workspace = true }
+solana-compute-budget = { workspace = true }
+solana-compute-budget-instruction = { workspace = true }
+solana-compute-budget-interface = { workspace = true }
 solana-fee-structure = { workspace = true }
+solana-pubkey = { workspace = true }
+solana-sdk-ids = { workspace = true }
 solana-svm-transaction = { workspace = true }
+
+[dev-dependencies]
+agave-reserved-account-keys = { workspace = true }
+solana-keypair = { workspace = true }
+solana-logger = { workspace = true }
+solana-message = { workspace = true }
+solana-native-token = { workspace = true }
+solana-signer = { workspace = true }
+solana-system-interface = { workspace = true }
+spl-memo-interface = { workspace = true }
+test-case = { workspace = true }
