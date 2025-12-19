@@ -678,3 +678,9 @@ quinn-proto = { git = "https://github.com/anza-xyz/quinn", rev = "fc4decb0cf79b1
 # There is a similar override in `programs/sbf/Cargo.toml`.  Please keep both
 # comments and the overrides in sync.
 solana-curve25519 = { path = "curves/curve25519" }
+
+# X1 SDK patches - custom cluster types and genesis hashes
+solana-cluster-type = { git = "https://github.com/x1-labs/x1-sdk", branch = "x1-cluster-type@v3.0.0" }
+solana-hash = { git = "https://github.com/x1-labs/x1-sdk", branch = "x1-cluster-type@v3.0.0" }
+solana-sanitize = { git = "https://github.com/x1-labs/x1-sdk", branch = "x1-cluster-type@v3.0.0" }
+solana-frozen-abi = { git = "https://github.com/x1-labs/x1-sdk", branch = "x1-cluster-type@v3.0.0" }
