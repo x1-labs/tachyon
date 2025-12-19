@@ -46,7 +46,7 @@ You should see an output that looks similar to this (note your version number
 may be higher):
 
 ```
-solana-cli 1.14.17 (src:b29a37cf; feat:3488713414)
+x1-cli 1.14.17 (src:b29a37cf; feat:3488713414)
 ```
 
 Now, run the following command to verify that the tachyon-validator binary is
