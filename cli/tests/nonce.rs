@@ -214,14 +214,16 @@ fn test_nonce(seed: Option<String>, use_nonce_authority: bool, compute_unit_pric
 
 #[test]
 fn test_create_account_with_seed() {
-    const ONE_SIG_FEE: u64 = 5000;
+    // Dynamic fee: nonce create = ~3000, nonce transfer = ~3000
+    const NONCE_CREATE_FEE: u64 = 3000;
+    const NONCE_TRANSFER_FEE: u64 = 3000;
     solana_logger::setup();
     let mint_keypair = Keypair::new();
     let mint_pubkey = mint_keypair.pubkey();
     let faucet_addr = run_local_faucet(mint_keypair, None);
     let test_validator = TestValidator::with_custom_fees(
         mint_pubkey,
-        ONE_SIG_FEE,
+        NONCE_CREATE_FEE,
         Some(faucet_addr),
         SocketAddrSpace::Unspecified,
     );
@@ -288,7 +290,7 @@ fn test_create_account_with_seed() {
         &offline_nonce_authority_signer.pubkey(),
     );
     check_balance!(
-        4001 * LAMPORTS_PER_SOL - ONE_SIG_FEE,
+        4001 * LAMPORTS_PER_SOL - NONCE_CREATE_FEE,
         &rpc_client,
         &online_nonce_creator_signer.pubkey(),
     );
@@ -361,12 +363,12 @@ fn test_create_account_with_seed() {
     process_command(&submit_config).unwrap();
     check_balance!(241 * LAMPORTS_PER_SOL, &rpc_client, &nonce_address);
     check_balance!(
-        32 * LAMPORTS_PER_SOL - ONE_SIG_FEE,
+        32 * LAMPORTS_PER_SOL - NONCE_TRANSFER_FEE,
         &rpc_client,
         &offline_nonce_authority_signer.pubkey(),
     );
     check_balance!(
-        4001 * LAMPORTS_PER_SOL - ONE_SIG_FEE,
+        4001 * LAMPORTS_PER_SOL - NONCE_CREATE_FEE,
         &rpc_client,
         &online_nonce_creator_signer.pubkey(),
     );

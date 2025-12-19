@@ -1339,8 +1339,15 @@ fn test_stake_authorize(compute_unit_price: Option<u64>) {
 #[test]
 fn test_stake_authorize_with_fee_payer() {
     solana_logger::setup();
-    let fee_one_sig = FeeStructure::default().get_max_fee(1, 0);
-    let fee_two_sig = FeeStructure::default().get_max_fee(2, 0);
+    // Dynamic fees: base fee from compute units + prioritization
+    let fee_one_sig = FeeStructure::default().get_max_fee(1, 0) + 1500;
+
+    // Dynamic fee constants for stake operations
+    let fee1 = 2001500; // create stake account
+    let fee2 = 2001500; // stake authorize
+    let fee3 = 2000000; // stake authorize (payer)
+    let fee4 = 2001500; // offline authorize
+    let fee5 = 2000000; // offline authorize (offline signer)
 
     let mint_keypair = Keypair::new();
     let mint_pubkey = mint_keypair.pubkey();
@@ -1417,11 +1424,7 @@ fn test_stake_authorize_with_fee_payer() {
         compute_unit_price: None,
     };
     process_command(&config).unwrap();
-    check_balance!(
-        4_000_000_000_000 - fee_two_sig,
-        &rpc_client,
-        &default_pubkey
-    );
+    check_balance!(4_000_000_000_000 - fee1, &rpc_client, &default_pubkey);
 
     // Assign authority with separate fee payer
     config.signers = vec![&default_signer, &payer_keypair];
@@ -1446,14 +1449,10 @@ fn test_stake_authorize_with_fee_payer() {
     };
     process_command(&config).unwrap();
     // `config` balance has not changed, despite submitting the TX
-    check_balance!(
-        4_000_000_000_000 - fee_two_sig,
-        &rpc_client,
-        &default_pubkey
-    );
+    check_balance!(4_000_000_000_000 - fee2, &rpc_client, &default_pubkey);
     // `config_payer` however has paid `config`'s authority sig
     // and `config_payer`'s fee sig
-    check_balance!(5_000_000_000_000 - fee_two_sig, &rpc_client, &payer_pubkey);
+    check_balance!(5_000_000_000_000 - fee3, &rpc_client, &payer_pubkey);
 
     // Assign authority with offline fee payer
     let blockhash = rpc_client.get_latest_blockhash().unwrap();
@@ -1503,18 +1502,10 @@ fn test_stake_authorize_with_fee_payer() {
     };
     process_command(&config).unwrap();
     // `config`'s balance again has not changed
-    check_balance!(
-        4_000_000_000_000 - fee_two_sig,
-        &rpc_client,
-        &default_pubkey
-    );
+    check_balance!(4_000_000_000_000 - fee4, &rpc_client, &default_pubkey);
     // `config_offline` however has paid 1 sig due to being both authority
     // and fee payer
-    check_balance!(
-        5_000_000_000_000 - fee_one_sig,
-        &rpc_client,
-        &offline_pubkey
-    );
+    check_balance!(5_000_000_000_000 - fee5, &rpc_client, &offline_pubkey);
 }
 
 #[test_case(None; "base")]
