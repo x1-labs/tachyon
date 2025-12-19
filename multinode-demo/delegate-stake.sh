@@ -18,7 +18,7 @@ usage() {
   fi
   cat <<EOF
 
-usage: $0 [OPTIONS] <SOL to stake ($stake_sol)>
+usage: $0 [OPTIONS] <XNT to stake ($stake_sol)>
 
 Add stake to a validator
 

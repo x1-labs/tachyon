@@ -124,7 +124,7 @@ impl Faucet {
         if let Some((per_request_cap, per_time_cap)) = per_request_cap.zip(per_time_cap) {
             if per_time_cap < per_request_cap {
                 warn!(
-                    "per_time_cap {} SOL < per_request_cap {} SOL; \
+                    "per_time_cap {} XNT < per_request_cap {} XNT; \
                     maximum single requests will fail",
                     build_balance_message(per_time_cap, false, false),
                     build_balance_message(per_request_cap, false, false),
@@ -185,7 +185,7 @@ impl Faucet {
             } => {
                 let mint_pubkey = self.faucet_keypair.pubkey();
                 info!(
-                    "Requesting airdrop of {} SOL to {:?}",
+                    "Requesting airdrop of {} XNT to {:?}",
                     build_balance_message(lamports, false, false),
                     to
                 );

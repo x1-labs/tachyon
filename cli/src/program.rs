@@ -261,7 +261,7 @@ impl ProgramSubCommands for App<'_, '_> {
                                 .takes_value(false)
                                 .help(
                                     "Use the designated program id even if the account already \
-                                     holds a large balance of SOL (Obsolete)",
+                                     holds a large balance of XNT (Obsolete)",
                                 ),
                         )
                         .arg(
@@ -542,7 +542,7 @@ impl ProgramSubCommands for App<'_, '_> {
                             Arg::with_name("lamports")
                                 .long("lamports")
                                 .takes_value(false)
-                                .help("Display balance in lamports instead of SOL"),
+                                .help("Display balance in lamports instead of XNT"),
                         ),
                 )
                 .subcommand(
@@ -605,7 +605,7 @@ impl ProgramSubCommands for App<'_, '_> {
                             Arg::with_name("lamports")
                                 .long("lamports")
                                 .takes_value(false)
-                                .help("Display balance in lamports instead of SOL"),
+                                .help("Display balance in lamports instead of XNT"),
                         )
                         .arg(
                             Arg::with_name("bypass_warning")
