@@ -17,7 +17,7 @@ fi
 
 rm -rf config/run/init-completed config/ledger
 
-# Sanity-check that agave-validator can successfully terminate itself without relying on
+# Sanity-check that tachyon-validator can successfully terminate itself without relying on
 # process::exit() by extending the timeout...
 # Also the banking_tracer thread needs some extra time to flush due to
 # unsynchronized and buffered IO.

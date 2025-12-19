@@ -1819,7 +1819,7 @@ fn main() {
                 }
                 ("bank-hash", Some(_)) => {
                     eprintln!(
-                        "The bank-hash command has been deprecated, use agave-ledger-tool verify \
+                        "The bank-hash command has been deprecated, use tachyon-ledger-tool verify \
                          --print-bank-hash ... instead"
                     );
                 }

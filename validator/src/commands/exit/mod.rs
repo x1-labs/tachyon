@@ -20,7 +20,7 @@ const DEFAULT_MAX_DELINQUENT_STAKE: &str = "5";
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum PostExitAction {
-    // Run the agave-validator monitor command indefinitely
+    // Run the tachyon-validator monitor command indefinitely
     Monitor,
     // Block until the exiting validator process has terminated
     Wait,
@@ -182,7 +182,7 @@ pub fn execute(matches: &ArgMatches, ledger_path: &Path) -> Result<()> {
 fn poll_until_pid_terminates(pid: u32) -> Result<()> {
     let pid = i32::try_from(pid)?;
 
-    println!("Waiting for agave-validator process {pid} to terminate");
+    println!("Waiting for tachyon-validator process {pid} to terminate");
     loop {
         // From man kill(2)
         //
@@ -202,7 +202,7 @@ fn poll_until_pid_terminates(pid: u32) -> Result<()> {
                 .ok_or(Error::Dynamic("unable to read raw os error".into()))?;
             match errno {
                 libc::ESRCH => {
-                    println!("Done, agave-validator process {pid} has terminated");
+                    println!("Done, tachyon-validator process {pid} has terminated");
                     break;
                 }
                 libc::EINVAL => {
@@ -230,7 +230,7 @@ fn poll_until_pid_terminates(pid: u32) -> Result<()> {
 #[cfg(not(target_os = "linux"))]
 fn poll_until_pid_terminates(_pid: u32) -> Result<()> {
     Err(Error::Dynamic(
-        "Unable to wait for agave-validator process termination on this platform".into(),
+        "Unable to wait for tachyon-validator process termination on this platform".into(),
     ))
 }
 

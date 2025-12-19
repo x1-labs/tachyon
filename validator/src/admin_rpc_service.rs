@@ -885,7 +885,7 @@ pub fn runtime() -> Runtime {
     tokio::runtime::Builder::new_multi_thread()
         .thread_name("solAdminRpcRt")
         .enable_all()
-        // The agave-validator subcommands make few admin RPC calls and block
+        // The tachyon-validator subcommands make few admin RPC calls and block
         // on the results so two workers is plenty
         .worker_threads(2)
         .build()

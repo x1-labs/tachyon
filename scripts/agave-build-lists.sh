@@ -24,15 +24,15 @@ AGAVE_BINS_END_USER=(
 )
 
 AGAVE_BINS_VAL_OP=(
-  agave-validator
-  agave-watchtower
+  tachyon-validator
+  tachyon-watchtower
   solana-gossip
   solana-genesis
   solana-faucet
 )
 
 AGAVE_BINS_DCOU=(
-  agave-ledger-tool
+  tachyon-ledger-tool
 )
 
 # These bins are deprecated and will be removed in a future release
@@ -43,7 +43,7 @@ AGAVE_BINS_DEPRECATED=(
 )
 
 DCOU_TAINTED_PACKAGES=(
-  agave-ledger-tool
+  tachyon-ledger-tool
   agave-store-histogram
   agave-store-tool
   solana-accounts-cluster-bench

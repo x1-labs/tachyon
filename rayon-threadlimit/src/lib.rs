@@ -9,7 +9,7 @@ static MAX_RAYON_THREADS: std::sync::LazyLock<usize> = std::sync::LazyLock::new(
         .and_then(|num_threads| {
             warn!(
                 "Use of SOLANA_RAYON_THREADS has been deprecated and will be removed soon. Use \
-                 the individual agave-validator CLI flags to configure threadpool sizes"
+                 the individual tachyon-validator CLI flags to configure threadpool sizes"
             );
             num_threads.parse().ok()
         })

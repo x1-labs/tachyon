@@ -60,7 +60,7 @@ $ agave-install deploy http://example.com/path/to/solana-release.tar.bz2 update-
 $ agave-install init --pubkey 92DMonmBYXwEMHJ99c9ceRSpAmk9v6i3RdvDdXaVcrfj  # <-- pubkey is obtained from whoever is deploying the updates
 $ export PATH=~/.local/share/agave-install/bin:$PATH
 $ solana-keygen ...  # <-- runs the latest solana-keygen
-$ agave-install run agave-validator ...  # <-- runs a validator, restarting it as necessary when an update is applied
+$ agave-install run tachyon-validator ...  # <-- runs a validator, restarting it as necessary when an update is applied
 ```
 
 ## On-chain Update Manifest
@@ -114,7 +114,7 @@ A release archive is expected to be a tar file compressed with bzip2 with the fo
 The `agave-install` tool is used by the user to install and update their cluster software.
 
 :::info
-As of v3.0 `agave-install` does not install the `agave-validator` binary, which is required to run a validator node.
+As of v3.0 `agave-install` does not install the `tachyon-validator` binary, which is required to run a validator node.
 Validator operators are required to [build from source](../cli/install.md#build-from-source).
 
 :::

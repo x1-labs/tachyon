@@ -87,7 +87,7 @@ impl FromClapArgMatches for RunArgs {
         let logfile = matches
             .value_of("logfile")
             .map(|s| s.into())
-            .unwrap_or_else(|| format!("agave-validator-{}.log", identity_keypair.pubkey()));
+            .unwrap_or_else(|| format!("tachyon-validator-{}.log", identity_keypair.pubkey()));
 
         let mut entrypoints = values_t!(matches, "entrypoint", String).unwrap_or_default();
         // sort() + dedup() to yield a vector of unique elements
@@ -1726,7 +1726,7 @@ mod tests {
     impl Default for RunArgs {
         fn default() -> Self {
             let identity_keypair = Keypair::new();
-            let logfile = format!("agave-validator-{}.log", identity_keypair.pubkey());
+            let logfile = format!("tachyon-validator-{}.log", identity_keypair.pubkey());
             let entrypoints = vec![];
             let known_validators = None;
 
@@ -1873,7 +1873,7 @@ mod tests {
         // default
         {
             let expected_args = RunArgs {
-                logfile: "agave-validator-".to_string()
+                logfile: "tachyon-validator-".to_string()
                     + &default_run_args.identity_keypair.pubkey().to_string()
                     + ".log",
                 ..default_run_args.clone()
