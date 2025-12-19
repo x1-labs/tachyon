@@ -3,7 +3,8 @@ use {
         stakes::{create_and_add_stakes, StakerInfo},
         unlocks::UnlockInfo,
     },
-    solana_sdk::genesis_config::{ClusterType, GenesisConfig},
+    solana_cluster_type::ClusterType,
+    solana_genesis_config::GenesisConfig,
 };
 
 // no lockups
@@ -59,7 +60,7 @@ pub fn add_genesis_accounts(genesis_config: &mut GenesisConfig, mut issued_lampo
 
 #[cfg(test)]
 mod tests {
-    use {super::*, solana_sdk::native_token::LAMPORTS_PER_SOL};
+    use {super::*, solana_native_token::LAMPORTS_PER_SOL};
 
     #[test]
     fn test_add_genesis_accounts() {
