@@ -13,6 +13,10 @@ edition = { workspace = true }
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
 
+[[bin]]
+name = "tachyon-validator"
+path = "src/main.rs"
+
 [dependencies]
 agave-geyser-plugin-interface = { workspace = true }
 chrono = { workspace = true, features = ["default", "serde"] }
@@ -107,7 +111,3 @@ spl-generic-token = { workspace = true }
 spl-token-2022-interface = { workspace = true }
 tempfile = { workspace = true }
 test-case = { workspace = true }
-
-[[bin]]
-name = "tachyon-validator"
-path = "src/main.rs"
