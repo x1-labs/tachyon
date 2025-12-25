@@ -1055,7 +1055,8 @@ pub mod enable_sbpf_v1_deployment_and_execution {
 }
 
 pub mod enable_sbpf_v2_deployment_and_execution {
-    solana_pubkey::declare_id!("F6UVKh1ujTEFK3en2SyAL3cdVnqko1FVEXWhmdLRu6WP");
+    solana_pubkey::declare_id!("5a896YkpbsHwukyqvMgaFk2LoxD3TNaPv9wvrFmwKKkZ");
+    // solana F6UVKh1ujTEFK3en2SyAL3cdVnqko1FVEXWhmdLRu6WP
 }
 
 pub mod enable_sbpf_v3_deployment_and_execution {
