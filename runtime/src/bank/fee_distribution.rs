@@ -1,6 +1,7 @@
 use {
     super::Bank,
     crate::bank::CollectorFeeDetails,
+    agave_feature_set::reward_full_priority_fee,
     log::debug,
     solana_account::{ReadableAccount, WritableAccount},
     solana_fee::FeeFeatures,
@@ -75,11 +76,23 @@ impl Bank {
             fee_budget_limits.prioritization_fee,
             FeeFeatures::from(self.feature_set.as_ref()),
         );
+
         let FeeDistribution {
             deposit: reward,
             burn: _,
-        } = self.calculate_reward_and_burn_fee_details(&CollectorFeeDetails::from(fee_details));
+        } = if self.feature_set.is_active(&reward_full_priority_fee::id()) {
+            self.calculate_reward_and_burn_fee_details(&CollectorFeeDetails::from(fee_details))
+        } else {
+            let fee = fee_details.total_fee();
+            self.calculate_reward_and_burn_fees(fee)
+        };
+
         reward
+    }
+
+    fn calculate_reward_and_burn_fees(&self, fee: u64) -> FeeDistribution {
+        let (burn, deposit) = self.fee_rate_governor.burn(fee);
+        FeeDistribution { deposit, burn }
     }
 
     pub fn calculate_reward_and_burn_fee_details(
