@@ -57,7 +57,9 @@ use {
         transaction_batch::{OwnedOrBorrowed, TransactionBatch},
     },
     accounts_lt_hash::{CacheValue as AccountsLtHashCacheValue, Stats as AccountsLtHashStats},
-    agave_feature_set::{self as feature_set, raise_cpi_nesting_limit_to_8, FeatureSet},
+    agave_feature_set::{
+        self as feature_set, raise_cpi_nesting_limit_to_8, reward_full_priority_fee, FeatureSet,
+    },
     agave_precompiles::{get_precompile, get_precompiles, is_precompile},
     agave_reserved_account_keys::ReservedAccountKeys,
     agave_syscalls::{
@@ -3523,6 +3525,21 @@ impl Bank {
         self.update_accounts_data_size_delta_off_chain(data_size_delta);
     }
 
+    fn filter_program_errors_and_collect_fee(
+        &self,
+        processing_results: &[TransactionProcessingResult],
+    ) {
+        let mut fees = 0;
+
+        processing_results.iter().for_each(|processing_result| {
+            if let Ok(processed_tx) = processing_result {
+                fees += processed_tx.fee_details().total_fee();
+            }
+        });
+
+        self.collector_fees.fetch_add(fees, Relaxed);
+    }
+
     fn filter_program_errors_and_collect_fee_details(
         &self,
         processing_results: &[TransactionProcessingResult],
@@ -3661,7 +3678,11 @@ impl Bank {
         let ((), update_transaction_statuses_us) =
             measure_us!(self.update_transaction_statuses(sanitized_txs, &processing_results));
 
-        self.filter_program_errors_and_collect_fee_details(&processing_results);
+        if self.feature_set.is_active(&reward_full_priority_fee::id()) {
+            self.filter_program_errors_and_collect_fee_details(&processing_results)
+        } else {
+            self.filter_program_errors_and_collect_fee(&processing_results)
+        };
 
         timings.saturating_add_in_place(ExecuteTimingType::StoreUs, store_accounts_us);
         timings.saturating_add_in_place(
