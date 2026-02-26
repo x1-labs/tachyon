@@ -982,9 +982,7 @@ impl LedgerStorage {
 
             // When enabled, skip vote transactions from tx and tx-by-addr tables.
             // The full block (including vote txs) is still stored in the blocks table.
-            if self.exclude_vote_transactions
-                && is_vote_transaction(transaction)
-            {
+            if self.exclude_vote_transactions && is_vote_transaction(transaction) {
                 num_vote_transactions_excluded += 1;
                 continue;
             }
@@ -1116,7 +1114,11 @@ impl LedgerStorage {
             "storage-bigtable-upload-block",
             ("slot", slot, i64),
             ("transactions", num_transactions, i64),
-            ("vote_transactions_excluded", num_vote_transactions_excluded, i64),
+            (
+                "vote_transactions_excluded",
+                num_vote_transactions_excluded,
+                i64
+            ),
             ("entries", num_entries, i64),
             ("bytes", bytes_written, i64),
         );
