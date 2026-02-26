@@ -731,6 +731,8 @@ pub fn main() {
                 .ok()
                 .map(Duration::from_secs),
             max_message_size: value_t_or_exit!(matches, "rpc_bigtable_max_message_size", usize),
+            exclude_vote_transactions: matches
+                .is_present("bigtable_exclude_vote_transactions"),
         })
     } else {
         None

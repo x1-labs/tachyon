@@ -6,7 +6,7 @@ use {
     log::*,
     serde::{Deserialize, Serialize},
     solana_clock::{Slot, UnixTimestamp},
-    solana_message::v0::LoadedAddresses,
+    solana_message::{v0::LoadedAddresses, VersionedMessage},
     solana_metrics::datapoint_info,
     solana_pubkey::Pubkey,
     solana_serde::default_on_eof,
@@ -97,6 +97,21 @@ fn slot_to_entries_key(slot: Slot) -> String {
 
 fn slot_to_tx_by_addr_key(slot: Slot) -> String {
     slot_to_key(!slot)
+}
+
+/// Returns true if the transaction is a vote transaction (i.e., it contains
+/// an instruction that invokes the vote program).
+fn is_vote_transaction(transaction: &VersionedTransaction) -> bool {
+    let account_keys = transaction.message.static_account_keys();
+    let instructions = match &transaction.message {
+        VersionedMessage::Legacy(message) => &message.instructions,
+        VersionedMessage::V0(message) => &message.instructions,
+    };
+    instructions.iter().any(|instruction| {
+        let program_id_index = instruction.program_id_index as usize;
+        program_id_index < account_keys.len()
+            && solana_sdk_ids::vote::check_id(&account_keys[program_id_index])
+    })
 }
 
 // Reverse of `slot_to_key`
@@ -398,6 +413,10 @@ pub struct LedgerStorageConfig {
     pub instance_name: String,
     pub app_profile_id: String,
     pub max_message_size: usize,
+    /// When enabled, vote transactions are excluded from the `tx` and `tx-by-addr`
+    /// tables during upload. The full block (including vote transactions) is still
+    /// stored in the `blocks` table for consensus/historical integrity.
+    pub exclude_vote_transactions: bool,
 }
 
 impl Default for LedgerStorageConfig {
@@ -409,6 +428,7 @@ impl Default for LedgerStorageConfig {
             instance_name: DEFAULT_INSTANCE_NAME.to_string(),
             app_profile_id: DEFAULT_APP_PROFILE_ID.to_string(),
             max_message_size: DEFAULT_MAX_MESSAGE_SIZE,
+            exclude_vote_transactions: false,
         }
     }
 }
@@ -445,6 +465,7 @@ impl LedgerStorageStats {
 pub struct LedgerStorage {
     connection: bigtable::BigTableConnection,
     stats: Arc<LedgerStorageStats>,
+    exclude_vote_transactions: bool,
 }
 
 impl LedgerStorage {
@@ -478,6 +499,7 @@ impl LedgerStorage {
                 LedgerStorageConfig::default().max_message_size,
             )?,
             stats,
+            exclude_vote_transactions: false,
         })
     }
 
@@ -490,6 +512,7 @@ impl LedgerStorage {
             app_profile_id,
             credential_type,
             max_message_size,
+            exclude_vote_transactions,
         } = config;
         let connection = bigtable::BigTableConnection::new(
             instance_name.as_str(),
@@ -500,7 +523,11 @@ impl LedgerStorage {
             max_message_size,
         )
         .await?;
-        Ok(Self { stats, connection })
+        Ok(Self {
+            stats,
+            connection,
+            exclude_vote_transactions,
+        })
     }
 
     pub async fn new_with_stringified_credential(credential: String) -> Result<Self> {
@@ -949,8 +976,19 @@ impl LedgerStorage {
 
         let reserved_account_keys = ReservedAccountKeys::new_all_activated();
         let mut tx_cells = Vec::with_capacity(confirmed_block.transactions.len());
+        let mut num_vote_transactions_excluded = 0u64;
         for (index, transaction_with_meta) in confirmed_block.transactions.iter().enumerate() {
             let VersionedTransactionWithStatusMeta { meta, transaction } = transaction_with_meta;
+
+            // When enabled, skip vote transactions from tx and tx-by-addr tables.
+            // The full block (including vote txs) is still stored in the blocks table.
+            if self.exclude_vote_transactions
+                && is_vote_transaction(transaction)
+            {
+                num_vote_transactions_excluded += 1;
+                continue;
+            }
+
             let err = meta.status.clone().err();
             let index = index as u32;
             let signature = transaction.signatures[0];
@@ -1078,6 +1116,7 @@ impl LedgerStorage {
             "storage-bigtable-upload-block",
             ("slot", slot, i64),
             ("transactions", num_transactions, i64),
+            ("vote_transactions_excluded", num_vote_transactions_excluded, i64),
             ("entries", num_entries, i64),
             ("bytes", bytes_written, i64),
         );
