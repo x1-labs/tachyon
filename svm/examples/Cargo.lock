@@ -7725,6 +7725,7 @@ dependencies = [
  "solana-message",
  "solana-metrics",
  "solana-pubkey",
+ "solana-sdk-ids",
  "solana-serde",
  "solana-signature",
  "solana-storage-proto",
