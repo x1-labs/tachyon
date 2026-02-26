@@ -879,6 +879,7 @@ async fn get_bigtable(
                 instance_name: args.instance_name,
                 app_profile_id: args.app_profile_id,
                 max_message_size: solana_storage_bigtable::DEFAULT_MAX_MESSAGE_SIZE,
+                ..solana_storage_bigtable::LedgerStorageConfig::default()
             },
         )
         .await
