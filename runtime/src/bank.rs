@@ -2492,7 +2492,11 @@ impl Bank {
         let mut hash = self.hash.write().unwrap();
         if *hash == Hash::default() {
             // finish up any deferred changes to account state
-            self.distribute_transaction_fee_details();
+            if self.feature_set.is_active(&reward_full_priority_fee::id()) {
+                self.distribute_transaction_fee_details();
+            } else {
+                self.distribute_transaction_fees();
+            }
             self.update_slot_history();
             self.run_incinerator();
 

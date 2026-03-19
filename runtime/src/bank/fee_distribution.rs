@@ -38,6 +38,38 @@ impl FeeDistribution {
 }
 
 impl Bank {
+    // Legacy fee distribution path used when reward_full_priority_fee is inactive.
+    // Uses collector_fees (AtomicU64) and fee_rate_governor.burn() for deposit/burn split.
+    pub(super) fn distribute_transaction_fees(&self) {
+        let collector_fees = self.collector_fees.load(Relaxed);
+        if collector_fees != 0 {
+            let (deposit, mut burn) = self.fee_rate_governor.burn(collector_fees);
+            if deposit > 0 {
+                match self.deposit_fees(&self.collector_id, deposit) {
+                    Ok(post_balance) => {
+                        self.rewards.write().unwrap().push((
+                            self.collector_id,
+                            RewardInfo {
+                                reward_type: RewardType::Fee,
+                                lamports: deposit as i64,
+                                post_balance,
+                                commission: None,
+                            },
+                        ));
+                    }
+                    Err(err) => {
+                        debug!(
+                            "Burned {} lamport tx fee instead of sending to {} due to {}",
+                            deposit, self.collector_id, err
+                        );
+                        burn = burn.saturating_add(deposit);
+                    }
+                }
+            }
+            self.capitalization.fetch_sub(burn, Relaxed);
+        }
+    }
+
     // Distribute collected transaction fees for this slot to collector_id (= current leader).
     //
     // Each validator is incentivized to process more transactions to earn more transaction fees.
