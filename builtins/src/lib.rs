@@ -79,9 +79,9 @@ pub static BUILTINS: &[BuiltinPrototype] = &[
     },
     BuiltinPrototype {
         core_bpf_migration_config: Some(CoreBpfMigrationConfig {
-            source_buffer_address: buffer_accounts::config_program::id(),
+            source_buffer_address: buffer_accounts::config_program_v2::id(),
             upgrade_authority_address: None,
-            feature_id: agave_feature_set::migrate_config_program_to_core_bpf::id(),
+            feature_id: agave_feature_set::migrate_config_program_to_core_bpf_v2::id(),
             migration_target: CoreBpfMigrationTargetType::Builtin,
             datapoint_name: "migrate_builtin_to_core_bpf_config_program",
         }),
@@ -120,9 +120,9 @@ pub static BUILTINS: &[BuiltinPrototype] = &[
     }),
     BuiltinPrototype {
         core_bpf_migration_config: Some(CoreBpfMigrationConfig {
-            source_buffer_address: buffer_accounts::address_lookup_table_program::id(),
+            source_buffer_address: buffer_accounts::address_lookup_table_program_v2::id(),
             upgrade_authority_address: None,
-            feature_id: agave_feature_set::migrate_address_lookup_table_program_to_core_bpf::id(),
+            feature_id: agave_feature_set::migrate_address_lookup_table_program_to_core_bpf_v2::id(),
             migration_target: CoreBpfMigrationTargetType::Builtin,
             datapoint_name: "migrate_builtin_to_core_bpf_address_lookup_table_program",
         }),
@@ -156,9 +156,9 @@ pub static BUILTINS: &[BuiltinPrototype] = &[
 
 pub static STATELESS_BUILTINS: &[StatelessBuiltinPrototype] = &[StatelessBuiltinPrototype {
     core_bpf_migration_config: Some(CoreBpfMigrationConfig {
-        source_buffer_address: buffer_accounts::feature_gate_program::id(),
+        source_buffer_address: buffer_accounts::feature_gate_program_v2::id(),
         upgrade_authority_address: None,
-        feature_id: agave_feature_set::migrate_feature_gate_program_to_core_bpf::id(),
+        feature_id: agave_feature_set::migrate_feature_gate_program_to_core_bpf_v2::id(),
         migration_target: CoreBpfMigrationTargetType::Stateless,
         datapoint_name: "migrate_stateless_to_core_bpf_feature_gate_program",
     }),
@@ -168,6 +168,7 @@ pub static STATELESS_BUILTINS: &[StatelessBuiltinPrototype] = &[StatelessBuiltin
 
 /// Live source buffer accounts for builtin migrations.
 mod buffer_accounts {
+    // Original buffer addresses (v1 migration attempts — failed on X1)
     pub mod address_lookup_table_program {
         solana_pubkey::declare_id!("AhXWrD9BBUYcKjtpA3zuiiZG4ysbo6C6wjHo1QhERk6A");
     }
@@ -179,6 +180,17 @@ mod buffer_accounts {
     }
     pub mod stake_program {
         solana_pubkey::declare_id!("8t3vv6v99tQA6Gp7fVdsBH66hQMaswH5qsJVqJqo8xvG");
+    }
+
+    // New buffer addresses for v2 migration (X1-specific retry)
+    pub mod config_program_v2 {
+        solana_pubkey::declare_id!("CxBudfBvfxeRb8XmDP1T2K1A6npYgfB8Pgo7wvQstCVj");
+    }
+    pub mod address_lookup_table_program_v2 {
+        solana_pubkey::declare_id!("82M86jvpwc5s8e8NsY81pNHtspFGPC6nRv8CXhP9rs9L");
+    }
+    pub mod feature_gate_program_v2 {
+        solana_pubkey::declare_id!("2onpMnm4JZekhbMsWy4PTuk6kddJuvJixz41fZFDbdJM");
     }
 }
 
