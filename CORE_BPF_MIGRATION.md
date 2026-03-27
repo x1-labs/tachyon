@@ -55,7 +55,7 @@ This table tracks which BPF program versions correspond to each Agave release, b
 
 | Program | v1 Feature (already fired) | v2 Feature (new) | Buffer (new) | On-chain Owner | Migrated? |
 |---------|---------------------------|-------------------|--------------|----------------|-----------|
-| Stake | `8v4oWsx...` (NOT active) | *(uses v1 — not yet fired)* | `8t3vv6v...` (existing) | NativeLoader | No |
+| Stake | `8v4oWsx...` (NOT active) | *(uses v1 — not yet fired)* | `2Mztiphbt5a6dSPzhxHp8XJSMRzEXj2qJgmaxUoCKcVa` | NativeLoader | No |
 | Config | `HJQ15Ru...` (active, failed) | `3W77RxrUfZpDDfPxgRHQG6ZBi2oLq7vdTctkAoJdozjL` | `CxBudfBvfxeRb8XmDP1T2K1A6npYgfB8Pgo7wvQstCVj` | NativeLoader | No |
 | ALT | `8fqszxY...` (active, failed) | `CjmzUVD3Z2jWobu5i8aeJ1MGc8gUVGeHXva5T86EaC6A` | `82M86jvpwc5s8e8NsY81pNHtspFGPC6nRv8CXhP9rs9L` | NativeLoader | No |
 | Feature Gate | `7TuSw9f...` (active, failed) | `5r43RFT6ZsRJS3DpbWCJxEmDnsThJzbfuseTDKpiLrYi` | `2onpMnm4JZekhbMsWy4PTuk6kddJuvJixz41fZFDbdJM` | N/A (stateless) | No |
@@ -120,32 +120,32 @@ shasum -a 256 solana_alt_ref.so solana_address_lookup_table_program.so
 
 ### Step 4: Deploy buffer accounts
 
-The buffer keypair files are in `~/Documents/x1-testnet/x1_feature_gate_keys/`.
+The buffer keypair files are in `<BUFFER_KEYS_DIR>/`.
 
 ```bash
 solana config set --url https://rpc.mainnet.x1.xyz
 
-# Stake — deploy to existing buffer address
+# Stake
 solana program write-buffer solana_stake_program.so \
-  --buffer ~/Documents/x1-testnet/x1_feature_gate_keys/migrate_stake_program_to_core_bpf_8v4oWsx9gG9rXREnejzNYyjpYF5oTP1igE7pqLDt9bKe.json
+  --buffer <BUFFER_KEYS_DIR>/stake_buffer_2Mztiphbt5a6dSPzhxHp8XJSMRzEXj2qJgmaxUoCKcVa.json
 
-# Config — deploy to new v2 buffer
+# Config
 solana program write-buffer solana_config_program.so \
-  --buffer ~/Documents/x1-testnet/x1_feature_gate_keys/config_buffer_v2_CxBudfBvfxeRb8XmDP1T2K1A6npYgfB8Pgo7wvQstCVj.json
+  --buffer <BUFFER_KEYS_DIR>/config_buffer_v2_CxBudfBvfxeRb8XmDP1T2K1A6npYgfB8Pgo7wvQstCVj.json
 
-# ALT — deploy to new v2 buffer
+# ALT
 solana program write-buffer solana_address_lookup_table_program.so \
-  --buffer ~/Documents/x1-testnet/x1_feature_gate_keys/alt_buffer_v2_82M86jvpwc5s8e8NsY81pNHtspFGPC6nRv8CXhP9rs9L.json
+  --buffer <BUFFER_KEYS_DIR>/alt_buffer_v2_82M86jvpwc5s8e8NsY81pNHtspFGPC6nRv8CXhP9rs9L.json
 
-# Feature Gate — deploy to new v2 buffer
+# Feature Gate
 solana program write-buffer solana_feature_gate_program.so \
-  --buffer ~/Documents/x1-testnet/x1_feature_gate_keys/feature_gate_buffer_v2_2onpMnm4JZekhbMsWy4PTuk6kddJuvJixz41fZFDbdJM.json
+  --buffer <BUFFER_KEYS_DIR>/feature_gate_buffer_v2_2onpMnm4JZekhbMsWy4PTuk6kddJuvJixz41fZFDbdJM.json
 ```
 
 Verify the buffers were deployed:
 
 ```bash
-solana account 8t3vv6v99tQA6Gp7fVdsBH66hQMaswH5qsJVqJqo8xvG  # stake buffer
+solana account 2Mztiphbt5a6dSPzhxHp8XJSMRzEXj2qJgmaxUoCKcVa  # stake buffer
 solana account CxBudfBvfxeRb8XmDP1T2K1A6npYgfB8Pgo7wvQstCVj   # config buffer
 solana account 82M86jvpwc5s8e8NsY81pNHtspFGPC6nRv8CXhP9rs9L   # ALT buffer
 solana account 2onpMnm4JZekhbMsWy4PTuk6kddJuvJixz41fZFDbdJM   # feature gate buffer
@@ -161,25 +161,25 @@ solana account 2onpMnm4JZekhbMsWy4PTuk6kddJuvJixz41fZFDbdJM   # feature gate buf
 ```bash
 # 1. Stake (uses existing feature gate — not yet active)
 solana feature activate 8v4oWsx9gG9rXREnejzNYyjpYF5oTP1igE7pqLDt9bKe \
-  --keypair ~/Documents/x1-testnet/x1_feature_gate_keys/migrate_stake_program_to_core_bpf_8v4oWsx9gG9rXREnejzNYyjpYF5oTP1igE7pqLDt9bKe.json
+  --keypair <FEATURE_KEYS_DIR>/migrate_stake_program_to_core_bpf_8v4oWsx9gG9rXREnejzNYyjpYF5oTP1igE7pqLDt9bKe.json
 
 # Wait for epoch boundary, verify migration success, then:
 
 # 2. Config (v2 feature gate)
 solana feature activate 3W77RxrUfZpDDfPxgRHQG6ZBi2oLq7vdTctkAoJdozjL \
-  --keypair ~/Documents/x1-testnet/x1_feature_gate_keys/migrate_config_program_to_core_bpf_v2_3W77RxrUfZpDDfPxgRHQG6ZBi2oLq7vdTctkAoJdozjL.json
+  --keypair <FEATURE_KEYS_DIR>/migrate_config_program_to_core_bpf_v2_3W77RxrUfZpDDfPxgRHQG6ZBi2oLq7vdTctkAoJdozjL.json
 
 # Wait for epoch boundary, verify, then:
 
 # 3. Address Lookup Table (v2 feature gate)
 solana feature activate CjmzUVD3Z2jWobu5i8aeJ1MGc8gUVGeHXva5T86EaC6A \
-  --keypair ~/Documents/x1-testnet/x1_feature_gate_keys/migrate_address_lookup_table_program_to_core_bpf_v2_CjmzUVD3Z2jWobu5i8aeJ1MGc8gUVGeHXva5T86EaC6A.json
+  --keypair <FEATURE_KEYS_DIR>/migrate_address_lookup_table_program_to_core_bpf_v2_CjmzUVD3Z2jWobu5i8aeJ1MGc8gUVGeHXva5T86EaC6A.json
 
 # Wait for epoch boundary, verify, then:
 
 # 4. Feature Gate (v2 feature gate)
 solana feature activate 5r43RFT6ZsRJS3DpbWCJxEmDnsThJzbfuseTDKpiLrYi \
-  --keypair ~/Documents/x1-testnet/x1_feature_gate_keys/migrate_feature_gate_program_to_core_bpf_v2_5r43RFT6ZsRJS3DpbWCJxEmDnsThJzbfuseTDKpiLrYi.json
+  --keypair <FEATURE_KEYS_DIR>/migrate_feature_gate_program_to_core_bpf_v2_5r43RFT6ZsRJS3DpbWCJxEmDnsThJzbfuseTDKpiLrYi.json
 ```
 
 ### Step 6: Verify migrations
@@ -256,7 +256,7 @@ shasum -a 256 solana_stake.so x1_stake.so
 
 ## Keypair Inventory
 
-All keypairs are stored in `~/Documents/x1-testnet/x1_feature_gate_keys/`.
+All keypairs are stored in `<FEATURE_KEYS_DIR>/`.
 
 ### Feature Gate Keypairs
 
@@ -271,7 +271,7 @@ All keypairs are stored in `~/Documents/x1-testnet/x1_feature_gate_keys/`.
 
 | Purpose | File | Pubkey |
 |---------|------|--------|
-| Stake buffer (v1) | *(existing — see keypair inventory)* | `8t3vv6v99tQA6Gp7fVdsBH66hQMaswH5qsJVqJqo8xvG` |
+| Stake buffer | `stake_buffer_2Mztiphbt5a6dSPzhxHp8XJSMRzEXj2qJgmaxUoCKcVa.json` | `2Mztiphbt5a6dSPzhxHp8XJSMRzEXj2qJgmaxUoCKcVa` |
 | Config buffer (v2) | `config_buffer_v2_CxBudfBvfxeRb8XmDP1T2K1A6npYgfB8Pgo7wvQstCVj.json` | `CxBudfBvfxeRb8XmDP1T2K1A6npYgfB8Pgo7wvQstCVj` |
 | ALT buffer (v2) | `alt_buffer_v2_82M86jvpwc5s8e8NsY81pNHtspFGPC6nRv8CXhP9rs9L.json` | `82M86jvpwc5s8e8NsY81pNHtspFGPC6nRv8CXhP9rs9L` |
 | Feature Gate buffer (v2) | `feature_gate_buffer_v2_2onpMnm4JZekhbMsWy4PTuk6kddJuvJixz41fZFDbdJM.json` | `2onpMnm4JZekhbMsWy4PTuk6kddJuvJixz41fZFDbdJM` |
