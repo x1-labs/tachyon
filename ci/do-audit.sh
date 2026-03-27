@@ -102,7 +102,28 @@ cargo_audit_ignores=(
   #Dependency tree:
   #tracing-subscriber 0.3.7
   --ignore RUSTSEC-2025-0055
+
+  # Crate:     bytes
+  # Version:   1.10.0
+  # Title:     Integer overflow in `BytesMut::reserve`
+  # Date:      2026-01-10
+  # ID:        RUSTSEC-2026-0007
+  --ignore RUSTSEC-2026-0007
+
+  # Crate:     rustls-webpki
+  # Version:   0.102.8
+  # Title:     CRLs not considered authoritative by Distribution Point
+  # Date:      2026-02-20
+  # ID:        RUSTSEC-2026-0049
+  --ignore RUSTSEC-2026-0049
 )
-scripts/cargo-for-all-lock-files.sh audit "${cargo_audit_ignores[@]}" | $dep_tree_filter
+# cargo-audit 0.21.2 can't parse CVSS v4.0 advisories. Clone the advisory-db
+# locally and strip all CVSS v4.0 entries. Remove this workaround when the
+# Docker image is updated to cargo-audit >= 0.22.
+if [ ! -d /tmp/advisory-db ]; then
+  git clone --depth 1 https://github.com/RustSec/advisory-db.git /tmp/advisory-db 2>/dev/null
+fi
+grep -rl 'CVSS:4\.0' /tmp/advisory-db/crates/ 2>/dev/null | xargs -r rm -f
+scripts/cargo-for-all-lock-files.sh audit "${cargo_audit_ignores[@]}" --db /tmp/advisory-db --no-fetch | $dep_tree_filter
 # we want the `cargo audit` exit code, not `$dep_tree_filter`'s
 exit "${PIPESTATUS[0]}"
