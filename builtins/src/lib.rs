@@ -122,7 +122,8 @@ pub static BUILTINS: &[BuiltinPrototype] = &[
         core_bpf_migration_config: Some(CoreBpfMigrationConfig {
             source_buffer_address: buffer_accounts::address_lookup_table_program_v2::id(),
             upgrade_authority_address: None,
-            feature_id: agave_feature_set::migrate_address_lookup_table_program_to_core_bpf_v2::id(),
+            feature_id: agave_feature_set::migrate_address_lookup_table_program_to_core_bpf_v2::id(
+            ),
             migration_target: CoreBpfMigrationTargetType::Builtin,
             datapoint_name: "migrate_builtin_to_core_bpf_address_lookup_table_program",
         }),
