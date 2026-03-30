@@ -1084,6 +1084,10 @@ pub mod migrate_feature_gate_program_to_core_bpf_v2 {
     solana_pubkey::declare_id!("5r43RFT6ZsRJS3DpbWCJxEmDnsThJzbfuseTDKpiLrYi");
 }
 
+pub mod migrate_stake_program_to_core_bpf_v2 {
+    solana_pubkey::declare_id!("5YasvkdWGbomRJm9uY84Hh2UacMbQ6P3UCyh69sK8MVH");
+}
+
 pub static FEATURE_NAMES: LazyLock<AHashMap<Pubkey, &'static str>> = LazyLock::new(|| {
     [
         (secp256k1_program_enabled::id(), "secp256k1 program"),
@@ -1309,6 +1313,7 @@ pub static FEATURE_NAMES: LazyLock<AHashMap<Pubkey, &'static str>> = LazyLock::n
         (remove_accounts_delta_hash::id(), "removes accounts delta hash SIMD-0223"),
         (enable_secp256r1_precompile::id(), "Enable secp256r1 precompile SIMD-0075"),
         (migrate_stake_program_to_core_bpf::id(), "Migrate Stake program to Core BPF SIMD-0196 #3655"),
+        (migrate_stake_program_to_core_bpf_v2::id(), "Migrate Stake program to Core BPF v2"),
         (deplete_cu_meter_on_vm_failure::id(), "Deplete compute meter for vm errors SIMD-0182 #3993"),
         (reserve_minimal_cus_for_builtin_instructions::id(), "Reserve minimal CUs for builtin instructions SIMD-170 #2562"),
         (raise_block_limits_to_50m::id(), "Raise block limit to 50M SIMD-0207"),

@@ -66,9 +66,9 @@ pub static BUILTINS: &[BuiltinPrototype] = &[
     }),
     BuiltinPrototype {
         core_bpf_migration_config: Some(CoreBpfMigrationConfig {
-            source_buffer_address: buffer_accounts::stake_program::id(),
+            source_buffer_address: buffer_accounts::stake_program_v2::id(),
             upgrade_authority_address: None,
-            feature_id: agave_feature_set::migrate_stake_program_to_core_bpf::id(),
+            feature_id: agave_feature_set::migrate_stake_program_to_core_bpf_v2::id(),
             migration_target: CoreBpfMigrationTargetType::Builtin,
             datapoint_name: "migrate_builtin_to_core_bpf_stake_program",
         }),
@@ -194,6 +194,9 @@ mod buffer_accounts {
     }
     pub mod feature_gate_program_v2 {
         solana_pubkey::declare_id!("2onpMnm4JZekhbMsWy4PTuk6kddJuvJixz41fZFDbdJM");
+    }
+    pub mod stake_program_v2 {
+        solana_pubkey::declare_id!("2Mztiphbt5a6dSPzhxHp8XJSMRzEXj2qJgmaxUoCKcVa");
     }
 }
 

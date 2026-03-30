@@ -55,12 +55,12 @@ This table tracks which BPF program versions correspond to each Agave release, b
 
 | Program | v1 Feature (already fired) | v2 Feature (new) | Buffer (new) | On-chain Owner | Migrated? |
 |---------|---------------------------|-------------------|--------------|----------------|-----------|
-| Stake | `8v4oWsx...` (NOT active) | *(uses v1 — not yet fired)* | `2Mztiphbt5a6dSPzhxHp8XJSMRzEXj2qJgmaxUoCKcVa` | NativeLoader | No |
+| Stake | `8v4oWsx...` (active, failed) | `5YasvkdWGbomRJm9uY84Hh2UacMbQ6P3UCyh69sK8MVH` | `2Mztiphbt5a6dSPzhxHp8XJSMRzEXj2qJgmaxUoCKcVa` | NativeLoader | No |
 | Config | `HJQ15Ru...` (active, failed) | `3W77RxrUfZpDDfPxgRHQG6ZBi2oLq7vdTctkAoJdozjL` | `CxBudfBvfxeRb8XmDP1T2K1A6npYgfB8Pgo7wvQstCVj` | NativeLoader | No |
 | ALT | `8fqszxY...` (active, failed) | `CjmzUVD3Z2jWobu5i8aeJ1MGc8gUVGeHXva5T86EaC6A` | `82M86jvpwc5s8e8NsY81pNHtspFGPC6nRv8CXhP9rs9L` | NativeLoader | No |
 | Feature Gate | `7TuSw9f...` (active, failed) | `5r43RFT6ZsRJS3DpbWCJxEmDnsThJzbfuseTDKpiLrYi` | `2onpMnm4JZekhbMsWy4PTuk6kddJuvJixz41fZFDbdJM` | N/A (stateless) | No |
 
-Config, ALT, and Feature Gate v1 features already fired but migration failed because source buffers were never deployed. New v2 feature gates have been created to retry the migration.
+All four v1 features already fired but migration failed because source buffers were never deployed. New v2 feature gates have been created to retry all migrations.
 
 ---
 
@@ -159,9 +159,9 @@ solana account 2onpMnm4JZekhbMsWy4PTuk6kddJuvJixz41fZFDbdJM   # feature gate buf
 - `"Failed to migrate builtin"` — failure
 
 ```bash
-# 1. Stake (uses existing feature gate — not yet active)
-solana feature activate 8v4oWsx9gG9rXREnejzNYyjpYF5oTP1igE7pqLDt9bKe \
-  --keypair <FEATURE_KEYS_DIR>/migrate_stake_program_to_core_bpf_8v4oWsx9gG9rXREnejzNYyjpYF5oTP1igE7pqLDt9bKe.json
+# 1. Stake (v2 feature gate)
+solana feature activate 5YasvkdWGbomRJm9uY84Hh2UacMbQ6P3UCyh69sK8MVH \
+  --keypair <FEATURE_KEYS_DIR>/migrate_stake_program_to_core_bpf_v2_5YasvkdWGbomRJm9uY84Hh2UacMbQ6P3UCyh69sK8MVH.json
 
 # Wait for epoch boundary, verify migration success, then:
 
@@ -263,6 +263,7 @@ All keypairs are stored in `<FEATURE_KEYS_DIR>/`.
 | Purpose | File | Pubkey |
 |---------|------|--------|
 | Stake migration (v1) | `migrate_stake_program_to_core_bpf_8v4oWsx9gG9rXREnejzNYyjpYF5oTP1igE7pqLDt9bKe.json` | `8v4oWsx9gG9rXREnejzNYyjpYF5oTP1igE7pqLDt9bKe` |
+| Stake migration (v2) | `migrate_stake_program_to_core_bpf_v2_5YasvkdWGbomRJm9uY84Hh2UacMbQ6P3UCyh69sK8MVH.json` | `5YasvkdWGbomRJm9uY84Hh2UacMbQ6P3UCyh69sK8MVH` |
 | Config migration (v2) | `migrate_config_program_to_core_bpf_v2_3W77RxrUfZpDDfPxgRHQG6ZBi2oLq7vdTctkAoJdozjL.json` | `3W77RxrUfZpDDfPxgRHQG6ZBi2oLq7vdTctkAoJdozjL` |
 | ALT migration (v2) | `migrate_address_lookup_table_program_to_core_bpf_v2_CjmzUVD3Z2jWobu5i8aeJ1MGc8gUVGeHXva5T86EaC6A.json` | `CjmzUVD3Z2jWobu5i8aeJ1MGc8gUVGeHXva5T86EaC6A` |
 | Feature Gate migration (v2) | `migrate_feature_gate_program_to_core_bpf_v2_5r43RFT6ZsRJS3DpbWCJxEmDnsThJzbfuseTDKpiLrYi.json` | `5r43RFT6ZsRJS3DpbWCJxEmDnsThJzbfuseTDKpiLrYi` |
