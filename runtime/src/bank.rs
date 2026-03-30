@@ -6569,6 +6569,39 @@ impl Bank {
             }
         }
 
+        // Temporary: when activate_sbpf_v2_on_testnet is activated, create the Feature
+        // account at enable_sbpf_v2_deployment_and_execution's address to force-activate it.
+        if new_feature_activations
+            .contains(&feature_set::activate_sbpf_v2_on_testnet::id())
+        {
+            let feature_id = feature_set::enable_sbpf_v2_deployment_and_execution::id();
+            // Feature account: 9 bytes, owner = Feature111...111
+            // Layout: 1 byte bool (1 = has slot) + 8 byte LE u64 (activation slot)
+            let mut data = vec![0u8; 9];
+            data[0] = 1; // activated = true
+            let slot_bytes = self.slot().to_le_bytes();
+            data[1..9].copy_from_slice(&slot_bytes);
+            let feature_program_id =
+                solana_pubkey::Pubkey::from_str_const("Feature111111111111111111111111111111111111");
+            self.store_account_and_update_capitalization(
+                &feature_id,
+                &solana_sdk::account::AccountSharedData::from(
+                    solana_sdk::account::Account {
+                        lamports: self.get_minimum_balance_for_rent_exemption(9),
+                        data,
+                        owner: feature_program_id,
+                        executable: false,
+                        rent_epoch: u64::MAX,
+                    },
+                ),
+            );
+            info!(
+                "Activated SBPFv2 feature gate {} at slot {}",
+                feature_id,
+                self.slot()
+            );
+        }
+
         if new_feature_activations.contains(&feature_set::enable_native_mint_wrap_account::id()) {
             self.store_account_and_update_capitalization(
                 &token::native_mint::id(),

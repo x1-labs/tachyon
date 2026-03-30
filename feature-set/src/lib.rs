@@ -1072,6 +1072,10 @@ pub mod enable_native_mint_wrap_account {
     solana_pubkey::declare_id!("BeCY6VL4CKQR2QUwe9w3iRtNMN91FMW1sXbRzwfc3WYc");
 }
 
+pub mod activate_sbpf_v2_on_testnet {
+    solana_pubkey::declare_id!("2nfJKYUWnUWwMZagconKyfE8fVjfmZ4SKmNbsBV4ajwE");
+}
+
 pub static FEATURE_NAMES: LazyLock<AHashMap<Pubkey, &'static str>> = LazyLock::new(|| {
     [
         (secp256k1_program_enabled::id(), "secp256k1 program"),
@@ -1307,6 +1311,7 @@ pub static FEATURE_NAMES: LazyLock<AHashMap<Pubkey, &'static str>> = LazyLock::n
         (reenable_zk_elgamal_proof_program::id(), "Re-enables zk-elgamal-proof program"),
         (enable_dynamic_fees_fixes_v1::id(), "Enable dynamic fees fixes v1"),
         (enable_native_mint_wrap_account::id(), "enable the native mint wrap account"),
+        (activate_sbpf_v2_on_testnet::id(), "temporary: activate SBPFv2 feature gate on testnet"),
         /*************** ADD NEW FEATURES HERE ***************/
     ]
     .iter()
