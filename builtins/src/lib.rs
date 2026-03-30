@@ -180,9 +180,7 @@ mod buffer_accounts {
         solana_pubkey::declare_id!("3D3ydPWvmEszrSjrickCtnyRSJm1rzbbSsZog8Ub6vLh");
     }
     pub mod stake_program {
-        // Original Solana buffer address (we don't have this keypair)
-        // solana_pubkey::declare_id!("8t3vv6v99tQA6Gp7fVdsBH66hQMaswH5qsJVqJqo8xvG");
-        solana_pubkey::declare_id!("2Mztiphbt5a6dSPzhxHp8XJSMRzEXj2qJgmaxUoCKcVa");
+        solana_pubkey::declare_id!("8t3vv6v99tQA6Gp7fVdsBH66hQMaswH5qsJVqJqo8xvG");
     }
 
     // New buffer addresses for v2 migration (X1-specific retry)
