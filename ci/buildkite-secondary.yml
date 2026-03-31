@@ -1,59 +1,57 @@
 #
 # Build steps that run after the primary pipeline on pushes and tags.
 # Pull requests to not run these steps.
+env:
+  GPG_KEY_ID: ""
+  SSM_KEY: ""
+
 steps:
   - name: "cargo audit"
+    key: "audit"
     command: "ci/docker-run-default-image.sh ci/do-audit.sh"
     agents:
       queue: "release-build"
     timeout_in_minutes: 10
-  - wait
-  - name: "publish tarball (x86_64-unknown-linux-gnu)"
-    command: "ci/publish-tarball.sh"
-    agents:
-      queue: "release-build"
-    timeout_in_minutes: 60
-  - name: "publish installer"
-    command: "ci/publish-installer.sh"
-    agents:
-      queue: "release-build"
-    timeout_in_minutes: 5
-  - wait
-  - name: "publish docker"
-    command: "docker-solana/build.sh"
-    agents:
-      queue: "release-build"
-    timeout_in_minutes: 60
-  - name: "publish crate"
-    command: "ci/publish-crate.sh"
-    agents:
-      queue: "release-build"
     retry:
-      manual:
-        permit_on_passed: true
-    timeout_in_minutes: 240
-    branches: "!master"
-  - name: "trigger github actions windows build"
-    command: ".buildkite/scripts/trigger-github-actions-windows-build.sh"
+      automatic:
+        - exit_status: -1  # Connection to the Agent was lost
+          signal_reason: none
+          limit: 3
+        - signal_reason: agent_stop  # Agent was stopped by the OS (e.g. spot termination)
+          limit: 3
+
+  - name: "build deb files"
+    key: "build-deb"
+    depends_on: "audit"
+    command: "ci/build-deb.sh"
+    artifact_paths:
+      - "target/debian/*.deb"
+      - "target/*/debian/*.deb"
     agents:
       queue: "release-build"
+    timeout_in_minutes: 30
     retry:
-      manual:
-        permit_on_passed: true
-    timeout_in_minutes: 5
-  - name: "publish tarball (aarch64-apple-darwin)"
-    command: "ci/publish-tarball.sh"
+      automatic:
+        - exit_status: -1  # Connection to the Agent was lost
+          signal_reason: none
+          limit: 3
+        - signal_reason: agent_stop  # Agent was stopped by the OS (e.g. spot termination)
+          limit: 3
+
+  - name: "publish deb files"
+    depends_on: "build-deb"
+    command:
+      - "mkdir -p target/debian"
+      - "buildkite-agent artifact download 'target/debian/*.deb' . || true"
+      - "buildkite-agent artifact download 'target/*/debian/*.deb' . || true"
+      - "ci/publish-deb.sh"
     agents:
-      queue: "release-build-aarch64-apple-darwin"
+      queue: "release-build"
+    timeout_in_minutes: 15
     retry:
-      manual:
-        permit_on_passed: true
-    timeout_in_minutes: 60
-  - name: "publish tarball (x86_64-apple-darwin)"
-    command: "ci/publish-tarball.sh"
-    agents:
-      queue: "release-build-x86_64-apple-darwin"
-    retry:
-      manual:
-        permit_on_passed: true
-    timeout_in_minutes: 60
+      automatic:
+        - exit_status: -1  # Connection to the Agent was lost
+          signal_reason: none
+          limit: 3
+        - signal_reason: agent_stop  # Agent was stopped by the OS (e.g. spot termination)
+          limit: 3

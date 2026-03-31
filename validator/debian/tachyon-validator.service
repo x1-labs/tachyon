@@ -1,0 +1,23 @@
+[Unit]
+Description=Tachyon Validator
+After=syslog.target network.target
+
+[Service]
+User=x1
+Group=x1
+Type=simple
+LimitNOFILE=infinity
+LimitMEMLOCK=2000000000
+
+KillMode=process
+KillSignal=SIGINT
+TimeoutStopSec=600
+Restart=on-failure
+RestartSec=10s
+SyslogIdentifier=tachyon-validator
+StandardOutput=journal
+StandardError=journal
+ExecStart=/var/lib/x1/validator.sh
+
+[Install]
+WantedBy=multi-user.target

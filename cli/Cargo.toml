@@ -12,6 +12,25 @@ edition = { workspace = true }
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
 
+[package.metadata.deb]
+name = "x1-tools"
+maintainer = "X1 Labs <maintainers@x1.xyz>"
+license-file = ["../LICENSE", "0"]
+extended-description = """\
+Command-line tools for the X1 blockchain network. \
+Includes CLI, keygen, test-validator, ledger-tool, faucet, genesis, and gossip utilities."""
+section = "utils"
+priority = "optional"
+depends = "$auto"
+assets = [
+    ["target/release/x1", "usr/bin/", "755"],
+    ["target/release/x1-keygen", "usr/bin/", "755"],
+    ["target/release/x1-faucet", "usr/bin/", "755"],
+    ["target/release/x1-genesis", "usr/bin/", "755"],
+    ["target/release/x1-gossip", "usr/bin/", "755"],
+    ["../README.md", "usr/share/doc/tachyon-cli/README.md", "644"],
+]
+
 [[bin]]
 name = "solana"
 path = "src/main.rs"

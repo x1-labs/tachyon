@@ -155,14 +155,21 @@ command_step() {
     artifact_paths: "log-*.txt"
     agents:
       queue: "${4:-solana}"
+    retry:
+      automatic:
+        - exit_status: -1  # Connection to the Agent was lost
+          signal_reason: none
+          limit: 3
+        - signal_reason: agent_stop  # Agent was stopped by the OS (e.g. spot termination)
+          limit: 3
 EOF
 }
 
 
 trigger_secondary_step() {
   cat  >> "$output_file" <<"EOF"
-  - name: "Trigger Build on agave-secondary"
-    trigger: "agave-secondary"
+  - name: "Trigger Build on tachyon-secondary"
+    trigger: "tachyon-secondary"
     branches: "!pull/*"
     async: true
     soft_fail: true
