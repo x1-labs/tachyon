@@ -1,21 +1,57 @@
 #
 # Build steps that run after the primary pipeline on pushes and tags.
 # Pull requests to not run these steps.
+env:
+  GPG_KEY_ID: ""
+  SSM_KEY: ""
+
 steps:
   - name: "cargo audit"
+    key: "audit"
     command: "ci/docker-run-default-image.sh ci/do-audit.sh"
     agents:
       queue: "release-build"
     timeout_in_minutes: 10
+    retry:
+      automatic:
+        - exit_status: -1  # Connection to the Agent was lost
+          signal_reason: none
+          limit: 3
+        - signal_reason: agent_stop  # Agent was stopped by the OS (e.g. spot termination)
+          limit: 3
 
-  - name: "build the deb files"
+  - name: "build deb files"
+    key: "build-deb"
+    depends_on: "audit"
     command: "ci/build-deb.sh"
+    artifact_paths:
+      - "target/debian/*.deb"
+      - "target/*/debian/*.deb"
     agents:
       queue: "release-build"
     timeout_in_minutes: 30
+    retry:
+      automatic:
+        - exit_status: -1  # Connection to the Agent was lost
+          signal_reason: none
+          limit: 3
+        - signal_reason: agent_stop  # Agent was stopped by the OS (e.g. spot termination)
+          limit: 3
 
-  - name: "publish the deb files"
-    command: "ci/publish-deb.sh"
+  - name: "publish deb files"
+    depends_on: "build-deb"
+    command:
+      - "mkdir -p target/debian"
+      - "buildkite-agent artifact download 'target/debian/*.deb' . || true"
+      - "buildkite-agent artifact download 'target/*/debian/*.deb' . || true"
+      - "ci/publish-deb.sh"
     agents:
       queue: "release-build"
-    timeout_in_minutes: 10
+    timeout_in_minutes: 15
+    retry:
+      automatic:
+        - exit_status: -1  # Connection to the Agent was lost
+          signal_reason: none
+          limit: 3
+        - signal_reason: agent_stop  # Agent was stopped by the OS (e.g. spot termination)
+          limit: 3

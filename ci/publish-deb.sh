@@ -10,6 +10,14 @@ COMPONENT="main"
 AWS_PROFILE="${AWS_PROFILE:-}"
 KEEP_VERSIONS="${KEEP_VERSIONS:-20}"
 
+# Handle cross-compilation target (must match build-deb.sh)
+TARGET="${TARGET:-}"
+if [ -n "$TARGET" ]; then
+    DEB_DIR="target/${TARGET}/debian"
+else
+    DEB_DIR="target/debian"
+fi
+
 cleanup() {
     rm -rf "$REPO_DIR"
 }
@@ -21,8 +29,8 @@ aws ${AWS_PROFILE:+--profile "$AWS_PROFILE"} s3 sync "s3://${S3_BUCKET}/${S3_PAT
 echo "==> Setting up repo structure..."
 mkdir -p "$REPO_DIR/pool/${COMPONENT}"
 
-echo "==> Copying new .deb files to pool..."
-cp target/debian/*.deb "$REPO_DIR/pool/${COMPONENT}/"
+echo "==> Copying new .deb files from ${DEB_DIR} to pool..."
+cp "$DEB_DIR"/*.deb "$REPO_DIR/pool/${COMPONENT}/"
 
 echo "==> Pruning old versions (keeping last ${KEEP_VERSIONS})..."
 cd "$REPO_DIR/pool/${COMPONENT}"
@@ -66,15 +74,9 @@ rm apt-ftparchive.conf
 
 # Sign the Release file if GPG key is available
 if [ -n "$GPG_KEY_ID" ]; then
-    export GNUPGHOME=/tmp/gnupg
-    mkdir -p $GNUPGHOME
-    chmod 700 $GNUPGHOME
     echo "==> Signing Release file..."
     gpg --batch --yes --default-key "$GPG_KEY_ID" --armor --detach-sign --output "dists/${DIST}/Release.gpg" "dists/${DIST}/Release"
     gpg --batch --yes --default-key "$GPG_KEY_ID" --armor --clearsign --output "dists/${DIST}/InRelease" "dists/${DIST}/Release"
-else
-    # Remove stale signature files to avoid hash mismatches
-    rm -f "dists/${DIST}/Release.gpg" "dists/${DIST}/InRelease"
 fi
 
 echo "==> Syncing repo back to S3..."
