@@ -20,6 +20,10 @@ name = "solana_faucet"
 name = "solana-faucet"
 path = "src/bin/faucet.rs"
 
+[[bin]]
+name = "x1-faucet"
+path = "src/bin/faucet.rs"
+
 [features]
 agave-unstable-api = []
 dev-context-only-utils = []

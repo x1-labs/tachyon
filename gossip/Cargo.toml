@@ -20,6 +20,11 @@ name = "solana-gossip"
 path = "src/main.rs"
 bench = false
 
+[[bin]]
+name = "x1-gossip"
+path = "src/main.rs"
+bench = false
+
 [features]
 frozen-abi = [
     "dep:solana-frozen-abi",

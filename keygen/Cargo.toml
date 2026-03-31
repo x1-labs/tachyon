@@ -16,6 +16,10 @@ targets = ["x86_64-unknown-linux-gnu"]
 name = "solana-keygen"
 path = "src/keygen.rs"
 
+[[bin]]
+name = "x1-keygen"
+path = "src/keygen.rs"
+
 [features]
 default = ["remote-wallet-hidraw"]
 agave-unstable-api = []
