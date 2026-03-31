@@ -8736,6 +8736,7 @@ dependencies = [
  "solana-time-utils",
  "solana-version",
  "solana-vote-program",
+ "spl-generic-token",
  "tempfile",
 ]
 
