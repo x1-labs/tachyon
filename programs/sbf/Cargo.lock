@@ -7201,7 +7201,15 @@ name = "solana-fee"
 version = "3.1.14"
 dependencies = [
  "agave-feature-set",
+ "log",
+ "solana-borsh",
+ "solana-builtins-default-costs",
+ "solana-compute-budget",
+ "solana-compute-budget-instruction",
+ "solana-compute-budget-interface",
  "solana-fee-structure",
+ "solana-pubkey",
+ "solana-sdk-ids",
  "solana-svm-transaction",
 ]
 

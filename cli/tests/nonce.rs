@@ -214,7 +214,7 @@ fn test_nonce(seed: Option<String>, use_nonce_authority: bool, compute_unit_pric
 
 #[test]
 fn test_create_account_with_seed() {
-    const ONE_SIG_FEE: u64 = 5000;
+    const ONE_SIG_FEE: u64 = 3000; // X1: nonce op = 300 CU x 10 (signature fee is ignored)
     agave_logger::setup();
     let mint_keypair = Keypair::new();
     let mint_pubkey = mint_keypair.pubkey();
