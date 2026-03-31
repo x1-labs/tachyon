@@ -3289,6 +3289,10 @@ mod tests {
             let mut node = cluster_info.my_contact_info.write().unwrap();
             node.set_shred_version(42);
         }
+        // Ensure wallclock advances so the CRDS insert overrides the previous
+        // contact info (same-millisecond inserts rely on non-deterministic
+        // hash ordering).
+        std::thread::sleep(std::time::Duration::from_millis(1));
         cluster_info.refresh_my_gossip_contact_info();
         cluster_info.flush_push_queue();
         // Should now include both epoch slots.

@@ -49,7 +49,7 @@
 //! on printing messages. The main task then waits for user input before
 //! unsubscribing and waiting on the tasks.
 //!
-//! ```
+//! ```no_run
 //! use anyhow::Result;
 //! use futures_util::StreamExt;
 //! use solana_pubsub_client::nonblocking::pubsub_client::PubsubClient;

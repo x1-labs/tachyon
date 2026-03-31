@@ -156,7 +156,9 @@ fn retransmit_to(
 #[test]
 fn gossip_ring() {
     solana_logger::setup();
-    run_gossip_topo(40, |listen| {
+    // 35 nodes keeps total port usage (35 * 26 = 910) within the
+    // per-slot budget of 992 ports under nextest.
+    run_gossip_topo(35, |listen| {
         let num = listen.len();
         for n in 0..num {
             let y = n % listen.len();
