@@ -34,7 +34,7 @@ TARGET="$BUILD_TARGET_TRIPLE"
 
 case $URL in
 stable)
-  URL=http://api.devnet.solana.com
+  URL=http://rpc.testnet.x1.xyz
   ;;
 localhost)
   URL=http://localhost:8899

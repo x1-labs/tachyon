@@ -153,7 +153,7 @@ where
                 .global(true)
                 .takes_value(true)
                 .value_name("URL")
-                .help("RPC entrypoint address. i.e. http://api.devnet.solana.com"),
+                .help("RPC entrypoint address. i.e. http://rpc.testnet.x1.xyz"),
         )
         .arg(
             Arg::with_name("commitment")

@@ -44,7 +44,7 @@
 //! This example subscribes to account events and then loops forever receiving
 //! them.
 //!
-//! ```
+//! ```no_run
 //! use anyhow::Result;
 //! use solana_commitment_config::CommitmentConfig;
 //! use solana_pubkey::Pubkey;
@@ -53,7 +53,7 @@
 //! use std::thread;
 //!
 //! fn get_account_updates(account_pubkey: Pubkey) -> Result<()> {
-//!     let url = "wss://api.devnet.solana.com/";
+//!     let url = "wss://rpc.testnet.x1.xyz/";
 //!
 //!     let (mut account_subscription_client, account_subscription_receiver) =
 //!         PubsubClient::account_subscribe(
