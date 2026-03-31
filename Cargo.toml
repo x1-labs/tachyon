@@ -690,3 +690,9 @@ crossbeam-epoch = { git = "https://github.com/anza-xyz/crossbeam", rev = "fd279d
 solana-curve25519 = { path = "curves/curve25519" }
 rustls-webpki = { git = "https://github.com/anza-xyz/rustls-webpki", tag = "anza-0.103.6-3" }
 rustls-webpki2 = { git = "https://github.com/anza-xyz/rustls-webpki", package = "rustls-webpki", tag = "anza-0.101.7-2" }
+
+# X1 SDK patches - custom cluster types and genesis hashes
+solana-cluster-type = { git = "https://github.com/x1-labs/x1-sdk", branch = "x1-cluster-type@v3.1.0" }
+solana-hash = { git = "https://github.com/x1-labs/x1-sdk", branch = "x1-cluster-type@v3.1.0" }
+solana-sanitize = { git = "https://github.com/x1-labs/x1-sdk", branch = "x1-cluster-type@v3.1.0" }
+solana-frozen-abi = { git = "https://github.com/x1-labs/x1-sdk", branch = "x1-cluster-type@v3.1.0" }
