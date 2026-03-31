@@ -154,7 +154,11 @@ command_step() {
     timeout_in_minutes: $3
     artifact_paths: "log-*.txt"
     agents:
-      queue: "${4:-default}"
+      queue: "${4:-solana}"
+    retry:
+      automatic:
+        # auto-retry agent loss / spot-instance preemption (deterministic failures still fail every attempt)
+        - limit: 3
 EOF
 }
 
@@ -191,7 +195,7 @@ EOF
         command: "ci/docker-run-default-image.sh ci/feature-check/test-feature.sh $i/$total_feature_checks"
         timeout_in_minutes: 20
         agents:
-          queue: "default"
+          queue: "check"
 EOF
 	done
 	cat >> "$output_file" <<EOF
@@ -199,15 +203,15 @@ EOF
         command: "ci/docker-run-default-image.sh ci/feature-check/test-feature-dev-bins.sh"
         timeout_in_minutes: 20
         agents:
-          queue: "default"
+          queue: "check"
 EOF
 }
 
 all_test_steps() {
-  command_step checks1 "ci/docker-run-default-image.sh ci/test-checks.sh" 20 default
+  command_step checks1 "ci/docker-run-default-image.sh ci/test-checks.sh" 20 check
   generate_feature_steps
-  command_step miri "ci/docker-run-default-image.sh ci/test-miri.sh" 5 default
-  command_step frozen-abi "ci/docker-run-default-image.sh ci/test-frozen-abi.sh" 30 default
+  command_step miri "ci/docker-run-default-image.sh ci/test-miri.sh" 5 check
+  command_step frozen-abi "ci/docker-run-default-image.sh ci/test-frozen-abi.sh" 30 check
   wait_step
 
   # Full test suite
@@ -247,7 +251,10 @@ all_test_steps() {
     name: "stable-sbf"
     timeout_in_minutes: 35
     agents:
-      queue: "default"
+      queue: "solana"
+    retry:
+      automatic:
+        - limit: 3
 EOF
   else
     annotate --style info \
@@ -283,17 +290,17 @@ EOF
         name: "coverage-1"
         timeout_in_minutes: 60
         agents:
-          queue: "default"
+          queue: "solana"
       - command: "ci/docker-run-default-image.sh ci/coverage/part-2.sh"
         name: "coverage-2"
         timeout_in_minutes: 60
         agents:
-          queue: "default"
+          queue: "solana"
       - command: "ci/docker-run-default-image.sh ci/coverage/part-3.sh"
         name: "coverage-3"
         timeout_in_minutes: 60
         agents:
-          queue: "default"
+          queue: "solana"
 EOF
   else
     annotate --style info --context test-coverage \
@@ -302,7 +309,7 @@ EOF
 }
 
 pull_or_push_steps() {
-  command_step sanity "ci/test-sanity.sh" 5 default
+  command_step sanity "ci/test-sanity.sh" 5 check
   wait_step
 
   # Check for any .sh file changes
@@ -310,7 +317,7 @@ pull_or_push_steps() {
               .sh$ \
               ^.buildkite/hooks \
       ; then
-    command_step shellcheck "ci/shellcheck.sh" 5 default
+    command_step shellcheck "ci/shellcheck.sh" 5 check
     wait_step
   fi
 
