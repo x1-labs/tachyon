@@ -1,0 +1,48 @@
+Template: tachyon-validator/user
+Type: string
+Default: x1
+Description: User/Group to run tachyon-validator as:
+ Specify the system user that will run the tachyon-validator service.
+ The user will be created if it doesn't exist.
+
+Template: tachyon-validator/home
+Type: string
+Default:
+Description: Home directory for validator data:
+ Specify the home directory for the validator. This is where the
+ validator.sh script and data will be stored. Leave empty to use
+ /var/lib/<user>.
+
+Template: tachyon-validator/validator_script_path
+Type: string
+Default:
+Description: Path to validator.sh script:
+ Specify the path where the validator.sh script is stored.
+ Leave empty to use <home>/validator.sh.
+
+Template: tachyon-validator/log_path
+Type: string
+Default: /var/log/tachyon-validator.log
+Description: Log file path:
+ Specify the path for validator logs. Leave empty to use journald
+ (view with: journalctl -u tachyon-validator).
+
+Template: tachyon-validator/network
+Type: select
+Choices: mainnet, testnet
+Default: mainnet
+Description: Network:
+ Select which network this validator will connect to.
+
+Template: tachyon-validator/mode
+Type: select
+Choices: validator, validator-rpc, rpc-readonly
+Default: validator
+Description: Validator mode:
+ Select the operating mode for this validator:
+ .
+ validator: Voting validator without RPC (lowest resource usage)
+ .
+ validator-rpc: Voting validator with RPC enabled
+ .
+ rpc-readonly: Non-voting RPC node (no vote account required)

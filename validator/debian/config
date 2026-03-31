@@ -1,0 +1,42 @@
+#!/bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+
+# Get user first
+db_input high tachyon-validator/user || true
+db_go || true
+
+db_get tachyon-validator/user
+USER="${RET:-x1}"
+
+# Set default for home based on user if not already set
+db_get tachyon-validator/home
+if [ -z "$RET" ]; then
+    db_set tachyon-validator/home "/var/lib/$USER"
+fi
+db_input high tachyon-validator/home || true
+db_go || true
+
+db_get tachyon-validator/home
+HOME_DIR="${RET:-/var/lib/$USER}"
+
+# Set default for script path based on home if not already set
+db_get tachyon-validator/validator_script_path
+if [ -z "$RET" ]; then
+    db_set tachyon-validator/validator_script_path "$HOME_DIR/validator.sh"
+fi
+db_input high tachyon-validator/validator_script_path || true
+db_go || true
+
+db_input high tachyon-validator/log_path || true
+db_go || true
+
+# Only ask for network and mode if validator script doesn't already exist
+db_get tachyon-validator/validator_script_path
+SCRIPT_PATH="${RET:-$HOME_DIR/validator.sh}"
+if [ ! -f "$SCRIPT_PATH" ]; then
+    db_input high tachyon-validator/network || true
+    db_input high tachyon-validator/mode || true
+    db_go || true
+fi

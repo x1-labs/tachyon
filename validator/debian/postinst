@@ -1,0 +1,113 @@
+#!/bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+
+# Get configured values from debconf
+db_get tachyon-validator/user
+TACHYON_USER="${RET:-x1}"
+
+db_get tachyon-validator/home
+TACHYON_HOME="${RET:-/var/lib/$TACHYON_USER}"
+
+db_get tachyon-validator/validator_script_path
+TACHYON_VALIDATOR_SCRIPT_PATH="${RET:-$TACHYON_HOME/validator.sh}"
+
+db_get tachyon-validator/network
+TACHYON_NETWORK="${RET:-mainnet}"
+
+db_get tachyon-validator/mode
+TACHYON_MODE="${RET:-validator}"
+
+db_get tachyon-validator/log_path
+TACHYON_LOG_PATH="$RET"
+
+# Create group if it doesn't exist
+if ! getent group "$TACHYON_USER" >/dev/null 2>&1; then
+    groupadd --system "$TACHYON_USER"
+fi
+
+# Create user if it doesn't exist
+if ! getent passwd "$TACHYON_USER" >/dev/null 2>&1; then
+    useradd --system \
+        --gid "$TACHYON_USER" \
+        --home-dir "$TACHYON_HOME" \
+        --shell /bin/bash \
+        --comment "X1 Tachyon Validator" \
+        "$TACHYON_USER"
+fi
+
+# Ensure home directory exists and has correct ownership
+mkdir -p "$TACHYON_HOME"
+chown "$TACHYON_USER:$TACHYON_USER" "$TACHYON_HOME"
+chmod 750 "$TACHYON_HOME"
+
+# Determine which example script to use based on network and mode
+case "$TACHYON_MODE" in
+    rpc-readonly)
+        EXAMPLE_SCRIPT="validator-${TACHYON_NETWORK}-rpc-read-only.sh"
+        ;;
+    validator-rpc)
+        EXAMPLE_SCRIPT="validator-${TACHYON_NETWORK}-rpc.sh"
+        ;;
+    *)
+        EXAMPLE_SCRIPT="validator-${TACHYON_NETWORK}.sh"
+        ;;
+esac
+
+# Ensure parent directory for script exists
+SCRIPT_DIR=$(dirname "$TACHYON_VALIDATOR_SCRIPT_PATH")
+mkdir -p "$SCRIPT_DIR"
+chown "$TACHYON_USER:$TACHYON_USER" "$SCRIPT_DIR"
+
+# Copy example validator script if none exists
+if [ ! -f "$TACHYON_VALIDATOR_SCRIPT_PATH" ]; then
+    cp "/usr/share/doc/tachyon-validator/examples/$EXAMPLE_SCRIPT" "$TACHYON_VALIDATOR_SCRIPT_PATH"
+    chown "$TACHYON_USER:$TACHYON_USER" "$TACHYON_VALIDATOR_SCRIPT_PATH"
+    chmod 755 "$TACHYON_VALIDATOR_SCRIPT_PATH"
+fi
+
+# Create systemd override if non-default settings
+# Skip if the user already has a custom service file — overrides would conflict
+OVERRIDE_DIR="/etc/systemd/system/tachyon-validator.service.d"
+if [ -f /etc/systemd/system/tachyon-validator.service ]; then
+    echo "Existing tachyon-validator.service found, skipping override configuration"
+else
+    NEEDS_OVERRIDE="false"
+    if [ "$TACHYON_USER" != "x1" ] || [ "$TACHYON_VALIDATOR_SCRIPT_PATH" != "/var/lib/x1/validator.sh" ] || [ -n "$TACHYON_LOG_PATH" ]; then
+        NEEDS_OVERRIDE="true"
+    fi
+
+    if [ "$NEEDS_OVERRIDE" = "true" ]; then
+        mkdir -p "$OVERRIDE_DIR"
+
+        # Build override content
+        {
+            echo "[Service]"
+            echo "User=$TACHYON_USER"
+            echo "Group=$TACHYON_USER"
+            echo "ExecStart="
+            echo "ExecStart=$TACHYON_VALIDATOR_SCRIPT_PATH"
+
+            # Add logging override if log path is specified
+            if [ -n "$TACHYON_LOG_PATH" ]; then
+                echo "StandardOutput=append:$TACHYON_LOG_PATH"
+                echo "StandardError=append:$TACHYON_LOG_PATH"
+            fi
+        } > "$OVERRIDE_DIR/override.conf"
+
+        systemctl daemon-reload || true
+    else
+        # Remove any existing override if switching back to defaults
+        rm -f "$OVERRIDE_DIR/override.conf"
+        rmdir "$OVERRIDE_DIR" 2>/dev/null || true
+        systemctl daemon-reload || true
+    fi
+fi
+
+# Apply sysctl settings
+sysctl -p /etc/sysctl.d/21-tachyon-validator.conf || true
+
+#DEBHELPER#
+
+exit 0
