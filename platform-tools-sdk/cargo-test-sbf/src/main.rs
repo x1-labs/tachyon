@@ -285,7 +285,7 @@ fn main() {
                 .long("sbf-sdk")
                 .value_name("PATH")
                 .takes_value(true)
-                .help("Path to the Solana SBF SDK"),
+                .help("Path to the X1 SBF SDK"),
         )
         .arg(
             Arg::new("features")
@@ -363,7 +363,7 @@ fn main() {
                 .long("workspace")
                 .takes_value(false)
                 .alias("all")
-                .help("Test all Solana packages in the workspace"),
+                .help("Test all X1 packages in the workspace"),
         )
         .arg(
             Arg::new("jobs")

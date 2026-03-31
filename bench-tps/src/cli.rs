@@ -147,7 +147,7 @@ pub fn build_args<'a>(version: &'_ str) -> App<'a, '_> {
                 .global(true)
                 .validator(is_url_or_moniker)
                 .help(
-                    "URL for Solana's JSON RPC or moniker (or their first letter): [mainnet-beta, \
+                    "URL for X1's JSON RPC or moniker (or their first letter): [mainnet-beta, \
                      testnet, devnet, localhost]",
                 ),
         )
@@ -158,7 +158,7 @@ pub fn build_args<'a>(version: &'_ str) -> App<'a, '_> {
                 .takes_value(true)
                 .global(true)
                 .validator(is_url)
-                .help("WebSocket URL for the solana cluster"),
+                .help("WebSocket URL for the x1 cluster"),
         )
         .arg(
             Arg::with_name("faucet")

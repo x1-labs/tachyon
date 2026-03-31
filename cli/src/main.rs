@@ -1,5 +1,5 @@
 use {
-    clap::{crate_description, crate_name, value_t_or_exit, ArgMatches},
+    clap::{crate_description, value_t_or_exit, ArgMatches},
     console::style,
     solana_clap_utils::{
         input_validators::normalize_to_url_if_moniker,
@@ -244,12 +244,8 @@ pub fn parse_args<'a>(
 
 fn main() -> Result<(), Box<dyn error::Error>> {
     agave_logger::setup_with_default("off");
-    let matches = get_clap_app(
-        crate_name!(),
-        crate_description!(),
-        solana_version::version!(),
-    )
-    .get_matches();
+    let matches =
+        get_clap_app("x1-cli", crate_description!(), solana_version::version!()).get_matches();
 
     do_main(&matches).map_err(|err| DisplayError::new_as_boxed(err).into())
 }

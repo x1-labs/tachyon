@@ -9,7 +9,7 @@ use {
         },
         SnapshotVersion, DEFAULT_ARCHIVE_COMPRESSION,
     },
-    clap::{crate_description, crate_name, App, AppSettings, Arg, ArgMatches, SubCommand},
+    clap::{crate_description, App, AppSettings, Arg, ArgMatches, SubCommand},
     solana_accounts_db::accounts_db::{
         DEFAULT_ACCOUNTS_SHRINK_OPTIMIZE_TOTAL_SPACE, DEFAULT_ACCOUNTS_SHRINK_RATIO,
     },
@@ -53,7 +53,7 @@ const MAX_SNAPSHOT_DOWNLOAD_ABORT: u32 = 5;
 const MINIMUM_TICKS_PER_SLOT: u64 = 2;
 
 pub fn app<'a>(version: &'a str, default_args: &'a DefaultArgs) -> App<'a, 'a> {
-    let app = App::new(crate_name!())
+    let app = App::new("x1-validator")
         .about(crate_description!())
         .version(version)
         .global_setting(AppSettings::ColoredHelp)
@@ -458,7 +458,7 @@ pub fn test_app<'a>(version: &'a str, default_args: &'a DefaultTestArgs) -> App<
                 .takes_value(true)
                 .validator(is_url_or_moniker)
                 .help(
-                    "URL for Solana's JSON RPC or moniker (or their first letter): [mainnet-beta, \
+                    "URL for X1's JSON RPC or moniker (or their first letter): [mainnet-beta, \
                      testnet, devnet, localhost]",
                 ),
         )
@@ -607,11 +607,11 @@ pub fn test_app<'a>(version: &'a str, default_args: &'a DefaultTestArgs) -> App<
                 .allow_hyphen_values(true)
                 .multiple(true)
                 .help(
-                    "Load an account from the provided JSON file (see `solana account --help` on \
-                     how to dump an account to file). Files are searched for relatively to CWD \
-                     and tests/fixtures. If ADDRESS is omitted via the `-` placeholder, the one \
-                     in the file will be used. If the ledger already exists then this parameter \
-                     is silently ignored",
+                    "Load an account from the provided JSON file (see `x1 account --help` on how \
+                     to dump an account to file). Files are searched for relatively to CWD and \
+                     tests/fixtures. If ADDRESS is omitted via the `-` placeholder, the one in \
+                     the file will be used. If the ledger already exists then this parameter is \
+                     silently ignored",
                 ),
         )
         .arg(
@@ -837,10 +837,10 @@ pub fn test_app<'a>(version: &'a str, default_args: &'a DefaultTestArgs) -> App<
             Arg::with_name("faucet_sol")
                 .long("faucet-sol")
                 .takes_value(true)
-                .value_name("SOL")
+                .value_name("XNT")
                 .default_value(default_args.faucet_sol.as_str())
                 .help(
-                    "Give the faucet address this much SOL in genesis. If the ledger already \
+                    "Give the faucet address this much XNT in genesis. If the ledger already \
                      exists then this parameter is silently ignored",
                 ),
         )
@@ -856,19 +856,19 @@ pub fn test_app<'a>(version: &'a str, default_args: &'a DefaultTestArgs) -> App<
             Arg::with_name("faucet_per_time_sol_cap")
                 .long("faucet-per-time-sol-cap")
                 .takes_value(true)
-                .value_name("SOL")
+                .value_name("XNT")
                 .min_values(0)
                 .max_values(1)
-                .help("Per-time slice limit for faucet requests, in SOL"),
+                .help("Per-time slice limit for faucet requests, in XNT"),
         )
         .arg(
             Arg::with_name("faucet_per_request_sol_cap")
                 .long("faucet-per-request-sol-cap")
                 .takes_value(true)
-                .value_name("SOL")
+                .value_name("XNT")
                 .min_values(0)
                 .max_values(1)
-                .help("Per-request limit for faucet requests, in SOL"),
+                .help("Per-request limit for faucet requests, in XNT"),
         )
         .arg(
             Arg::with_name("geyser_plugin_config")

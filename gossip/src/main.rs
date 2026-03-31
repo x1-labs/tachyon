@@ -3,8 +3,7 @@
 use solana_gossip::{contact_info::ContactInfo, gossip_service::discover};
 use {
     clap::{
-        crate_description, crate_name, value_t, value_t_or_exit, App, AppSettings, Arg, ArgMatches,
-        SubCommand,
+        crate_description, value_t, value_t_or_exit, App, AppSettings, Arg, ArgMatches, SubCommand,
     },
     log::{error, info, warn},
     solana_clap_utils::{
@@ -51,7 +50,7 @@ fn parse_matches() -> ArgMatches<'static> {
         .validator(solana_net_utils::is_host)
         .help("IP address to bind the node to for gossip (replaces --gossip-host)");
 
-    App::new(crate_name!())
+    App::new("x1-gossip")
         .about(crate_description!())
         .version(solana_version::version!())
         .setting(AppSettings::SubcommandRequiredElseHelp)

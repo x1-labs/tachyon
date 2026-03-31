@@ -4,7 +4,7 @@ use solana_faucet::{
     socketaddr,
 };
 use {
-    clap::{crate_description, crate_name, values_t, App, Arg},
+    clap::{crate_description, values_t, App, Arg},
     log::*,
     solana_clap_utils::input_parsers::{lamports_of_sol, value_of},
     solana_keypair::read_keypair_file,
@@ -22,7 +22,7 @@ async fn main() {
 
     agave_logger::setup_with_default_filter();
     solana_metrics::set_panic_hook("faucet", /*version:*/ None);
-    let matches = App::new(crate_name!())
+    let matches = App::new("x1-faucet")
         .about(crate_description!())
         .version(solana_version::version!())
         .arg(
@@ -48,14 +48,14 @@ async fn main() {
                 .alias("cap")
                 .value_name("NUM")
                 .takes_value(true)
-                .help("Request limit for time slice, in SOL"),
+                .help("Request limit for time slice, in XNT"),
         )
         .arg(
             Arg::with_name("per_request_cap")
                 .long("per-request-cap")
                 .value_name("NUM")
                 .takes_value(true)
-                .help("Request limit for a single request, in SOL"),
+                .help("Request limit for a single request, in XNT"),
         )
         .arg(
             Arg::with_name("allowed_ip")

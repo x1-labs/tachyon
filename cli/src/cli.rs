@@ -491,11 +491,11 @@ pub enum CliError {
     ClientError(#[from] ClientError),
     #[error("Command not recognized: {0}")]
     CommandNotRecognized(String),
-    #[error("Account {1} has insufficient funds for fee ({0} SOL)")]
+    #[error("Account {1} has insufficient funds for fee ({0} XNT)")]
     InsufficientFundsForFee(String, Pubkey),
-    #[error("Account {1} has insufficient funds for spend ({0} SOL)")]
+    #[error("Account {1} has insufficient funds for spend ({0} XNT)")]
     InsufficientFundsForSpend(String, Pubkey),
-    #[error("Account {2} has insufficient funds for spend ({0} SOL) + fee ({1} SOL)")]
+    #[error("Account {2} has insufficient funds for spend ({0} XNT) + fee ({1} XNT)")]
     InsufficientFundsForSpendAndFee(String, String, Pubkey),
     #[error(transparent)]
     InvalidNonce(solana_rpc_client_nonce_utils::Error),
@@ -618,7 +618,7 @@ pub fn parse_command(
                 crate_description!(),
                 solana_version::version!(),
             )
-            .gen_completions_to("solana", shell_choice, &mut stdout());
+            .gen_completions_to("x1", shell_choice, &mut stdout());
             std::process::exit(0);
         }
         // Cluster Query Commands
@@ -693,7 +693,7 @@ pub fn parse_command(
         ("upgrade-nonce-account", Some(matches)) => parse_upgrade_nonce_account(matches),
         // Program Deployment
         ("deploy", Some(_matches)) => clap::Error::with_description(
-            "`solana deploy` has been replaced with `solana program deploy`",
+            "`x1 deploy` has been replaced with `x1 program deploy`",
             clap::ErrorKind::UnrecognizedSubcommand,
         )
         .exit(),
@@ -2133,7 +2133,7 @@ mod tests {
             pubkey: None,
             use_lamports_unit: false,
         };
-        assert_eq!(process_command(&config).unwrap(), "0.00000005 SOL");
+        assert_eq!(process_command(&config).unwrap(), "0.00000005 XNT");
 
         let good_signature = bs58::decode(SIGNATURE)
             .into_vec()
@@ -2808,7 +2808,7 @@ mod tests {
         for shell in shells {
             let mut buf: Vec<u8> = vec![];
 
-            clap_app.gen_completions_to("solana", shell, &mut buf);
+            clap_app.gen_completions_to("x1", shell, &mut buf);
 
             assert!(!buf.is_empty());
         }

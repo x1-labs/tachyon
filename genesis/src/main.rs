@@ -4,7 +4,7 @@
 use {
     agave_feature_set::{vote_state_v4, FEATURE_NAMES},
     base64::{prelude::BASE64_STANDARD, Engine},
-    clap::{crate_description, crate_name, value_t, value_t_or_exit, App, Arg, ArgMatches},
+    clap::{crate_description, value_t, value_t_or_exit, App, Arg, ArgMatches},
     itertools::Itertools,
     solana_account::{Account, AccountSharedData, ReadableAccount, WritableAccount},
     solana_bls_signatures::Pubkey as BLSPubkey,
@@ -358,7 +358,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     let default_cluster_type = "mainnet-beta";
     let default_genesis_archive_unpacked_size = MAX_GENESIS_ARCHIVE_UNPACKED_SIZE.to_string();
 
-    let matches = App::new(crate_name!())
+    let matches = App::new("x1-genesis")
         .about(crate_description!())
         .version(solana_version::version!())
         .arg(
@@ -650,7 +650,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 .global(true)
                 .validator(is_url_or_moniker)
                 .help(
-                    "URL for Solana's JSON RPC or moniker (or their first letter): [mainnet-beta, \
+                    "URL for X1's JSON RPC or moniker (or their first letter): [mainnet-beta, \
                      testnet, devnet, localhost]. Used for cloning feature sets",
                 ),
         )

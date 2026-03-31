@@ -12,7 +12,7 @@ use {
         snapshot_config::{SnapshotConfig, SnapshotUsage},
         ArchiveFormat, SnapshotInterval, SnapshotVersion,
     },
-    clap::{crate_name, value_t, value_t_or_exit, values_t, values_t_or_exit, ArgMatches},
+    clap::{value_t, value_t_or_exit, values_t, values_t_or_exit, ArgMatches},
     crossbeam_channel::unbounded,
     log::*,
     rand::{seq::SliceRandom, thread_rng},
@@ -122,7 +122,7 @@ pub fn execute(
     let use_progress_bar = logfile.is_none();
     let _logger_thread = redirect_stderr_to_file(logfile);
 
-    info!("{} {}", crate_name!(), solana_version);
+    info!("x1-validator {solana_version}");
     info!("Starting validator with: {:#?}", std::env::args_os());
 
     let cuda = matches.is_present("cuda");
