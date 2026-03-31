@@ -6,7 +6,7 @@ here=$(dirname "$0")
 # shellcheck source=.buildkite/scripts/common.sh
 source "$here"/common.sh
 
-agent="${1-default}"
+agent="${1-solana}"
 
 parallelism=5
 partitions=()
@@ -32,7 +32,8 @@ partitions+=(
   "name": "dev-bins",
   "command": "ci/docker-run-default-image.sh cargo nextest run --profile ci --manifest-path ./dev-bins/Cargo.toml",
   "timeout_in_minutes": 35,
-  "agent": "$agent"
+  "agent": "$agent",
+  "retry": 3
 }
 EOF
   )")
@@ -59,7 +60,8 @@ localnet=$(
   "name": "localnet",
   "command": "ci/docker-run-default-image.sh ci/stable/run-localnet.sh",
   "timeout_in_minutes": 30,
-  "agent": "$agent"
+  "agent": "$agent",
+  "retry": 3
 }
 EOF
 )
