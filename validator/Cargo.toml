@@ -13,6 +13,18 @@ edition = { workspace = true }
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
 
+[[bin]]
+name = "agave-validator"
+path = "src/main.rs"
+
+[[bin]]
+name = "tachyon-validator"
+path = "src/main.rs"
+
+[[bin]]
+name = "tachyon-test-validator"
+path = "src/bin/solana-test-validator.rs"
+
 [dependencies]
 agave-geyser-plugin-interface = { workspace = true }
 chrono = { workspace = true, features = ["default", "serde"] }
