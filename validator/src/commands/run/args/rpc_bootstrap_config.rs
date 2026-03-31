@@ -117,7 +117,7 @@ mod tests {
                     8000,
                 )],
                 rpc_bootstrap_config: RpcBootstrapConfig {
-                    check_vote_account: Some("https://api.mainnet-beta.solana.com".to_string()),
+                    check_vote_account: Some("https://rpc.mainnet.x1.xyz".to_string()),
                     ..RpcBootstrapConfig::default()
                 },
                 ..default_run_args.clone()
@@ -129,7 +129,7 @@ mod tests {
                     "--entrypoint",
                     "127.0.0.1:8000",
                     "--check-vote-account",
-                    "https://api.mainnet-beta.solana.com",
+                    "https://rpc.mainnet.x1.xyz",
                 ],
                 expected_args,
             );

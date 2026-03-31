@@ -11,7 +11,7 @@ mkdir -p "$SOLANA_CONFIG_DIR"/latest-testnet-snapshot
 (
   cd "$SOLANA_CONFIG_DIR"/latest-testnet-snapshot || exit 1
   set -x
-  wget http://api.testnet.solana.com/genesis.tar.bz2
+  wget http://rpc.testnet.x1.xyz/genesis.tar.bz2
   wget --trust-server-names http://testnet.solana.com/snapshot.tar.bz2
 )
 
