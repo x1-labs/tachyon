@@ -76,7 +76,7 @@ impl WalletSubCommands for App<'_, '_> {
                     Arg::with_name("lamports")
                         .long("lamports")
                         .takes_value(false)
-                        .help("Display balance in lamports instead of SOL"),
+                        .help("Display balance in lamports instead of XNT"),
                 ),
         )
         .subcommand(
@@ -91,7 +91,7 @@ impl WalletSubCommands for App<'_, '_> {
         )
         .subcommand(
             SubCommand::with_name("airdrop")
-                .about("Request SOL from a faucet")
+                .about("Request XNT from a faucet")
                 .arg(
                     Arg::with_name("amount")
                         .index(1)
@@ -99,7 +99,7 @@ impl WalletSubCommands for App<'_, '_> {
                         .takes_value(true)
                         .validator(is_amount)
                         .required(true)
-                        .help("The airdrop amount to request, in SOL"),
+                        .help("The airdrop amount to request, in XNT"),
                 )
                 .arg(pubkey!(
                     Arg::with_name("to")
@@ -121,7 +121,7 @@ impl WalletSubCommands for App<'_, '_> {
                     Arg::with_name("lamports")
                         .long("lamports")
                         .takes_value(false)
-                        .help("Display balance in lamports instead of SOL"),
+                        .help("Display balance in lamports instead of XNT"),
                 ),
         )
         .subcommand(
@@ -271,7 +271,7 @@ impl WalletSubCommands for App<'_, '_> {
                         .takes_value(true)
                         .validator(is_amount_or_all)
                         .required(true)
-                        .help("The amount to send, in SOL; accepts keyword ALL"),
+                        .help("The amount to send, in XNT; accepts keyword ALL"),
                 )
                 .arg(pubkey!(
                     Arg::with_name("from")
@@ -710,7 +710,7 @@ pub fn process_airdrop(
 
         if current_balance < pre_balance.saturating_add(lamports) {
             println!("Balance unchanged");
-            println!("Run `solana confirm -v {signature:?}` for more info");
+            println!("Run `x1 confirm -v {signature:?}` for more info");
             Ok("".to_string())
         } else {
             Ok(build_balance_message(current_balance, false, true))

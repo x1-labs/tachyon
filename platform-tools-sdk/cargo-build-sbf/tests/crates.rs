@@ -301,9 +301,7 @@ fn test_corrupted_toolchain() {
         let assert = cmd.env("RUST_LOG", "debug").args(&args).assert();
         let output = assert.get_output();
 
-        assert!(
-            String::from_utf8_lossy(&output.stderr).contains("The Solana toolchain is corrupted.")
-        );
+        assert!(String::from_utf8_lossy(&output.stderr).contains("The X1 toolchain is corrupted."));
     }
 
     let cwd = env::current_dir().expect("Unable to get current working directory");

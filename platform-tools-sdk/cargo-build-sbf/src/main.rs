@@ -148,7 +148,7 @@ fn prepare_environment(
 fn invoke_cargo(config: &Config, validated_toolchain_version: String) {
     let target_triple = rust_target_triple(config);
 
-    info!("Solana SDK: {}", config.sbf_sdk.display());
+    info!("X1 SDK: {}", config.sbf_sdk.display());
     if config.no_default_features {
         info!("No default features");
     }
@@ -158,7 +158,7 @@ fn invoke_cargo(config: &Config, validated_toolchain_version: String) {
 
     if corrupted_toolchain(config) {
         error!(
-            "The Solana toolchain is corrupted. Please, run cargo-build-sbf with the \
+            "The X1 toolchain is corrupted. Please, run cargo-build-sbf with the \
              --force-tools-install argument to fix it."
         );
         exit(1);
@@ -396,7 +396,7 @@ fn main() {
                 .value_name("PATH")
                 .takes_value(true)
                 .default_value(&default_sbf_sdk)
-                .help("Path to the Solana SBF SDK"),
+                .help("Path to the X1 SBF SDK"),
         )
         .arg(
             Arg::new("cargo_args")
@@ -467,7 +467,7 @@ fn main() {
                 .conflicts_with("force_tools_install")
                 .help(
                     "Do not use rustup to manage the toolchain. By default, cargo-build-sbf \
-                     invokes rustup to find the Solana rustc using a `+solana` toolchain \
+                     invokes rustup to find the X1 rustc using a `+x1` toolchain \
                      override. This flag disables that behavior.",
                 ),
         )
@@ -525,7 +525,7 @@ fn main() {
                 .long("workspace")
                 .takes_value(false)
                 .alias("all")
-                .help("Build all Solana packages in the workspace"),
+                .help("Build all X1 packages in the workspace"),
         )
         .arg(
             Arg::new("jobs")
@@ -595,11 +595,7 @@ fn main() {
         cargo_args,
         target_directory,
         sbf_sdk: fs::canonicalize(&sbf_sdk).unwrap_or_else(|err| {
-            error!(
-                "Solana SDK path does not exist: {}: {}",
-                sbf_sdk.display(),
-                err
-            );
+            error!("X1 SDK path does not exist: {}: {}", sbf_sdk.display(), err);
             exit(1);
         }),
         sbf_out_dir: sbf_out_dir.map(|sbf_out_dir| {
