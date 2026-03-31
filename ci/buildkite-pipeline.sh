@@ -168,8 +168,8 @@ EOF
 
 trigger_secondary_step() {
   cat  >> "$output_file" <<"EOF"
-  - name: "Trigger Build on agave-secondary"
-    trigger: "agave-secondary"
+  - name: "Trigger Build on tachyon-secondary"
+    trigger: "tachyon-secondary"
     branches: "!pull/*"
     async: true
     soft_fail: true
