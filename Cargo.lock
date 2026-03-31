@@ -8610,8 +8610,25 @@ name = "solana-fee"
 version = "3.0.14"
 dependencies = [
  "agave-feature-set",
+ "agave-reserved-account-keys",
+ "log",
+ "solana-borsh",
+ "solana-builtins-default-costs",
+ "solana-compute-budget",
+ "solana-compute-budget-instruction",
+ "solana-compute-budget-interface",
  "solana-fee-structure",
+ "solana-keypair",
+ "solana-logger",
+ "solana-message",
+ "solana-native-token",
+ "solana-pubkey",
+ "solana-sdk-ids",
+ "solana-signer",
  "solana-svm-transaction",
+ "solana-system-interface",
+ "spl-memo-interface",
+ "test-case",
 ]
 
 [[package]]

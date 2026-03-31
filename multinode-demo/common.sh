@@ -70,6 +70,7 @@ fi
 solana_bench_tps=$(solana_program bench-tps)
 solana_faucet=$(solana_program faucet)
 agave_validator=$(solana_program validator)
+tachyon_validator=$(solana_program validator)
 agave_validator_cuda="$agave_validator --cuda"
 solana_genesis=$(solana_program genesis)
 solana_gossip=$(solana_program gossip)
