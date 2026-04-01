@@ -1072,6 +1072,22 @@ pub mod enable_native_mint_wrap_account {
     solana_pubkey::declare_id!("BeCY6VL4CKQR2QUwe9w3iRtNMN91FMW1sXbRzwfc3WYc");
 }
 
+pub mod migrate_config_program_to_core_bpf_v2 {
+    solana_pubkey::declare_id!("3W77RxrUfZpDDfPxgRHQG6ZBi2oLq7vdTctkAoJdozjL");
+}
+
+pub mod migrate_address_lookup_table_program_to_core_bpf_v2 {
+    solana_pubkey::declare_id!("CjmzUVD3Z2jWobu5i8aeJ1MGc8gUVGeHXva5T86EaC6A");
+}
+
+pub mod migrate_feature_gate_program_to_core_bpf_v2 {
+    solana_pubkey::declare_id!("5r43RFT6ZsRJS3DpbWCJxEmDnsThJzbfuseTDKpiLrYi");
+}
+
+pub mod migrate_stake_program_to_core_bpf_v2 {
+    solana_pubkey::declare_id!("5YasvkdWGbomRJm9uY84Hh2UacMbQ6P3UCyh69sK8MVH");
+}
+
 pub static FEATURE_NAMES: LazyLock<AHashMap<Pubkey, &'static str>> = LazyLock::new(|| {
     [
         (secp256k1_program_enabled::id(), "secp256k1 program"),
@@ -1267,10 +1283,13 @@ pub static FEATURE_NAMES: LazyLock<AHashMap<Pubkey, &'static str>> = LazyLock::n
         (abort_on_invalid_curve::id(), "Abort when elliptic curve syscalls invoked on invalid curve id SIMD-0137"),
         (get_sysvar_syscall_enabled::id(), "Enable syscall for fetching Sysvar bytes #615"),
         (migrate_feature_gate_program_to_core_bpf::id(), "Migrate Feature Gate program to Core BPF (programify) #1003"),
+        (migrate_feature_gate_program_to_core_bpf_v2::id(), "Migrate Feature Gate program to Core BPF v2"),
         (vote_only_full_fec_sets::id(), "vote only full fec sets"),
         (migrate_config_program_to_core_bpf::id(), "Migrate Config program to Core BPF #1378"),
+        (migrate_config_program_to_core_bpf_v2::id(), "Migrate Config program to Core BPF v2"),
         (enable_get_epoch_stake_syscall::id(), "Enable syscall: sol_get_epoch_stake #884"),
         (migrate_address_lookup_table_program_to_core_bpf::id(), "Migrate Address Lookup Table program to Core BPF #1651"),
+        (migrate_address_lookup_table_program_to_core_bpf_v2::id(), "Migrate Address Lookup Table program to Core BPF v2"),
         (zk_elgamal_proof_program_enabled::id(), "Enable ZkElGamalProof program SIMD-0153"),
         (verify_retransmitter_signature::id(), "Verify retransmitter signature #1840"),
         (move_stake_and_move_lamports_ixs::id(), "Enable MoveStake and MoveLamports stake program instructions #1610"),
@@ -1294,6 +1313,7 @@ pub static FEATURE_NAMES: LazyLock<AHashMap<Pubkey, &'static str>> = LazyLock::n
         (remove_accounts_delta_hash::id(), "removes accounts delta hash SIMD-0223"),
         (enable_secp256r1_precompile::id(), "Enable secp256r1 precompile SIMD-0075"),
         (migrate_stake_program_to_core_bpf::id(), "Migrate Stake program to Core BPF SIMD-0196 #3655"),
+        (migrate_stake_program_to_core_bpf_v2::id(), "Migrate Stake program to Core BPF v2"),
         (deplete_cu_meter_on_vm_failure::id(), "Deplete compute meter for vm errors SIMD-0182 #3993"),
         (reserve_minimal_cus_for_builtin_instructions::id(), "Reserve minimal CUs for builtin instructions SIMD-170 #2562"),
         (raise_block_limits_to_50m::id(), "Raise block limit to 50M SIMD-0207"),
