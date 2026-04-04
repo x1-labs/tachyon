@@ -254,6 +254,17 @@ pub fn app<'a>(version: &'a str, default_args: &'a DefaultArgs) -> App<'a, 'a> {
                 .help("Upload new confirmed blocks into a BigTable instance"),
         )
         .arg(
+            Arg::with_name("bigtable_exclude_vote_transactions")
+                .long("bigtable-exclude-vote-transactions")
+                .requires("enable_bigtable_ledger_upload")
+                .takes_value(false)
+                .help(
+                    "When uploading to BigTable, exclude vote transactions from the \
+                     tx and tx-by-addr tables. The full block data (including vote \
+                     transactions) is still stored in the blocks table.",
+                ),
+        )
+        .arg(
             Arg::with_name("enable_extended_tx_metadata_storage")
                 .long("enable-extended-tx-metadata-storage")
                 .requires("enable_rpc_transaction_history")
