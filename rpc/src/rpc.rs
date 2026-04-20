@@ -216,6 +216,7 @@ pub struct RpcBigtableConfig {
     pub bigtable_app_profile_id: String,
     pub timeout: Option<Duration>,
     pub max_message_size: usize,
+    pub skip_vote_txs: bool,
 }
 
 impl Default for RpcBigtableConfig {

@@ -687,6 +687,7 @@ async fn copy(args: CopyArgs) -> Result<(), Box<dyn std::error::Error>> {
         timeout: None,
         emulated_source: args.emulated_source,
         crediential_path: args.source_credential_path,
+        skip_vote_txs: false
     })
     .await?;
 
@@ -697,6 +698,7 @@ async fn copy(args: CopyArgs) -> Result<(), Box<dyn std::error::Error>> {
         timeout: None,
         emulated_source: args.emulated_destination,
         crediential_path: args.destination_credential_path,
+        skip_vote_txs: false
     })
     .await?;
 
@@ -858,6 +860,7 @@ struct GetBigtableArgs {
     timeout: Option<std::time::Duration>,
     emulated_source: Option<String>,
     crediential_path: Option<String>,
+    skip_vote_txs: bool,
 }
 
 async fn get_bigtable(
@@ -879,6 +882,7 @@ async fn get_bigtable(
                 instance_name: args.instance_name,
                 app_profile_id: args.app_profile_id,
                 max_message_size: solana_storage_bigtable::DEFAULT_MAX_MESSAGE_SIZE,
+                skip_vote_txs: args.skip_vote_txs,
             },
         )
         .await
