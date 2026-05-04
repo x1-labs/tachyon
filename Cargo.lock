@@ -8618,6 +8618,8 @@ dependencies = [
  "solana-compute-budget-instruction",
  "solana-compute-budget-interface",
  "solana-fee-structure",
+ "solana-hash",
+ "solana-instruction",
  "solana-keypair",
  "solana-logger",
  "solana-message",
@@ -8627,6 +8629,7 @@ dependencies = [
  "solana-signer",
  "solana-svm-transaction",
  "solana-system-interface",
+ "solana-vote-interface",
  "spl-memo-interface",
  "test-case",
 ]

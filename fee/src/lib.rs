@@ -1,5 +1,7 @@
 use {
-    agave_feature_set::{enable_secp256r1_precompile, FeatureSet},
+    agave_feature_set::{
+        enable_secp256r1_precompile, validate_fee_vote_transaction_instructions, FeatureSet,
+    },
     log::{debug, trace},
     solana_borsh::v1::try_from_slice_unchecked,
     solana_builtins_default_costs::{
@@ -33,12 +35,15 @@ pub const BASE_FEE_MULTIPLIER: u64 = 10;
 #[derive(Copy, Clone)]
 pub struct FeeFeatures {
     pub enable_secp256r1_precompile: bool,
+    pub validate_fee_vote_transaction_instructions: bool,
 }
 
 impl From<&FeatureSet> for FeeFeatures {
     fn from(feature_set: &FeatureSet) -> Self {
         Self {
             enable_secp256r1_precompile: feature_set.is_active(&enable_secp256r1_precompile::ID),
+            validate_fee_vote_transaction_instructions: feature_set
+                .is_active(&validate_fee_vote_transaction_instructions::ID),
         }
     }
 }
@@ -85,9 +90,36 @@ fn get_builtin_instruction_cost(program_id: &Pubkey) -> Option<u64> {
     }
 }
 
-/// Check if a transaction involves the vote program (vote transactions are fee-exempt).
-fn is_vote_transaction(message: &impl SVMMessage) -> bool {
-    message.account_keys().iter().any(|key| key == &vote::ID)
+/// Check if a transaction is a simple vote transaction (vote transactions are fee-exempt).
+///
+/// When `validate_instructions` is false (legacy behavior), this checks whether the
+/// vote program appears in the account keys.
+///
+/// When `validate_instructions` is true, this mirrors the logic of
+/// `is_simple_vote_transaction_impl`: the transaction must have fewer than 3 signatures,
+/// no address lookup tables (i.e. legacy message), and exactly one instruction targeting
+/// the vote program.
+fn is_vote_transaction(message: &impl SVMMessage, validate_instructions: bool) -> bool {
+    if !validate_instructions {
+        return message.account_keys().iter().any(|key| key == &vote::ID);
+    }
+
+    // Mirror is_simple_vote_transaction_impl:
+    // 1. has 1 or 2 signatures
+    // 2. is legacy message (no address lookup tables)
+    // 3. has exactly one instruction which must target the vote program
+    if message.num_transaction_signatures() >= 3 {
+        return false;
+    }
+    if message.num_lookup_tables() > 0 {
+        return false;
+    }
+    let mut programs = message.program_instructions_iter().map(|(id, _)| id);
+    programs
+        .next()
+        .xor(programs.next())
+        .map(|program_id| program_id == &vote::ID)
+        .unwrap_or(false)
 }
 
 /// Check if an instruction sets a custom compute unit limit.
@@ -185,13 +217,16 @@ pub fn calculate_fee_details(
     zero_fees_for_test: bool,
     _lamports_per_signature: u64, // Kept for API compatibility
     prioritization_fee: u64,
-    _fee_features: FeeFeatures, // Kept for API compatibility
+    fee_features: FeeFeatures,
 ) -> FeeDetails {
     if zero_fees_for_test {
         return FeeDetails::default();
     }
 
-    if is_vote_transaction(message) {
+    if is_vote_transaction(
+        message,
+        fee_features.validate_fee_vote_transaction_instructions,
+    ) {
         debug!("Vote transaction detected, fee = 0");
         return FeeDetails::default();
     }
@@ -217,11 +252,13 @@ mod tests {
         super::*,
         agave_reserved_account_keys::ReservedAccountKeys,
         solana_compute_budget_interface::ComputeBudgetInstruction,
+        solana_hash::Hash,
         solana_keypair::Keypair,
         solana_message::{Message, SanitizedMessage},
         solana_native_token::LAMPORTS_PER_SOL,
         solana_signer::Signer,
         solana_system_interface::instruction as system_instruction,
+        solana_vote_interface::{instruction as vote_instruction, state::Vote},
         spl_memo_interface::instruction::build_memo,
         test_case::test_case,
     };
@@ -393,5 +430,179 @@ mod tests {
             (&FeatureSet::all_enabled()).into(),
         );
         assert_eq!(fee, expected);
+    }
+
+    /// Helper to build FeeFeatures with the vote validation feature set as specified.
+    fn fee_features_with_vote_validation(enabled: bool) -> FeeFeatures {
+        FeeFeatures {
+            enable_secp256r1_precompile: true,
+            validate_fee_vote_transaction_instructions: enabled,
+        }
+    }
+
+    #[test]
+    fn test_real_vote_transaction_is_fee_exempt() {
+        // A genuine vote transaction should be fee-exempt regardless of feature gate.
+        let vote_account = Keypair::new();
+        let authorized_voter = Keypair::new();
+
+        let vote = Vote::new(vec![1, 2, 3], Hash::default());
+        let ix = vote_instruction::vote(&vote_account.pubkey(), &authorized_voter.pubkey(), vote);
+
+        let message = new_sanitized_message(Message::new(&[ix], Some(&authorized_voter.pubkey())));
+
+        // Fee-exempt with feature OFF (legacy behavior)
+        let fee = calculate_fee(&message, false, 5000, 0, fee_features_with_vote_validation(false));
+        assert_eq!(fee, 0, "real vote tx should be fee-exempt with feature off");
+
+        // Fee-exempt with feature ON (new behavior)
+        let fee = calculate_fee(&message, false, 5000, 0, fee_features_with_vote_validation(true));
+        assert_eq!(fee, 0, "real vote tx should be fee-exempt with feature on");
+    }
+
+    #[test]
+    fn test_vote_in_accounts_exempt_without_feature() {
+        // Legacy behavior: vote program in account keys triggers fee exemption.
+        let sender = Keypair::new();
+        let receiver = Keypair::new();
+
+        let mut transfer_ix = system_instruction::transfer(
+            &sender.pubkey(),
+            &receiver.pubkey(),
+            sol_to_lamports(1.0),
+        );
+        transfer_ix
+            .accounts
+            .push(solana_instruction::AccountMeta::new_readonly(vote::ID, false));
+
+        let message =
+            new_sanitized_message(Message::new(&[transfer_ix], Some(&sender.pubkey())));
+
+        let fee = calculate_fee(&message, false, 5000, 0, fee_features_with_vote_validation(false));
+        assert_eq!(fee, 0, "legacy behavior exempts tx with vote program in accounts");
+    }
+
+    #[test]
+    fn test_vote_in_accounts_charges_fee_with_feature() {
+        // With instruction validation enabled, vote program in accounts alone
+        // does not qualify for fee exemption.
+        let sender = Keypair::new();
+        let receiver = Keypair::new();
+
+        let mut transfer_ix = system_instruction::transfer(
+            &sender.pubkey(),
+            &receiver.pubkey(),
+            sol_to_lamports(1.0),
+        );
+        transfer_ix
+            .accounts
+            .push(solana_instruction::AccountMeta::new_readonly(vote::ID, false));
+
+        let message =
+            new_sanitized_message(Message::new(&[transfer_ix], Some(&sender.pubkey())));
+
+        let fee = calculate_fee(&message, false, 5000, 0, fee_features_with_vote_validation(true));
+        assert_ne!(fee, 0, "instruction validation should require actual vote instruction");
+    }
+
+    #[test]
+    fn test_transfer_with_no_vote_charges_fee() {
+        // Basic sanity check: a plain transfer is never fee-exempt.
+        let sender = Keypair::new();
+        let receiver = Keypair::new();
+
+        let message = new_sanitized_message(Message::new(
+            &[system_instruction::transfer(
+                &sender.pubkey(),
+                &receiver.pubkey(),
+                sol_to_lamports(1.0),
+            )],
+            Some(&sender.pubkey()),
+        ));
+
+        let fee = calculate_fee(&message, false, 5000, 0, fee_features_with_vote_validation(true));
+        assert_ne!(fee, 0);
+    }
+
+    #[test]
+    fn test_vote_with_extra_instruction_not_exempt_with_feature() {
+        // A transaction with a vote instruction AND a system transfer should NOT be
+        // fee-exempt under the new behavior (is_simple_vote requires exactly 1 instruction).
+        let vote_account = Keypair::new();
+        let authorized_voter = Keypair::new();
+        let receiver = Keypair::new();
+
+        let vote = Vote::new(vec![1], Hash::default());
+        let vote_ix =
+            vote_instruction::vote(&vote_account.pubkey(), &authorized_voter.pubkey(), vote);
+        let transfer_ix = system_instruction::transfer(
+            &authorized_voter.pubkey(),
+            &receiver.pubkey(),
+            sol_to_lamports(0.1),
+        );
+
+        let message = new_sanitized_message(Message::new(
+            &[vote_ix, transfer_ix],
+            Some(&authorized_voter.pubkey()),
+        ));
+
+        // With feature ON: multi-instruction tx is not a simple vote
+        let fee = calculate_fee(&message, false, 5000, 0, fee_features_with_vote_validation(true));
+        assert_ne!(fee, 0, "vote + transfer should not be fee-exempt");
+    }
+
+    #[test]
+    fn test_is_vote_transaction_legacy_checks_accounts() {
+        let sender = Keypair::new();
+        let receiver = Keypair::new();
+
+        // Transfer without vote program in accounts
+        let message = new_sanitized_message(Message::new(
+            &[system_instruction::transfer(
+                &sender.pubkey(),
+                &receiver.pubkey(),
+                sol_to_lamports(1.0),
+            )],
+            Some(&sender.pubkey()),
+        ));
+        assert!(!is_vote_transaction(&message, false));
+
+        // Transfer with vote program in accounts
+        let mut ix = system_instruction::transfer(
+            &sender.pubkey(),
+            &receiver.pubkey(),
+            sol_to_lamports(1.0),
+        );
+        ix.accounts
+            .push(solana_instruction::AccountMeta::new_readonly(vote::ID, false));
+        let message = new_sanitized_message(Message::new(&[ix], Some(&sender.pubkey())));
+        assert!(is_vote_transaction(&message, false));
+    }
+
+    #[test]
+    fn test_is_vote_transaction_validated_checks_instructions() {
+        let sender = Keypair::new();
+        let receiver = Keypair::new();
+
+        // Non-vote instruction with vote program in accounts — not a vote tx
+        let mut ix = system_instruction::transfer(
+            &sender.pubkey(),
+            &receiver.pubkey(),
+            sol_to_lamports(1.0),
+        );
+        ix.accounts
+            .push(solana_instruction::AccountMeta::new_readonly(vote::ID, false));
+        let message = new_sanitized_message(Message::new(&[ix], Some(&sender.pubkey())));
+        assert!(!is_vote_transaction(&message, true));
+
+        // Real vote instruction
+        let vote_account = Keypair::new();
+        let authorized_voter = Keypair::new();
+        let vote = Vote::new(vec![1], Hash::default());
+        let vote_ix =
+            vote_instruction::vote(&vote_account.pubkey(), &authorized_voter.pubkey(), vote);
+        let message =
+            new_sanitized_message(Message::new(&[vote_ix], Some(&authorized_voter.pubkey())));
+        assert!(is_vote_transaction(&message, true));
     }
 }

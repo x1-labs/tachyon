@@ -1202,6 +1202,10 @@ pub mod enable_native_mint_wrap_account {
     solana_pubkey::declare_id!("BeCY6VL4CKQR2QUwe9w3iRtNMN91FMW1sXbRzwfc3WYc");
 }
 
+pub mod validate_fee_vote_transaction_instructions {
+    solana_pubkey::declare_id!("4Kp81AABcBifmGpHrSPxRHDo6uDRMEdXxmkUiofzHofG");
+}
+
 pub static FEATURE_NAMES: LazyLock<AHashMap<Pubkey, &'static str>> = LazyLock::new(|| {
     [
         (secp256k1_program_enabled::id(), "secp256k1 program"),
@@ -1444,6 +1448,7 @@ pub static FEATURE_NAMES: LazyLock<AHashMap<Pubkey, &'static str>> = LazyLock::n
         (raise_account_cu_limit::id(), "SIMD-0306: Raise account CU limit to 40% max"),
         (raise_cpi_nesting_limit_to_8::id(), "SIMD-0296: Raise CPI nesting limit from 4 to 8"),
         (enable_native_mint_wrap_account::id(), "enable the native mint wrap account"),
+        (validate_fee_vote_transaction_instructions::id(), "validate vote transaction instructions for fee exemption"),
         /*************** ADD NEW FEATURES HERE ***************/
     ]
     .iter()
