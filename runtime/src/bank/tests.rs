@@ -9154,6 +9154,7 @@ fn calculate_test_fee(
         fee_budget_limits.prioritization_fee,
         FeeFeatures {
             enable_secp256r1_precompile: true,
+            validate_fee_vote_transaction_instructions: true,
         },
     )
 }
