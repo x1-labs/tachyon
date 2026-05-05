@@ -19,6 +19,9 @@ solana-package-metadata = "=2.2.1"
 solana-program-entrypoint = "=2.3.0"
 solana-program-error = "=2.2.2"
 solana-pubkey = "=2.4.0"
+# Resolver pin: indexmap >=2.10 pulls hashbrown 0.17 which requires edition2024,
+# unsupported by platform-tools v1.51 (cargo 1.84). Drop when toolchain bumps.
+indexmap = "=2.9.0"
 
 [lib]
 crate-type = ["cdylib"]
