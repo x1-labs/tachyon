@@ -906,7 +906,7 @@ mod tests {
         solana_borsh::v1 as borsh1,
         solana_genesis_config::GenesisConfig,
         solana_stake_interface as stake,
-        std::{collections::HashMap, fs::remove_file, io::Write, path::Path},
+        std::{collections::HashMap, fs::remove_file, io::Write},
     };
 
     #[test]
@@ -946,16 +946,13 @@ mod tests {
         );
 
         let serialized = serde_yaml::to_string(&genesis_accounts).unwrap();
-        let path = Path::new("test_append_primordial_accounts_to_genesis.yml");
+        let tmpfile = tempfile::NamedTempFile::new().unwrap();
+        let path = tmpfile.path();
         let mut file = File::create(path).unwrap();
         file.write_all(b"---\n").unwrap();
         file.write_all(&serialized.into_bytes()).unwrap();
 
-        load_genesis_accounts(
-            "test_append_primordial_accounts_to_genesis.yml",
-            &mut genesis_config,
-        )
-        .expect("test_append_primordial_accounts_to_genesis.yml");
+        load_genesis_accounts(path.to_str().unwrap(), &mut genesis_config).expect("genesis");
         // Test valid file returns ok
 
         remove_file(path).unwrap();
@@ -1020,16 +1017,13 @@ mod tests {
         );
 
         let serialized = serde_yaml::to_string(&genesis_accounts1).unwrap();
-        let path = Path::new("test_append_primordial_accounts_to_genesis.yml");
+        let tmpfile = tempfile::NamedTempFile::new().unwrap();
+        let path = tmpfile.path();
         let mut file = File::create(path).unwrap();
         file.write_all(b"---\n").unwrap();
         file.write_all(&serialized.into_bytes()).unwrap();
 
-        load_genesis_accounts(
-            "test_append_primordial_accounts_to_genesis.yml",
-            &mut genesis_config,
-        )
-        .expect("test_append_primordial_accounts_to_genesis.yml");
+        load_genesis_accounts(path.to_str().unwrap(), &mut genesis_config).expect("genesis");
 
         remove_file(path).unwrap();
 
@@ -1104,16 +1098,13 @@ mod tests {
         );
 
         let serialized = serde_yaml::to_string(&genesis_accounts2).unwrap();
-        let path = Path::new("test_append_primordial_accounts_to_genesis.yml");
+        let tmpfile = tempfile::NamedTempFile::new().unwrap();
+        let path = tmpfile.path();
         let mut file = File::create(path).unwrap();
         file.write_all(b"---\n").unwrap();
         file.write_all(&serialized.into_bytes()).unwrap();
 
-        load_genesis_accounts(
-            "test_append_primordial_accounts_to_genesis.yml",
-            &mut genesis_config,
-        )
-        .expect("genesis");
+        load_genesis_accounts(path.to_str().unwrap(), &mut genesis_config).expect("genesis");
 
         remove_file(path).unwrap();
 
@@ -1286,13 +1277,14 @@ mod tests {
         let serialized = serde_yaml::to_string(&validator_accounts).unwrap();
 
         // write accounts to file
-        let path = Path::new("test_append_validator_accounts_to_genesis.yml");
+        let tmpfile = tempfile::NamedTempFile::new().unwrap();
+        let path = tmpfile.path();
         let mut file = File::create(path).unwrap();
         file.write_all(b"validator_accounts:\n").unwrap();
         file.write_all(serialized.as_bytes()).unwrap();
 
         load_validator_accounts(
-            "test_append_validator_accounts_to_genesis.yml",
+            path.to_str().unwrap(),
             100,
             &Rent::default(),
             &mut genesis_config,
