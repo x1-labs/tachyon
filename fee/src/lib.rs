@@ -452,11 +452,23 @@ mod tests {
         let message = new_sanitized_message(Message::new(&[ix], Some(&authorized_voter.pubkey())));
 
         // Fee-exempt with feature OFF (legacy behavior)
-        let fee = calculate_fee(&message, false, 5000, 0, fee_features_with_vote_validation(false));
+        let fee = calculate_fee(
+            &message,
+            false,
+            5000,
+            0,
+            fee_features_with_vote_validation(false),
+        );
         assert_eq!(fee, 0, "real vote tx should be fee-exempt with feature off");
 
         // Fee-exempt with feature ON (new behavior)
-        let fee = calculate_fee(&message, false, 5000, 0, fee_features_with_vote_validation(true));
+        let fee = calculate_fee(
+            &message,
+            false,
+            5000,
+            0,
+            fee_features_with_vote_validation(true),
+        );
         assert_eq!(fee, 0, "real vote tx should be fee-exempt with feature on");
     }
 
@@ -473,13 +485,24 @@ mod tests {
         );
         transfer_ix
             .accounts
-            .push(solana_instruction::AccountMeta::new_readonly(vote::ID, false));
+            .push(solana_instruction::AccountMeta::new_readonly(
+                vote::ID,
+                false,
+            ));
 
-        let message =
-            new_sanitized_message(Message::new(&[transfer_ix], Some(&sender.pubkey())));
+        let message = new_sanitized_message(Message::new(&[transfer_ix], Some(&sender.pubkey())));
 
-        let fee = calculate_fee(&message, false, 5000, 0, fee_features_with_vote_validation(false));
-        assert_eq!(fee, 0, "legacy behavior exempts tx with vote program in accounts");
+        let fee = calculate_fee(
+            &message,
+            false,
+            5000,
+            0,
+            fee_features_with_vote_validation(false),
+        );
+        assert_eq!(
+            fee, 0,
+            "legacy behavior exempts tx with vote program in accounts"
+        );
     }
 
     #[test]
@@ -496,13 +519,24 @@ mod tests {
         );
         transfer_ix
             .accounts
-            .push(solana_instruction::AccountMeta::new_readonly(vote::ID, false));
+            .push(solana_instruction::AccountMeta::new_readonly(
+                vote::ID,
+                false,
+            ));
 
-        let message =
-            new_sanitized_message(Message::new(&[transfer_ix], Some(&sender.pubkey())));
+        let message = new_sanitized_message(Message::new(&[transfer_ix], Some(&sender.pubkey())));
 
-        let fee = calculate_fee(&message, false, 5000, 0, fee_features_with_vote_validation(true));
-        assert_ne!(fee, 0, "instruction validation should require actual vote instruction");
+        let fee = calculate_fee(
+            &message,
+            false,
+            5000,
+            0,
+            fee_features_with_vote_validation(true),
+        );
+        assert_ne!(
+            fee, 0,
+            "instruction validation should require actual vote instruction"
+        );
     }
 
     #[test]
@@ -520,7 +554,13 @@ mod tests {
             Some(&sender.pubkey()),
         ));
 
-        let fee = calculate_fee(&message, false, 5000, 0, fee_features_with_vote_validation(true));
+        let fee = calculate_fee(
+            &message,
+            false,
+            5000,
+            0,
+            fee_features_with_vote_validation(true),
+        );
         assert_ne!(fee, 0);
     }
 
@@ -547,7 +587,13 @@ mod tests {
         ));
 
         // With feature ON: multi-instruction tx is not a simple vote
-        let fee = calculate_fee(&message, false, 5000, 0, fee_features_with_vote_validation(true));
+        let fee = calculate_fee(
+            &message,
+            false,
+            5000,
+            0,
+            fee_features_with_vote_validation(true),
+        );
         assert_ne!(fee, 0, "vote + transfer should not be fee-exempt");
     }
 
@@ -574,7 +620,10 @@ mod tests {
             sol_to_lamports(1.0),
         );
         ix.accounts
-            .push(solana_instruction::AccountMeta::new_readonly(vote::ID, false));
+            .push(solana_instruction::AccountMeta::new_readonly(
+                vote::ID,
+                false,
+            ));
         let message = new_sanitized_message(Message::new(&[ix], Some(&sender.pubkey())));
         assert!(is_vote_transaction(&message, false));
     }
@@ -591,7 +640,10 @@ mod tests {
             sol_to_lamports(1.0),
         );
         ix.accounts
-            .push(solana_instruction::AccountMeta::new_readonly(vote::ID, false));
+            .push(solana_instruction::AccountMeta::new_readonly(
+                vote::ID,
+                false,
+            ));
         let message = new_sanitized_message(Message::new(&[ix], Some(&sender.pubkey())));
         assert!(!is_vote_transaction(&message, true));
 
