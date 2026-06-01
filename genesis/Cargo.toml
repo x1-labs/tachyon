@@ -68,6 +68,7 @@ solana-stake-interface = { version = "=2.0.1", features = ["borsh"] }
 solana-time-utils = "3.0.0"
 solana-version = { workspace = true }
 solana-vote-program = { workspace = true }
+spl-generic-token = { workspace = true }
 tempfile = { workspace = true }
 
 [dev-dependencies]

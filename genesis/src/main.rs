@@ -52,6 +52,7 @@ use {
     solana_signer::Signer,
     solana_stake_interface::state::StakeStateV2,
     solana_vote_program::vote_state::{self, VoteStateV3, VoteStateV4},
+    spl_generic_token::token,
     std::{
         collections::HashMap,
         error,
@@ -847,6 +848,20 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 vote_state_v4_enabled,
             )?;
         }
+    }
+
+    if genesis_config.cluster_type == ClusterType::Development {
+        // Add the native mint account which was activated as a feature gate.
+        genesis_config.add_account(
+            token::native_mint::id(),
+            AccountSharedData::from(Account {
+                owner: token::id(),
+                data: token::native_mint::ACCOUNT_DATA.to_vec(),
+                lamports: LAMPORTS_PER_SOL,
+                executable: false,
+                rent_epoch: 1,
+            }),
+        );
     }
 
     let max_genesis_archive_unpacked_size =
