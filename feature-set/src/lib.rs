@@ -1300,6 +1300,26 @@ pub mod validate_fee_vote_transaction_instructions {
     solana_pubkey::declare_id!("4Kp81AABcBifmGpHrSPxRHDo6uDRMEdXxmkUiofzHofG");
 }
 
+pub mod enforce_minimum_transaction_fee {
+    solana_pubkey::declare_id!("6GpyYbXUcGNXcGh9R9S7XQmh5ppPcz6zqiKJhPKySnj9");
+}
+
+pub mod require_vote_submission_for_fee_exemption {
+    solana_pubkey::declare_id!("HhtwM53u6wMoeLM5gAFNjY9Epx16mx2YVPzDZeUzq2a3");
+}
+
+pub mod vote_min_stake_1_xnt {
+    solana_pubkey::declare_id!("9wZEoMSYpBs2BHrfTMbVV6cspAee2CGgNcMV9qQFHFSh");
+}
+
+pub mod vote_min_stake_10_xnt {
+    solana_pubkey::declare_id!("AcWov9SoNFKTKDWKTXzqc9tVe38fUCZZuchUii8Ygcuy");
+}
+
+pub mod vote_min_stake_100_xnt {
+    solana_pubkey::declare_id!("5uSM1tstLq7aeW9xctZPPhuUADtYhWDfbvVnPxr6ayF3");
+}
+
 pub static FEATURE_NAMES: LazyLock<AHashMap<Pubkey, &'static str>> = LazyLock::new(|| {
     [
         (secp256k1_program_enabled::id(), "secp256k1 program"),
@@ -2262,6 +2282,26 @@ pub static FEATURE_NAMES: LazyLock<AHashMap<Pubkey, &'static str>> = LazyLock::n
         (
             validate_fee_vote_transaction_instructions::id(),
             "validate vote transaction instructions for fee exemption",
+        ),
+        (
+            enforce_minimum_transaction_fee::id(),
+            "enforce a minimum base fee per transaction",
+        ),
+        (
+            require_vote_submission_for_fee_exemption::id(),
+            "require a vote submission instruction for vote fee exemption",
+        ),
+        (
+            vote_min_stake_1_xnt::id(),
+            "raise minimum vote-account stake for vote inclusion to 1 XNT",
+        ),
+        (
+            vote_min_stake_10_xnt::id(),
+            "raise minimum vote-account stake for vote inclusion to 10 XNT",
+        ),
+        (
+            vote_min_stake_100_xnt::id(),
+            "raise minimum vote-account stake for vote inclusion to 100 XNT",
         ),
         /*************** ADD NEW FEATURES HERE ***************/
     ]

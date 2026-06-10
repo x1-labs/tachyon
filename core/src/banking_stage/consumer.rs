@@ -6,10 +6,12 @@ use {
         scheduler_messages::MaxAge,
     },
     itertools::Itertools,
+    solana_bincode::limited_deserialize,
     solana_clock::MAX_PROCESSING_AGE,
     solana_fee::FeeFeatures,
     solana_fee_structure::FeeBudgetLimits,
     solana_measure::measure_us,
+    solana_packet::PACKET_DATA_SIZE,
     solana_poh::{
         poh_recorder::PohRecorderError,
         transaction_recorder::{RecordTransactionsTimings, TransactionRecorder},
@@ -21,13 +23,16 @@ use {
         transaction_batch::TransactionBatch,
     },
     solana_runtime_transaction::transaction_with_meta::TransactionWithMeta,
+    solana_sdk_ids::vote,
     solana_svm::{
         account_loader::validate_fee_payer,
         transaction_error_metrics::TransactionErrorMetrics,
         transaction_processing_result::TransactionProcessingResultExtensions,
         transaction_processor::{ExecutionRecordingConfig, TransactionProcessingConfig},
     },
+    solana_svm_transaction::svm_message::SVMMessage,
     solana_transaction_error::TransactionError,
+    solana_vote_program::vote_instruction::VoteInstruction,
     std::num::Saturating,
 };
 
@@ -495,6 +500,44 @@ impl Consumer {
         }
     }
 
+    /// Reject a transaction that is riding the vote fee exemption while not being a
+    /// genuine vote submission (Vote, VoteSwitch, TowerSync, ...).
+    ///
+    /// A transaction is only rejected when it would be charged a zero fee *because*
+    /// it qualifies for the vote exemption (`is_vote_fee_exempt`) yet contains a
+    /// non-submission vote-program instruction (Withdraw, Authorize,
+    /// UpdateCommission, InitializeAccount, ...). If the transaction instead pays a
+    /// normal fee it is allowed through — including once
+    /// `require_vote_submission_for_fee_exemption` is active, after which these
+    /// administrative instructions are no longer exempt and are charged like any
+    /// other transaction. Multi-instruction vote-account operations (e.g.
+    /// CreateVoteAccount) are never exempt, so they always pass.
+    ///
+    /// This is a leader-side block-production filter only: replay/validation is
+    /// unchanged, so there is no fork risk.
+    pub fn reject_non_vote_submission(
+        transaction: &impl SVMMessage,
+        fee_features: FeeFeatures,
+    ) -> Result<(), TransactionError> {
+        // Only transactions that actually receive the vote fee exemption are
+        // candidates for rejection; anything paying a normal fee is allowed.
+        if !solana_fee::is_vote_fee_exempt(transaction, fee_features) {
+            return Ok(());
+        }
+        for (program_id, instruction) in transaction.program_instructions_iter() {
+            if program_id == &vote::ID {
+                match limited_deserialize::<VoteInstruction>(
+                    instruction.data,
+                    PACKET_DATA_SIZE as u64,
+                ) {
+                    Ok(ref vote_instruction) if vote_instruction.is_simple_vote() => {}
+                    _ => return Err(TransactionError::InvalidProgramForExecution),
+                }
+            }
+        }
+        Ok(())
+    }
+
     pub fn check_fee_payer_unlocked(
         bank: &Bank,
         transaction: &impl TransactionWithMeta,
@@ -586,6 +629,116 @@ mod tests {
         },
         test_case::test_case,
     };
+
+    #[test]
+    fn test_reject_non_vote_submission() {
+        use {
+            solana_vote::vote_transaction,
+            solana_vote_program::{
+                vote_instruction,
+                vote_state::{TowerSync, VoteAuthorize},
+            },
+        };
+
+        // Legacy exemption (vote-submission opcode gate inactive): a single
+        // vote-program instruction is fee-exempt.
+        let gate_off = FeeFeatures {
+            enable_secp256r1_precompile: true,
+            validate_fee_vote_transaction_instructions: true,
+            enforce_minimum_transaction_fee: false,
+            require_vote_submission_for_fee_exemption: false,
+        };
+        // Opcode gate active: only genuine submissions are fee-exempt; everything
+        // else pays a normal fee.
+        let gate_on = FeeFeatures {
+            require_vote_submission_for_fee_exemption: true,
+            ..gate_off
+        };
+
+        let payer = Keypair::new();
+        let node = Keypair::new();
+        let vote_keypair = Keypair::new();
+        let authority = Keypair::new();
+
+        // A plain transfer carries no vote-program instruction -> always allowed.
+        let transfer = RuntimeTransaction::from_transaction_for_tests(
+            system_transaction::transfer(&payer, &payer.pubkey(), 1, Hash::default()),
+        );
+        assert!(Consumer::reject_non_vote_submission(&transfer, gate_off).is_ok());
+        assert!(Consumer::reject_non_vote_submission(&transfer, gate_on).is_ok());
+
+        // A genuine TowerSync vote submission is exempt and legitimate -> always allowed.
+        let tower_sync = RuntimeTransaction::from_transaction_for_tests(
+            vote_transaction::new_tower_sync_transaction(
+                TowerSync::from(vec![(42, 1)]),
+                Hash::default(),
+                &node,
+                &vote_keypair,
+                &authority,
+                None,
+            ),
+        );
+        assert!(Consumer::reject_non_vote_submission(&tower_sync, gate_off).is_ok());
+        assert!(Consumer::reject_non_vote_submission(&tower_sync, gate_on).is_ok());
+
+        // A single Vote::Withdraw: rejected only while it rides the exemption
+        // (gate off). Once the gate makes it pay (gate on), it is allowed.
+        let withdraw =
+            RuntimeTransaction::from_transaction_for_tests(Transaction::new_signed_with_payer(
+                &[vote_instruction::withdraw(
+                    &vote_keypair.pubkey(),
+                    &authority.pubkey(),
+                    1,
+                    &Pubkey::new_unique(),
+                )],
+                Some(&authority.pubkey()),
+                &[&authority],
+                Hash::default(),
+            ));
+        assert!(Consumer::reject_non_vote_submission(&withdraw, gate_off).is_err());
+        assert!(Consumer::reject_non_vote_submission(&withdraw, gate_on).is_ok());
+
+        // A single Vote::Authorize: same as withdraw.
+        let authorize =
+            RuntimeTransaction::from_transaction_for_tests(Transaction::new_signed_with_payer(
+                &[vote_instruction::authorize(
+                    &vote_keypair.pubkey(),
+                    &authority.pubkey(),
+                    &Pubkey::new_unique(),
+                    VoteAuthorize::Voter,
+                )],
+                Some(&authority.pubkey()),
+                &[&authority],
+                Hash::default(),
+            ));
+        assert!(Consumer::reject_non_vote_submission(&authorize, gate_off).is_err());
+        assert!(Consumer::reject_non_vote_submission(&authorize, gate_on).is_ok());
+
+        // A multi-instruction vote-account operation is never fee-exempt (more than
+        // one instruction), so it pays a normal fee and is allowed regardless of gate.
+        let multi =
+            RuntimeTransaction::from_transaction_for_tests(Transaction::new_signed_with_payer(
+                &[
+                    vote_instruction::withdraw(
+                        &vote_keypair.pubkey(),
+                        &authority.pubkey(),
+                        1,
+                        &Pubkey::new_unique(),
+                    ),
+                    vote_instruction::authorize(
+                        &vote_keypair.pubkey(),
+                        &authority.pubkey(),
+                        &Pubkey::new_unique(),
+                        VoteAuthorize::Voter,
+                    ),
+                ],
+                Some(&authority.pubkey()),
+                &[&authority],
+                Hash::default(),
+            ));
+        assert!(Consumer::reject_non_vote_submission(&multi, gate_off).is_ok());
+        assert!(Consumer::reject_non_vote_submission(&multi, gate_on).is_ok());
+    }
 
     fn execute_transactions_for_test(
         bank: Arc<Bank>,

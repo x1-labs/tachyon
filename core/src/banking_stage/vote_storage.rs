@@ -8,6 +8,7 @@ use {
     rand::{thread_rng, Rng},
     solana_account::from_account,
     solana_clock::Epoch,
+    solana_cluster_type::ClusterType,
     solana_pubkey::Pubkey,
     solana_runtime::{
         bank::Bank,
@@ -19,6 +20,59 @@ use {
 
 /// Maximum number of votes a single receive call will accept
 const MAX_NUM_VOTES_RECEIVE: usize = 10_000;
+
+/// The original "must be staked" floor: a vote account needs non-zero activated
+/// stake (a single lamport) for its votes to be admitted. This is the ungated
+/// default on every cluster and matches pre-v3.1 behavior, so a node running this
+/// binary does not change vote admission until a `vote_min_stake_*` gate is
+/// activated.
+const MUST_BE_STAKED_LAMPORTS: u64 = 1;
+
+/// Minimum activated stake (in lamports) a vote account must have on a real
+/// cluster (testnet / mainnet) for its votes to be admitted to the leader vote
+/// buffer once `vote_min_stake_1_xnt` is active. Raising the floor from
+/// "non-zero stake" to 1 XNT drops zero-cost sybil vote accounts at the leader
+/// before block inclusion or weighted-random selection.
+///
+/// This is a node-local block-production policy only: it does not change replay
+/// or consensus, so activating the gate carries no fork risk. The gate exists so
+/// the floor is raised in a coordinated way across patched leaders rather than
+/// silently per-binary.
+const MIN_VOTE_ACCOUNT_STAKE_LAMPORTS: u64 = 1_000_000_000;
+
+/// Optional escalated floors. Like the 1 XNT floor these are feature-gated and
+/// OFF by default; they exist so the bar can be raised further (10 XNT, then
+/// 100 XNT) if sub-threshold spam persists. Activating a gate coordinates the
+/// higher node-local floor across patched leaders — it remains block-production
+/// policy only (no consensus change, no fork risk).
+const VOTE_MIN_STAKE_10_XNT_LAMPORTS: u64 = 10_000_000_000;
+const VOTE_MIN_STAKE_100_XNT_LAMPORTS: u64 = 100_000_000_000;
+
+/// Effective minimum vote-account stake for `cluster_type` and the active feature
+/// set.
+///
+/// Every cluster defaults to the original "must be staked" rule
+/// ([`MUST_BE_STAKED_LAMPORTS`]) so the binary is admission-neutral until a gate
+/// is activated; development/local clusters always keep that floor so the small
+/// stakes used by local-cluster tests can still vote. Real clusters raise the
+/// floor to 1 XNT once `vote_min_stake_1_xnt` is active, then optionally to 10 or
+/// 100 XNT (highest active gate wins).
+fn min_vote_account_stake(cluster_type: ClusterType, features: &feature_set::FeatureSet) -> u64 {
+    match cluster_type {
+        ClusterType::Development => MUST_BE_STAKED_LAMPORTS,
+        ClusterType::Devnet | ClusterType::Testnet | ClusterType::MainnetBeta => {
+            if features.is_active(&feature_set::vote_min_stake_100_xnt::id()) {
+                VOTE_MIN_STAKE_100_XNT_LAMPORTS
+            } else if features.is_active(&feature_set::vote_min_stake_10_xnt::id()) {
+                VOTE_MIN_STAKE_10_XNT_LAMPORTS
+            } else if features.is_active(&feature_set::vote_min_stake_1_xnt::id()) {
+                MIN_VOTE_ACCOUNT_STAKE_LAMPORTS
+            } else {
+                MUST_BE_STAKED_LAMPORTS
+            }
+        }
+    }
+}
 
 #[derive(Default, Debug)]
 pub(crate) struct VoteBatchInsertionMetrics {
@@ -52,6 +106,9 @@ pub struct VoteStorage {
     cached_epoch_authorized_voters: Arc<EpochAuthorizedVoters>,
     deprecate_legacy_vote_ixs: bool,
     current_epoch: Epoch,
+    /// Minimum activated stake a vote account must have for its votes to be
+    /// admitted (resolved from the cluster type at construction).
+    min_vote_account_stake: u64,
 }
 
 impl VoteStorage {
@@ -71,6 +128,10 @@ impl VoteStorage {
             deprecate_legacy_vote_ixs: bank
                 .feature_set
                 .is_active(&feature_set::deprecate_legacy_vote_ixs::id()),
+            min_vote_account_stake: min_vote_account_stake(
+                bank.cluster_type(),
+                bank.feature_set.as_ref(),
+            ),
         }
     }
 
@@ -80,7 +141,12 @@ impl VoteStorage {
 
         let vote_accounts = vote_pubkeys_to_stake
             .iter()
-            .map(|pubkey| (*pubkey, (1u64, VoteAccount::new_random())))
+            .map(|pubkey| {
+                (
+                    *pubkey,
+                    (MIN_VOTE_ACCOUNT_STAKE_LAMPORTS, VoteAccount::new_random()),
+                )
+            })
             .collect();
         let epoch_stakes = VersionedEpochStakes::new_for_tests(vote_accounts, 0);
         // Authorized voters don't change in tests so it's fine to use the authorized voters from the "wrong" epoch
@@ -93,6 +159,7 @@ impl VoteStorage {
             cached_epoch_authorized_voters: epoch_authorized_voters,
             current_epoch: 0,
             deprecate_legacy_vote_ixs: true,
+            min_vote_account_stake: MIN_VOTE_ACCOUNT_STAKE_LAMPORTS,
         }
     }
 
@@ -203,14 +270,20 @@ impl VoteStorage {
             self.deprecate_legacy_vote_ixs = bank
                 .feature_set
                 .is_active(&feature_set::deprecate_legacy_vote_ixs::id());
+            // Re-resolve so an escalation gate activation takes effect at the
+            // epoch boundary without a restart.
+            self.min_vote_account_stake =
+                min_vote_account_stake(bank.cluster_type(), bank.feature_set.as_ref());
         }
 
-        // Evict any now unstaked pubkeys
+        // Evict any pubkeys now below the minimum stake threshold
         let mut unstaked_votes = 0;
+        let min_vote_account_stake = self.min_vote_account_stake;
         self.latest_vote_per_vote_pubkey
             .retain(|vote_pubkey, vote| {
                 let is_present = !vote.is_vote_taken();
-                let should_evict = self.cached_epoch_stakes.vote_account_stake(vote_pubkey) == 0;
+                let should_evict = self.cached_epoch_stakes.vote_account_stake(vote_pubkey)
+                    < min_vote_account_stake;
                 if is_present && should_evict {
                     unstaked_votes += 1;
                 }
@@ -233,10 +306,11 @@ impl VoteStorage {
         let mut num_dropped_tpu = 0;
 
         for vote in votes {
+            // Drop votes from vote accounts below the minimum stake threshold.
             if self
                 .cached_epoch_stakes
                 .vote_account_stake(&vote.vote_pubkey())
-                == 0
+                < self.min_vote_account_stake
             {
                 continue;
             }
@@ -330,8 +404,8 @@ impl VoteStorage {
             .keys()
             .filter_map(|&pubkey| {
                 let stake = self.cached_epoch_stakes.vote_account_stake(&pubkey);
-                if stake == 0 {
-                    None // Ignore votes from unstaked validators
+                if stake < self.min_vote_account_stake {
+                    None // Ignore votes from validators below the minimum stake floor
                 } else {
                     Some((thread_rng().gen::<f64>().powf(1.0 / (stake as f64)), pubkey))
                 }
@@ -488,9 +562,12 @@ pub(crate) mod tests {
     #[test]
     fn test_reinsert_packets() {
         let keypair = ValidatorVoteKeypairs::new_rand();
-        let genesis_config =
-            genesis_utils::create_genesis_config_with_vote_accounts(100, &[&keypair], vec![200])
-                .genesis_config;
+        let genesis_config = genesis_utils::create_genesis_config_with_vote_accounts(
+            100,
+            &[&keypair],
+            vec![MIN_VOTE_ACCOUNT_STAKE_LAMPORTS],
+        )
+        .genesis_config;
         let (bank, _bank_forks) = Bank::new_with_bank_forks_for_tests(&genesis_config);
 
         let vote = packet_from_slots(vec![(0, 1)], &keypair, None);
@@ -754,9 +831,12 @@ pub(crate) mod tests {
         let keypair = ValidatorVoteKeypairs::new_rand();
         let unauthorized_keypair = solana_keypair::Keypair::new();
 
-        let genesis_config =
-            genesis_utils::create_genesis_config_with_vote_accounts(100, &[&keypair], vec![200])
-                .genesis_config;
+        let genesis_config = genesis_utils::create_genesis_config_with_vote_accounts(
+            100,
+            &[&keypair],
+            vec![MIN_VOTE_ACCOUNT_STAKE_LAMPORTS],
+        )
+        .genesis_config;
         let (bank, _bank_forks) = Bank::new_with_bank_forks_for_tests(&genesis_config);
         let mut vote_storage = VoteStorage::new(&bank);
 
@@ -836,22 +916,31 @@ pub(crate) mod tests {
 
         // Create epoch stakes for epochs 1 and 2
         let epoch1_stakes = VersionedEpochStakes::new_for_tests(
-            [(vote_pubkey, (100, vote_account_epoch1))]
-                .into_iter()
-                .collect(),
+            [(
+                vote_pubkey,
+                (MIN_VOTE_ACCOUNT_STAKE_LAMPORTS, vote_account_epoch1),
+            )]
+            .into_iter()
+            .collect(),
             1, // leader_schedule_epoch
         );
         let epoch2_stakes = VersionedEpochStakes::new_for_tests(
-            [(vote_pubkey, (100, vote_account_epoch2))]
-                .into_iter()
-                .collect(),
+            [(
+                vote_pubkey,
+                (MIN_VOTE_ACCOUNT_STAKE_LAMPORTS, vote_account_epoch2),
+            )]
+            .into_iter()
+            .collect(),
             2, // leader_schedule_epoch
         );
 
         // Create a bank in epoch 1 with custom epoch stakes
-        let genesis_config =
-            genesis_utils::create_genesis_config_with_vote_accounts(100, &[&keypair], vec![200])
-                .genesis_config;
+        let genesis_config = genesis_utils::create_genesis_config_with_vote_accounts(
+            100,
+            &[&keypair],
+            vec![MIN_VOTE_ACCOUNT_STAKE_LAMPORTS],
+        )
+        .genesis_config;
         let bank_0 = Bank::new_for_tests(&genesis_config);
         let mut bank = Bank::new_from_parent(
             Arc::new(bank_0),
@@ -933,9 +1022,12 @@ pub(crate) mod tests {
         assert!(vote_storage.is_empty());
 
         // Bank in same epoch should not update stakes
-        let config =
-            genesis_utils::create_genesis_config_with_vote_accounts(100, &[&keypair_a], vec![200])
-                .genesis_config;
+        let config = genesis_utils::create_genesis_config_with_vote_accounts(
+            100,
+            &[&keypair_a],
+            vec![MIN_VOTE_ACCOUNT_STAKE_LAMPORTS],
+        )
+        .genesis_config;
         let bank_0 = Bank::new_for_tests(&config);
         let bank = Bank::new_from_parent(
             Arc::new(bank_0),
@@ -948,9 +1040,12 @@ pub(crate) mod tests {
         assert!(vote_storage.is_empty());
 
         // Bank in next epoch should update stakes
-        let config =
-            genesis_utils::create_genesis_config_with_vote_accounts(100, &[&keypair_b], vec![200])
-                .genesis_config;
+        let config = genesis_utils::create_genesis_config_with_vote_accounts(
+            100,
+            &[&keypair_b],
+            vec![MIN_VOTE_ACCOUNT_STAKE_LAMPORTS],
+        )
+        .genesis_config;
         let bank_0 = Bank::new_for_tests(&config);
         let bank = Bank::new_from_parent(
             Arc::new(bank_0),
@@ -967,9 +1062,12 @@ pub(crate) mod tests {
         );
 
         // Previously unstaked votes are removed
-        let config =
-            genesis_utils::create_genesis_config_with_vote_accounts(100, &[&keypair_c], vec![200])
-                .genesis_config;
+        let config = genesis_utils::create_genesis_config_with_vote_accounts(
+            100,
+            &[&keypair_c],
+            vec![MIN_VOTE_ACCOUNT_STAKE_LAMPORTS],
+        )
+        .genesis_config;
         let bank_0 = Bank::new_for_tests(&config);
         let bank = Bank::new_from_parent(
             Arc::new(bank_0),
@@ -984,6 +1082,140 @@ pub(crate) mod tests {
         assert_eq!(
             vote_storage.get_latest_vote_slot(keypair_c.vote_keypair.pubkey()),
             Some(vote_c_slot)
+        );
+    }
+
+    #[test]
+    fn test_min_vote_account_stake_by_cluster_type() {
+        // With no gates active every cluster only requires non-zero stake, so the
+        // binary is admission-neutral (matches pre-v3.1 behavior).
+        let no_gates = feature_set::FeatureSet::default();
+        for cluster_type in [
+            ClusterType::Development,
+            ClusterType::Devnet,
+            ClusterType::Testnet,
+            ClusterType::MainnetBeta,
+        ] {
+            assert_eq!(
+                min_vote_account_stake(cluster_type, &no_gates),
+                MUST_BE_STAKED_LAMPORTS,
+                "{cluster_type:?} must default to the non-zero-stake floor"
+            );
+        }
+
+        // vote_min_stake_1_xnt raises the floor to 1 XNT on real clusters only;
+        // development/local clusters keep the non-zero floor so small-stake test
+        // validators can still vote.
+        let mut one_xnt = feature_set::FeatureSet::default();
+        one_xnt.activate(&feature_set::vote_min_stake_1_xnt::id(), 0);
+        assert_eq!(
+            min_vote_account_stake(ClusterType::Development, &one_xnt),
+            MUST_BE_STAKED_LAMPORTS
+        );
+        for cluster_type in [
+            ClusterType::Devnet,
+            ClusterType::Testnet,
+            ClusterType::MainnetBeta,
+        ] {
+            assert_eq!(
+                min_vote_account_stake(cluster_type, &one_xnt),
+                MIN_VOTE_ACCOUNT_STAKE_LAMPORTS,
+                "{cluster_type:?} must enforce the 1 XNT floor when gated"
+            );
+        }
+    }
+
+    #[test]
+    fn test_vote_min_stake_escalation_gates() {
+        // The gates raise the real-cluster floor in steps: 1 XNT, then 10, then
+        // 100 (highest active gate wins). They never affect development clusters.
+        let mut features = feature_set::FeatureSet::default();
+        assert_eq!(
+            min_vote_account_stake(ClusterType::MainnetBeta, &features),
+            MUST_BE_STAKED_LAMPORTS,
+            "no gates active means only non-zero stake is required"
+        );
+
+        features.activate(&feature_set::vote_min_stake_1_xnt::id(), 0);
+        assert_eq!(
+            min_vote_account_stake(ClusterType::MainnetBeta, &features),
+            MIN_VOTE_ACCOUNT_STAKE_LAMPORTS
+        );
+
+        features.activate(&feature_set::vote_min_stake_10_xnt::id(), 0);
+        assert_eq!(
+            min_vote_account_stake(ClusterType::MainnetBeta, &features),
+            VOTE_MIN_STAKE_10_XNT_LAMPORTS
+        );
+
+        features.activate(&feature_set::vote_min_stake_100_xnt::id(), 0);
+        assert_eq!(
+            min_vote_account_stake(ClusterType::MainnetBeta, &features),
+            VOTE_MIN_STAKE_100_XNT_LAMPORTS,
+            "100 XNT gate takes precedence over the lower gates"
+        );
+
+        // Escalation gates never raise the floor on development clusters.
+        assert_eq!(
+            min_vote_account_stake(ClusterType::Development, &features),
+            MUST_BE_STAKED_LAMPORTS
+        );
+    }
+
+    #[test]
+    fn test_min_vote_account_stake_threshold_filter() {
+        // GHSA-hhh3-g468-3fc2: with the 1 XNT floor in effect, the insert filter
+        // drops a vote account with non-zero stake *below* 1 XNT and admits one at
+        // exactly 1 XNT. A development bank is used for exact, warmup-free genesis
+        // stakes, with the real-cluster floor forced onto the storage.
+        for (stake, expected_len, msg) in [
+            (
+                MIN_VOTE_ACCOUNT_STAKE_LAMPORTS - 1,
+                0,
+                "sub-1-XNT vote account must be dropped",
+            ),
+            (
+                MIN_VOTE_ACCOUNT_STAKE_LAMPORTS,
+                1,
+                "vote account at exactly 1 XNT must be admitted",
+            ),
+        ] {
+            let keypair = ValidatorVoteKeypairs::new_rand();
+            let genesis_config = genesis_utils::create_genesis_config_with_vote_accounts(
+                100,
+                &[&keypair],
+                vec![stake],
+            )
+            .genesis_config;
+            let (bank, _bank_forks) = Bank::new_with_bank_forks_for_tests(&genesis_config);
+            let mut vote_storage = VoteStorage::new(&bank);
+            // Force the real-cluster 1 XNT floor (the bank itself is development,
+            // which gives exact stakes without activation warmup).
+            vote_storage.min_vote_account_stake = MIN_VOTE_ACCOUNT_STAKE_LAMPORTS;
+            let vote = packet_from_slots(vec![(0, 1)], &keypair, None);
+            vote_storage.insert_batch(VoteSource::Tpu, std::iter::once(to_sanitized_view(vote)));
+            assert_eq!(expected_len, vote_storage.len(), "{msg}");
+        }
+    }
+
+    #[test]
+    fn test_small_stake_admitted_on_development_cluster() {
+        // The 1 XNT floor must NOT apply on development/local clusters (used by
+        // local-cluster tests), so a small-stake validator can still vote. Only
+        // zero-stake accounts are dropped there (see test_insert_batch_unstaked).
+        let keypair = ValidatorVoteKeypairs::new_rand();
+        let genesis_config =
+            genesis_utils::create_genesis_config_with_vote_accounts(100, &[&keypair], vec![200])
+                .genesis_config;
+        let (bank, _bank_forks) = Bank::new_with_bank_forks_for_tests(&genesis_config);
+        assert_eq!(bank.cluster_type(), ClusterType::Development);
+        let mut vote_storage = VoteStorage::new(&bank);
+        let vote = packet_from_slots(vec![(0, 1)], &keypair, None);
+        vote_storage.insert_batch(VoteSource::Tpu, std::iter::once(to_sanitized_view(vote)));
+        assert_eq!(
+            1,
+            vote_storage.len(),
+            "a small (200 lamport) stake must be admitted on a development cluster"
         );
     }
 }

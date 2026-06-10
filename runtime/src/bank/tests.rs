@@ -9319,6 +9319,10 @@ fn calculate_test_fee(
         FeeFeatures {
             enable_secp256r1_precompile: true,
             validate_fee_vote_transaction_instructions: true,
+            // New fee-hardening gates default off here so these tests keep
+            // exercising the currently-active mainnet fee behavior.
+            enforce_minimum_transaction_fee: false,
+            require_vote_submission_for_fee_exemption: false,
         },
     )
 }

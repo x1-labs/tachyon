@@ -24,6 +24,7 @@ use {
     solana_address_lookup_table_interface::state::estimate_last_valid_slot,
     solana_clock::{Epoch, Slot, MAX_PROCESSING_AGE},
     solana_cost_model::cost_model::CostModel,
+    solana_fee::FeeFeatures,
     solana_fee_structure::FeeBudgetLimits,
     solana_message::v0::LoadedAddresses,
     solana_runtime::{bank::Bank, bank_forks::BankForks},
@@ -299,6 +300,17 @@ impl TransactionViewReceiveAndBuffer {
                     let transaction = container
                         .get_transaction(priority_id.id)
                         .expect("transaction must exist");
+                    // Drop transactions that ride the vote fee exemption without
+                    // being a genuine vote submission. Leader-side only.
+                    if let Err(err) = Consumer::reject_non_vote_submission(
+                        transaction,
+                        FeeFeatures::from(working_bank.feature_set.as_ref()),
+                    ) {
+                        *result = Err(err);
+                        num_dropped_on_fee_payer += 1;
+                        container.remove_by_id(priority_id.id);
+                        continue;
+                    }
                     if let Err(err) = Consumer::check_fee_payer_unlocked(
                         working_bank,
                         transaction,

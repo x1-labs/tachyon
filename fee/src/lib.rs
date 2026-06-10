@@ -9,9 +9,12 @@
 )]
 use {
     agave_feature_set::{
-        enable_secp256r1_precompile, validate_fee_vote_transaction_instructions, FeatureSet,
+        enable_secp256r1_precompile, enforce_minimum_transaction_fee,
+        require_vote_submission_for_fee_exemption, validate_fee_vote_transaction_instructions,
+        FeatureSet,
     },
     log::{debug, trace},
+    solana_bincode::limited_deserialize,
     solana_borsh::v1::try_from_slice_unchecked,
     solana_builtins_default_costs::{
         get_builtin_migration_feature_index, BuiltinMigrationFeatureIndex, MAYBE_BUILTIN_KEY,
@@ -23,17 +26,29 @@ use {
     solana_compute_budget_instruction::instructions_processor::process_compute_budget_instructions,
     solana_compute_budget_interface::ComputeBudgetInstruction,
     solana_fee_structure::FeeDetails,
+    solana_packet::PACKET_DATA_SIZE,
     solana_pubkey::Pubkey,
     solana_sdk_ids::{
         bpf_loader, bpf_loader_deprecated, bpf_loader_upgradeable, compute_budget, ed25519_program,
         loader_v4, secp256k1_program, stake, system_program, vote,
     },
     solana_svm_transaction::svm_message::SVMMessage,
+    solana_vote_interface::instruction::VoteInstruction,
 };
 
 /// Multiplier applied to compute units to calculate base fee.
 /// Base Fee = Compute Units × BASE_FEE_MULTIPLIER
 pub const BASE_FEE_MULTIPLIER: u64 = 10;
+
+/// Minimum base fee charged to any non-vote transaction once
+/// `enforce_minimum_transaction_fee` is active.
+///
+/// Ensures a transaction that computes zero compute units (e.g. one with no
+/// instructions, or only zero-cost precompile instructions) is still charged a
+/// base fee. Set to the cost of the cheapest builtin instruction (system /
+/// compute budget = 150 CU × 10 = 1500), so any transaction that already carries
+/// at least one builtin instruction is unaffected.
+pub const MINIMUM_BASE_FEE: u64 = 1_500;
 
 /// Bools indicating the activation of features relevant
 /// to the fee calculation.
@@ -45,6 +60,13 @@ pub const BASE_FEE_MULTIPLIER: u64 = 10;
 pub struct FeeFeatures {
     pub enable_secp256r1_precompile: bool,
     pub validate_fee_vote_transaction_instructions: bool,
+    /// When active, a non-vote transaction is charged at least
+    /// [`MINIMUM_BASE_FEE`].
+    pub enforce_minimum_transaction_fee: bool,
+    /// When active, the vote fee exemption requires the single vote-program
+    /// instruction to be a genuine vote submission (`is_simple_vote`), not just
+    /// any vote-program instruction.
+    pub require_vote_submission_for_fee_exemption: bool,
 }
 
 impl From<&FeatureSet> for FeeFeatures {
@@ -53,6 +75,10 @@ impl From<&FeatureSet> for FeeFeatures {
             enable_secp256r1_precompile: feature_set.is_active(&enable_secp256r1_precompile::ID),
             validate_fee_vote_transaction_instructions: feature_set
                 .is_active(&validate_fee_vote_transaction_instructions::ID),
+            enforce_minimum_transaction_fee: feature_set
+                .is_active(&enforce_minimum_transaction_fee::ID),
+            require_vote_submission_for_fee_exemption: feature_set
+                .is_active(&require_vote_submission_for_fee_exemption::ID),
         }
     }
 }
@@ -108,7 +134,17 @@ fn get_builtin_instruction_cost(program_id: &Pubkey) -> Option<u64> {
 /// `is_simple_vote_transaction_impl`: the transaction must have fewer than 3 signatures,
 /// no address lookup tables (i.e. legacy message), and exactly one instruction targeting
 /// the vote program.
-fn is_vote_transaction(message: &impl SVMMessage, validate_instructions: bool) -> bool {
+///
+/// When `require_submission_opcode` is additionally true, that single vote-program
+/// instruction must also decode to a genuine vote submission
+/// (`VoteInstruction::is_simple_vote`), so administrative vote-program instructions
+/// such as `Withdraw`, `Authorize`, `UpdateCommission` and `InitializeAccount` are
+/// charged like any other transaction.
+fn is_vote_transaction(
+    message: &impl SVMMessage,
+    validate_instructions: bool,
+    require_submission_opcode: bool,
+) -> bool {
     if !validate_instructions {
         return message.account_keys().iter().any(|key| key == &vote::ID);
     }
@@ -123,12 +159,43 @@ fn is_vote_transaction(message: &impl SVMMessage, validate_instructions: bool) -
     if message.num_lookup_tables() > 0 {
         return false;
     }
-    let mut programs = message.program_instructions_iter().map(|(id, _)| id);
-    programs
-        .next()
-        .xor(programs.next())
-        .map(|program_id| program_id == &vote::ID)
+
+    let mut instructions = message.program_instructions_iter();
+    let Some((program_id, instruction)) = instructions.next() else {
+        // Zero instructions: not a vote transaction.
+        return false;
+    };
+    if instructions.next().is_some() {
+        // More than one instruction: not a simple vote transaction.
+        return false;
+    }
+    if program_id != &vote::ID {
+        return false;
+    }
+
+    if !require_submission_opcode {
+        return true;
+    }
+
+    // Only a genuine vote submission (Vote / VoteSwitch / TowerSync / ...) qualifies
+    // for the fee exemption; administrative vote-program instructions do not.
+    limited_deserialize::<VoteInstruction>(instruction.data, PACKET_DATA_SIZE as u64)
+        .map(|vote_instruction| vote_instruction.is_simple_vote())
         .unwrap_or(false)
+}
+
+/// Returns true if `message` receives the vote fee exemption (fee = 0) under the
+/// given `fee_features`.
+///
+/// This is the same decision `calculate_fee_details` uses to zero a vote
+/// transaction's fee. It is exposed so the banking stage can tell whether a
+/// transaction is riding the vote fee exemption versus paying a normal fee.
+pub fn is_vote_fee_exempt(message: &impl SVMMessage, fee_features: FeeFeatures) -> bool {
+    is_vote_transaction(
+        message,
+        fee_features.validate_fee_vote_transaction_instructions,
+        fee_features.require_vote_submission_for_fee_exemption,
+    )
 }
 
 /// Check if an instruction sets a custom compute unit limit.
@@ -225,13 +292,19 @@ pub fn calculate_fee_details(
     if is_vote_transaction(
         message,
         fee_features.validate_fee_vote_transaction_instructions,
+        fee_features.require_vote_submission_for_fee_exemption,
     ) {
         debug!("Vote transaction detected, fee = 0");
         return FeeDetails::default();
     }
 
     let compute_units = get_transaction_cost(message);
-    let base_fee = compute_units.saturating_mul(BASE_FEE_MULTIPLIER);
+    let mut base_fee = compute_units.saturating_mul(BASE_FEE_MULTIPLIER);
+    if fee_features.enforce_minimum_transaction_fee {
+        // Apply the minimum base fee so a transaction computing zero compute
+        // units is still charged.
+        base_fee = base_fee.max(MINIMUM_BASE_FEE);
+    }
     let fee_details = FeeDetails::new(base_fee, prioritization_fee);
 
     debug!(
@@ -432,10 +505,14 @@ mod tests {
     }
 
     /// Helper to build FeeFeatures with the vote validation feature set as specified.
+    /// The minimum-fee-floor and vote-submission-opcode gates default to off so the
+    /// existing vote-exemption assertions exercise the currently-active mainnet behavior.
     fn fee_features_with_vote_validation(enabled: bool) -> FeeFeatures {
         FeeFeatures {
             enable_secp256r1_precompile: true,
             validate_fee_vote_transaction_instructions: enabled,
+            enforce_minimum_transaction_fee: false,
+            require_vote_submission_for_fee_exemption: false,
         }
     }
 
@@ -610,7 +687,7 @@ mod tests {
             )],
             Some(&sender.pubkey()),
         ));
-        assert!(!is_vote_transaction(&message, false));
+        assert!(!is_vote_transaction(&message, false, false));
 
         // Transfer with vote program in accounts
         let mut ix = system_instruction::transfer(
@@ -624,7 +701,7 @@ mod tests {
                 false,
             ));
         let message = new_sanitized_message(Message::new(&[ix], Some(&sender.pubkey())));
-        assert!(is_vote_transaction(&message, false));
+        assert!(is_vote_transaction(&message, false, false));
     }
 
     #[test]
@@ -644,7 +721,7 @@ mod tests {
                 false,
             ));
         let message = new_sanitized_message(Message::new(&[ix], Some(&sender.pubkey())));
-        assert!(!is_vote_transaction(&message, true));
+        assert!(!is_vote_transaction(&message, true, false));
 
         // Real vote instruction
         let vote_account = Keypair::new();
@@ -654,6 +731,179 @@ mod tests {
             vote_instruction::vote(&vote_account.pubkey(), &authorized_voter.pubkey(), vote);
         let message =
             new_sanitized_message(Message::new(&[vote_ix], Some(&authorized_voter.pubkey())));
-        assert!(is_vote_transaction(&message, true));
+        assert!(is_vote_transaction(&message, true, false));
+    }
+
+    /// Build FeeFeatures with all four fee gates explicitly specified.
+    fn fee_features(
+        validate_instructions: bool,
+        minimum_fee: bool,
+        require_submission: bool,
+    ) -> FeeFeatures {
+        FeeFeatures {
+            enable_secp256r1_precompile: true,
+            validate_fee_vote_transaction_instructions: validate_instructions,
+            enforce_minimum_transaction_fee: minimum_fee,
+            require_vote_submission_for_fee_exemption: require_submission,
+        }
+    }
+
+    #[test]
+    fn test_minimum_base_fee_floor_zero_instruction_tx() {
+        // A zero-instruction transaction computes 0 CU.
+        let payer = Keypair::new();
+        let message = new_sanitized_message(Message::new(&[], Some(&payer.pubkey())));
+
+        // Without the floor gate the transaction is free.
+        let fee = calculate_fee(&message, false, 5000, 0, fee_features(true, false, false));
+        assert_eq!(fee, 0, "zero-instruction tx is free without the floor gate");
+
+        // With the floor gate it is charged the minimum base fee.
+        let fee = calculate_fee(&message, false, 5000, 0, fee_features(true, true, false));
+        assert_eq!(
+            fee, MINIMUM_BASE_FEE,
+            "zero-instruction tx must pay the minimum base fee under the floor gate"
+        );
+    }
+
+    #[test]
+    fn test_minimum_base_fee_floor_does_not_change_real_transfers() {
+        // A normal transfer already costs 150 CU × 10 = 1500 == MINIMUM_BASE_FEE,
+        // so the floor must leave it (and anything larger) unchanged.
+        let sender = Keypair::new();
+        let receiver = Keypair::new();
+        let message = new_sanitized_message(Message::new(
+            &[system_instruction::transfer(
+                &sender.pubkey(),
+                &receiver.pubkey(),
+                sol_to_lamports(1.0),
+            )],
+            Some(&sender.pubkey()),
+        ));
+
+        let without_floor =
+            calculate_fee(&message, false, 5000, 0, fee_features(true, false, false));
+        let with_floor = calculate_fee(&message, false, 5000, 0, fee_features(true, true, false));
+        assert_eq!(without_floor, 1500);
+        assert_eq!(with_floor, 1500, "floor must not change a normal transfer");
+    }
+
+    #[test]
+    fn test_minimum_base_fee_floor_charges_precompile_only_tx() {
+        // A transaction whose only instruction is a zero-cost precompile (ed25519 /
+        // secp256k1) also computes 0 CU and would otherwise be free.
+        let payer = Keypair::new();
+        let ix = solana_instruction::Instruction::new_with_bytes(
+            solana_sdk_ids::ed25519_program::ID,
+            &[],
+            vec![],
+        );
+        let message = new_sanitized_message(Message::new(&[ix], Some(&payer.pubkey())));
+
+        assert_eq!(
+            calculate_fee(&message, false, 5000, 0, fee_features(true, false, false)),
+            0,
+            "precompile-only tx is free without the floor gate"
+        );
+        assert_eq!(
+            calculate_fee(&message, false, 5000, 0, fee_features(true, true, false)),
+            MINIMUM_BASE_FEE,
+            "precompile-only tx must pay the minimum base fee under the floor gate"
+        );
+    }
+
+    #[test]
+    fn test_vote_withdraw_not_fee_exempt_with_opcode_gate() {
+        // A Vote::Withdraw is a single vote-program instruction, so without the
+        // opcode gate it qualifies for the simple-vote fee exemption.
+        let vote_account = Keypair::new();
+        let withdraw_authority = Keypair::new();
+        let recipient = Keypair::new();
+        let ix = vote_instruction::withdraw(
+            &vote_account.pubkey(),
+            &withdraw_authority.pubkey(),
+            100,
+            &recipient.pubkey(),
+        );
+        let message =
+            new_sanitized_message(Message::new(&[ix], Some(&withdraw_authority.pubkey())));
+
+        // Opcode gate off: a single vote-program instruction is fee-exempt.
+        assert_eq!(
+            calculate_fee(&message, false, 5000, 0, fee_features(true, true, false)),
+            0,
+            "withdraw is fee-exempt without the opcode gate"
+        );
+
+        // Opcode gate ON: withdraw must pay the vote-program builtin fee (2100 CU × 10).
+        assert_eq!(
+            calculate_fee(&message, false, 5000, 0, fee_features(true, true, true)),
+            21_000,
+            "withdraw must pay a fee once the opcode gate is active"
+        );
+    }
+
+    #[test]
+    fn test_vote_authorize_not_fee_exempt_with_opcode_gate() {
+        // Authorize is another administrative vote-program instruction.
+        use solana_vote_interface::state::VoteAuthorize;
+        let vote_account = Keypair::new();
+        let current_authority = Keypair::new();
+        let new_authority = Keypair::new();
+        let ix = vote_instruction::authorize(
+            &vote_account.pubkey(),
+            &current_authority.pubkey(),
+            &new_authority.pubkey(),
+            VoteAuthorize::Voter,
+        );
+        let message = new_sanitized_message(Message::new(&[ix], Some(&current_authority.pubkey())));
+
+        assert_eq!(
+            calculate_fee(&message, false, 5000, 0, fee_features(true, true, false)),
+            0,
+            "authorize is fee-exempt without the opcode gate"
+        );
+        assert_ne!(
+            calculate_fee(&message, false, 5000, 0, fee_features(true, true, true)),
+            0,
+            "authorize must pay a fee once the opcode gate is active"
+        );
+    }
+
+    #[test]
+    fn test_real_vote_submission_stays_fee_exempt_with_all_gates() {
+        // The core requirement: a genuine vote submission stays free even with the
+        // floor gate AND the opcode gate active.
+        let vote_account = Keypair::new();
+        let authorized_voter = Keypair::new();
+        let vote = Vote::new(vec![1, 2, 3], Hash::default());
+        let ix = vote_instruction::vote(&vote_account.pubkey(), &authorized_voter.pubkey(), vote);
+        let message = new_sanitized_message(Message::new(&[ix], Some(&authorized_voter.pubkey())));
+
+        assert_eq!(
+            calculate_fee(&message, false, 5000, 0, fee_features(true, true, true)),
+            0,
+            "a real vote submission must remain fee-exempt with all gates active"
+        );
+    }
+
+    #[test]
+    fn test_tower_sync_stays_fee_exempt_with_opcode_gate() {
+        // TowerSync is the modern preferred vote-submission opcode.
+        use solana_vote_interface::state::TowerSync;
+        let vote_account = Keypair::new();
+        let authorized_voter = Keypair::new();
+        let ix = vote_instruction::tower_sync(
+            &vote_account.pubkey(),
+            &authorized_voter.pubkey(),
+            TowerSync::default(),
+        );
+        let message = new_sanitized_message(Message::new(&[ix], Some(&authorized_voter.pubkey())));
+
+        assert_eq!(
+            calculate_fee(&message, false, 5000, 0, fee_features(true, true, true)),
+            0,
+            "TowerSync must remain fee-exempt with the opcode gate active"
+        );
     }
 }

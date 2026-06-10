@@ -22,6 +22,7 @@ use {
     itertools::Itertools,
     solana_accounts_db::account_locks::validate_account_locks,
     solana_clock::FORWARD_TRANSACTIONS_TO_LEADER_AT_SLOT_OFFSET,
+    solana_fee::FeeFeatures,
     solana_measure::{measure::Measure, measure_us},
     solana_poh::poh_recorder::PohRecorderError,
     solana_runtime::{bank::Bank, bank_forks::BankForks},
@@ -540,6 +541,15 @@ fn consume_scan_should_process_packet(
         bank.get_transaction_account_lock_limit(),
     )
     .is_err()
+    {
+        return None;
+    }
+
+    // Defense-in-depth: on the fee-exempt vote path, reject anything that is not a
+    // genuine vote submission (e.g. a single Vote::Withdraw, which passes
+    // is_simple_vote_transaction() because that check ignores the opcode).
+    if Consumer::reject_non_vote_submission(&view, FeeFeatures::from(bank.feature_set.as_ref()))
+        .is_err()
     {
         return None;
     }
