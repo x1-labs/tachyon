@@ -91,6 +91,22 @@ cargo_audit_ignores=(
   # AGAVE OK: we backported the fix to 0.11.13 vendored
   --ignore RUSTSEC-2026-0037
 
+  # Crate:     quinn-proto
+  # Version:   0.11.13
+  # Title:     Remote memory exhaustion in quinn-proto from unbounded out-of-order stream reassembly
+  # Date:      2026-06-22
+  # ID:        RUSTSEC-2026-0185
+  # URL:       https://rustsec.org/advisories/RUSTSEC-2026-0185
+  # Severity:  7.5 (high)
+  # Solution:  Upgrade to >=0.11.15
+  #
+  # NO FIX AVAILABLE YET (accepted risk, not patched): anza-quinn-proto has no
+  # published release past 0.11.13-rustsec20260037 (that fork only backported the
+  # 0.11.14 / RUSTSEC-2026-0037 fix), and upstream Agave v3.1 pins the same fork
+  # and is identically exposed. Remove this ignore and bump anza-quinn-proto once
+  # Anza vendors the >=0.11.15 fix.
+  --ignore RUSTSEC-2026-0185
+
 
   # Crate:     rustls-webpki
   # Version:   0.101.7
