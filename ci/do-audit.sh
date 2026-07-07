@@ -151,6 +151,19 @@ cargo_audit_ignores=(
   #
   # AGAVE OK: vendored the upstream fix again
   --ignore RUSTSEC-2026-0104
+
+  # Crate:     crossbeam-epoch
+  # Version:   0.9.5 (root) / 0.9.18
+  # Title:     Invalid pointer dereference in `fmt::Pointer` impl for `Atomic` and `Shared` when the underlying pointer is invalid
+  # Date:      2026-07-06
+  # ID:        RUSTSEC-2026-0204
+  # URL:       https://rustsec.org/advisories/RUSTSEC-2026-0204
+  # Solution:  Upgrade to >=0.9.20
+  #
+  # Accepted risk: the unsoundness is confined to the Debug/`fmt::Pointer`
+  # formatting path and is not reachable in normal operation. Remove this ignore
+  # once crossbeam-epoch is bumped to >=0.9.20 across the lock files.
+  --ignore RUSTSEC-2026-0204
 )
 scripts/cargo-for-all-lock-files.sh audit "${cargo_audit_ignores[@]}" | $dep_tree_filter
 # we want the `cargo audit` exit code, not `$dep_tree_filter`'s
