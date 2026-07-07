@@ -95,19 +95,21 @@ pub fn non_circulating_accounts() -> Vec<Pubkey> {
     .into()
 }
 
-// Withdraw authority for autostaked accounts on mainnet-beta
+// X1 foundation-controlled withdraw authorities. Any stake account whose
+// authorized withdrawer is one of these is non-circulating (their idle balances
+// are handled by non_circulating_accounts() above). This mirrors the staked
+// portion of api.x1.xyz/v1/supply/circulating, which sums stake accounts by
+// withdrawer for exactly these addresses (XLT-137).
 pub fn withdraw_authority() -> Vec<Pubkey> {
     [
-        solana_pubkey::pubkey!("8CUUMKYNGxdgYio5CLHRHyzMEhhVRMcqefgE6dLqnVRK"),
-        solana_pubkey::pubkey!("3FFaheyqtyAXZSYxDzsr5CVKvJuvZD1WE1VEsBtDbRqB"),
-        solana_pubkey::pubkey!("FdGYQdiRky8NZzN9wZtczTBcWLYYRXrJ3LMDhqDPn5rM"),
-        solana_pubkey::pubkey!("4e6KwQpyzGQPfgVr5Jn3g5jLjbXB4pKPa2jRLohEb1QA"),
-        solana_pubkey::pubkey!("FjiEiVKyMGzSLpqoB27QypukUfyWHrwzPcGNtopzZVdh"),
-        solana_pubkey::pubkey!("DwbVjia1mYeSGoJipzhaf4L5hfer2DJ1Ys681VzQm5YY"),
-        solana_pubkey::pubkey!("GeMGyvsTEsANVvcT5cme65Xq5MVU8fVVzMQ13KAZFNS2"),
-        solana_pubkey::pubkey!("Bj3aQ2oFnZYfNR1njzRjmWizzuhvfcYLckh76cqsbuBM"),
-        solana_pubkey::pubkey!("4ZJhPQAgUseCsWhKvJLTmmRRUV74fdoTpQLNfKoekbPY"),
-        solana_pubkey::pubkey!("HXdYQ5gixrY2H6Y9gqsD8kPM2JQKSaRiohDQtLbZkRWE"),
+        // Foundation Treasury
+        solana_pubkey::pubkey!("7RxMTzi4GfNFvxiJYmgPKPJYBLobVPWh11LQc7rufPG7"),
+        // X1 Labs Treasury
+        solana_pubkey::pubkey!("2sXr5THr5ZAwSfuJAc1KogPKZ2uKkhfNUAtEvNw5Q6Z7"),
+        // X1 Delegation Program PDA
+        solana_pubkey::pubkey!("uXgzYh1XhJbeoxNYf55t9E9NhpjC1kWe1mMvpp8vM31"),
+        // PDA — withdraw auth on Group A vote accounts
+        solana_pubkey::pubkey!("DcWrgdX5UDw7ZgKpkJ3KstkGs1Z4DiQwgWhwxKY82eQ9"),
     ]
     .into()
 }
