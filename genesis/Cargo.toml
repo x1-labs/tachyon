@@ -70,6 +70,7 @@ solana-stake-interface = { workspace = true, features = ["borsh"] }
 solana-time-utils = { workspace = true }
 solana-version = { workspace = true }
 solana-vote-program = { workspace = true }
+spl-generic-token = { workspace = true }
 tempfile = { workspace = true }
 
 [dev-dependencies]

@@ -8606,6 +8606,7 @@ dependencies = [
  "solana-version",
  "solana-vote",
  "solana-vote-program",
+ "spl-generic-token",
  "tempfile",
  "test-case",
 ]
