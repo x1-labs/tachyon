@@ -6,7 +6,7 @@ pub enum ClientId {
     JitoLabs,
     Frankendancer,
     Agave,
-    AgavePaladin,
+    Tachyon,
     Firedancer,
     AgaveBam,
     Sig,
@@ -21,7 +21,7 @@ impl fmt::Display for ClientId {
             Self::JitoLabs => write!(f, "JitoLabs"),
             Self::Frankendancer => write!(f, "Frankendancer"),
             Self::Agave => write!(f, "Agave"),
-            Self::AgavePaladin => write!(f, "AgavePaladin"),
+            Self::Tachyon => write!(f, "Tachyon"),
             Self::Firedancer => write!(f, "Firedancer"),
             Self::AgaveBam => write!(f, "AgaveBam"),
             Self::Sig => write!(f, "Sig"),
@@ -37,7 +37,7 @@ impl From<u16> for ClientId {
             1u16 => Self::JitoLabs,
             2u16 => Self::Frankendancer,
             3u16 => Self::Agave,
-            4u16 => Self::AgavePaladin,
+            4u16 => Self::Tachyon,
             5u16 => Self::Firedancer,
             6u16 => Self::AgaveBam,
             7u16 => Self::Sig,
@@ -55,7 +55,7 @@ impl TryFrom<ClientId> for u16 {
             ClientId::JitoLabs => Ok(1u16),
             ClientId::Frankendancer => Ok(2u16),
             ClientId::Agave => Ok(3u16),
-            ClientId::AgavePaladin => Ok(4u16),
+            ClientId::Tachyon => Ok(4u16),
             ClientId::Firedancer => Ok(5u16),
             ClientId::AgaveBam => Ok(6u16),
             ClientId::Sig => Ok(7u16),
@@ -68,7 +68,7 @@ impl TryFrom<ClientId> for u16 {
 impl ClientId {
     pub const fn this_client() -> Self {
         // Other client implementations need to modify this line.
-        Self::Agave
+        Self::Tachyon
     }
 }
 
@@ -82,7 +82,7 @@ mod test {
         assert_eq!(ClientId::from(1u16), ClientId::JitoLabs);
         assert_eq!(ClientId::from(2u16), ClientId::Frankendancer);
         assert_eq!(ClientId::from(3u16), ClientId::Agave);
-        assert_eq!(ClientId::from(4u16), ClientId::AgavePaladin);
+        assert_eq!(ClientId::from(4u16), ClientId::Tachyon);
         assert_eq!(ClientId::from(5u16), ClientId::Firedancer);
         assert_eq!(ClientId::from(6u16), ClientId::AgaveBam);
         assert_eq!(ClientId::from(7u16), ClientId::Sig);
@@ -93,7 +93,7 @@ mod test {
         assert_eq!(u16::try_from(ClientId::JitoLabs), Ok(1u16));
         assert_eq!(u16::try_from(ClientId::Frankendancer), Ok(2u16));
         assert_eq!(u16::try_from(ClientId::Agave), Ok(3u16));
-        assert_eq!(u16::try_from(ClientId::AgavePaladin), Ok(4u16));
+        assert_eq!(u16::try_from(ClientId::Tachyon), Ok(4u16));
         assert_eq!(u16::try_from(ClientId::Firedancer), Ok(5u16));
         assert_eq!(u16::try_from(ClientId::AgaveBam), Ok(6u16));
         assert_eq!(u16::try_from(ClientId::Sig), Ok(7u16));
@@ -114,7 +114,7 @@ mod test {
         assert_eq!(format!("{}", ClientId::JitoLabs), "JitoLabs");
         assert_eq!(format!("{}", ClientId::Frankendancer), "Frankendancer");
         assert_eq!(format!("{}", ClientId::Agave), "Agave");
-        assert_eq!(format!("{}", ClientId::AgavePaladin), "AgavePaladin");
+        assert_eq!(format!("{}", ClientId::Tachyon), "Tachyon");
         assert_eq!(format!("{}", ClientId::Firedancer), "Firedancer");
         assert_eq!(format!("{}", ClientId::AgaveBam), "AgaveBam");
         assert_eq!(format!("{}", ClientId::Sig), "Sig");

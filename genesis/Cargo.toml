@@ -20,6 +20,11 @@ name = "solana-genesis"
 path = "src/main.rs"
 required-features = ["agave-unstable-api"]
 
+[[bin]]
+name = "x1-genesis"
+path = "src/main.rs"
+required-features = ["agave-unstable-api"]
+
 [features]
 default = ["agave-unstable-api"]
 agave-unstable-api = []
