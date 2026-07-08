@@ -14,6 +14,11 @@ name = "solana-gossip"
 path = "src/main.rs"
 bench = false
 
+[[bin]]
+name = "x1-gossip"
+path = "src/main.rs"
+bench = false
+
 [features]
 agave-unstable-api = []
 
