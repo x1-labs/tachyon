@@ -223,7 +223,7 @@ async fn test_nonce(
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_create_account_with_seed() {
-    const ONE_SIG_FEE: u64 = 5000;
+    const ONE_SIG_FEE: u64 = 3000; // X1: nonce op = 300 CU x 10 (signature fee is ignored)
     agave_logger::setup();
     let mint_keypair = Keypair::new();
     let faucet_addr = run_local_faucet_with_unique_port_for_tests(mint_keypair.insecure_clone());

@@ -8490,8 +8490,30 @@ name = "solana-fee"
 version = "4.0.3"
 dependencies = [
  "agave-feature-set",
+ "agave-logger",
+ "agave-reserved-account-keys",
+ "log",
+ "solana-bincode",
+ "solana-borsh",
+ "solana-builtins-default-costs",
+ "solana-compute-budget",
+ "solana-compute-budget-instruction",
+ "solana-compute-budget-interface",
  "solana-fee-structure",
+ "solana-hash 4.2.0",
+ "solana-instruction",
+ "solana-keypair",
+ "solana-message",
+ "solana-native-token",
+ "solana-packet 4.0.0",
+ "solana-pubkey 4.1.0",
+ "solana-sdk-ids",
+ "solana-signer",
  "solana-svm-transaction",
+ "solana-system-interface 3.0.0",
+ "solana-vote-interface",
+ "spl-memo-interface",
+ "test-case",
 ]
 
 [[package]]
