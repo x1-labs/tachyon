@@ -1796,6 +1796,20 @@ fn test_readonly_accounts(relax_intrabatch_account_locks: bool) {
     if !relax_intrabatch_account_locks {
         bank.deactivate_feature(&feature_set::relax_intrabatch_account_locks::id());
     }
+    // X1: this test votes from freshly created, unstaked vote accounts. A test
+    // bank enables every feature, which turns on the vote-account stake floor
+    // that `solana_runtime::vote_admission` enforces in consensus, and a
+    // fee-exempt vote below the floor is rejected there with
+    // InvalidProgramForExecution. The gates are inactive on both live X1
+    // clusters, so switch them off here and let the test exercise what it is
+    // actually about: read-only account handling.
+    for id in [
+        feature_set::vote_min_stake_1_xnt::id(),
+        feature_set::vote_min_stake_10_xnt::id(),
+        feature_set::vote_min_stake_100_xnt::id(),
+    ] {
+        bank.deactivate_feature(&id);
+    }
 
     let next_slot = bank.slot() + 1;
     let bank = Bank::new_from_parent(Arc::new(bank), &Pubkey::default(), next_slot);

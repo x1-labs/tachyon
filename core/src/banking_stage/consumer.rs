@@ -6,10 +6,13 @@ use {
         scheduler_messages::MaxAge,
     },
     itertools::Itertools,
+    solana_bincode::limited_deserialize,
     solana_clock::MAX_PROCESSING_AGE,
     solana_fee::FeeFeatures,
     solana_fee_structure::FeeBudgetLimits,
     solana_measure::measure_us,
+    solana_metrics::datapoint_info,
+    solana_packet::PACKET_DATA_SIZE,
     solana_poh::{
         poh_recorder::PohRecorderError,
         transaction_recorder::{RecordTransactionsTimings, TransactionRecorder},
@@ -21,15 +24,18 @@ use {
         transaction_batch::TransactionBatch,
     },
     solana_runtime_transaction::transaction_with_meta::TransactionWithMeta,
+    solana_sdk_ids::vote,
     solana_svm::{
         account_loader::validate_fee_payer,
         transaction_error_metrics::TransactionErrorMetrics,
         transaction_processing_result::TransactionProcessingResultExtensions,
         transaction_processor::{ExecutionRecordingConfig, TransactionProcessingConfig},
     },
+    solana_svm_transaction::svm_message::SVMMessage,
     solana_transaction_error::TransactionError,
     solana_vote::vote_parser,
-    std::num::Saturating,
+    solana_vote_program::vote_instruction::VoteInstruction,
+    std::{cell::Cell, num::Saturating},
 };
 
 /// Consumer will create chunks of transactions from buffer with up to this size.
@@ -209,6 +215,30 @@ impl Consumer {
         pre_results: impl Iterator<Item = Result<(), TransactionError>>,
         flags: ExecutionFlags,
     ) -> ProcessTransactionBatchOutput {
+        // The vote stake floor is a property of block production, not of the
+        // socket a packet arrived on. Every leader path funnels through here —
+        // the non-vote scheduler, the vote worker, and the external packer — so
+        // applying the floor once at this point covers all of them, and a lane
+        // added later cannot silently skip it.
+        //
+        // Leader-side only: this function is banking stage, never replay, so it
+        // cannot change a bank hash. It is ungated and takes effect immediately.
+        // Counted rather than inferred: a rejected pre-result is otherwise
+        // indistinguishable from genuine cost-model throttling in
+        // `cost_model_throttled_transactions_count`. This filter should
+        // essentially never fire in normal operation, so a non-zero value is
+        // worth seeing. `Cell` is sound here because the iterator is fully
+        // consumed by `select_and_accumulate_transaction_costs` below.
+        let num_dropped_on_vote_stake_floor = Cell::new(0u64);
+        let pre_results = pre_results.zip(txs).map(|(result, tx)| {
+            result.and_then(|()| {
+                Self::reject_unstaked_vote(tx, bank).inspect_err(|_| {
+                    num_dropped_on_vote_stake_floor
+                        .set(num_dropped_on_vote_stake_floor.get().saturating_add(1));
+                })
+            })
+        });
+
         let (
             (transaction_qos_cost_results, cost_model_throttled_transactions_count),
             cost_model_us,
@@ -217,6 +247,14 @@ impl Consumer {
             txs,
             pre_results
         ));
+
+        if num_dropped_on_vote_stake_floor.get() > 0 {
+            datapoint_info!(
+                "banking_stage-vote_stake_floor",
+                ("slot", bank.slot(), i64),
+                ("dropped", num_dropped_on_vote_stake_floor.get(), i64)
+            );
+        }
 
         // Only lock accounts for those transactions are selected for the block;
         // Once accounts are locked, other threads cannot encode transactions that will modify the
@@ -526,6 +564,128 @@ impl Consumer {
         }
     }
 
+    /// Reject a transaction that is riding the vote fee exemption while not being a
+    /// genuine vote submission (Vote, VoteSwitch, TowerSync, ...).
+    ///
+    /// A transaction is only rejected when it would be charged a zero fee *because*
+    /// it qualifies for the vote exemption (`is_vote_fee_exempt`) yet contains a
+    /// non-submission vote-program instruction (Withdraw, Authorize,
+    /// UpdateCommission, InitializeAccount, ...). If the transaction instead pays a
+    /// normal fee it is allowed through — including once
+    /// `require_vote_submission_for_fee_exemption` is active, after which these
+    /// administrative instructions are no longer exempt and are charged like any
+    /// other transaction. Multi-instruction vote-account operations (e.g.
+    /// CreateVoteAccount) are never exempt, so they always pass.
+    ///
+    /// This is a leader-side block-production filter only: replay/validation is
+    /// unchanged, so there is no fork risk.
+    pub fn reject_non_vote_submission(
+        transaction: &impl SVMMessage,
+        fee_features: FeeFeatures,
+    ) -> Result<(), TransactionError> {
+        // Only transactions that actually receive the vote fee exemption are
+        // candidates for rejection; anything paying a normal fee is allowed.
+        if !solana_fee::is_vote_fee_exempt(transaction, fee_features) {
+            return Ok(());
+        }
+        for (program_id, instruction) in transaction.program_instructions_iter() {
+            if program_id == &vote::ID {
+                match limited_deserialize::<VoteInstruction>(
+                    instruction.data,
+                    PACKET_DATA_SIZE as u64,
+                ) {
+                    Ok(ref vote_instruction) if vote_instruction.is_simple_vote() => {}
+                    _ => return Err(TransactionError::InvalidProgramForExecution),
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// Reject a fee-exempt vote submission whose vote account is below the
+    /// stake-admission floor.
+    ///
+    /// The minimum-stake floor
+    /// ([`min_vote_account_stake`](solana_runtime::vote_admission::min_vote_account_stake))
+    /// is applied by `VoteStorage`, which only sees votes arriving on the
+    /// gossip / TPU-vote lane. A genuine `Vote` / `TowerSync` can also reach the
+    /// leader through the ordinary transaction (RPC / TPU) lane, which is served
+    /// by a different receiver and never consulted the floor. Admission was
+    /// therefore a function of which socket a vote arrived on rather than of the
+    /// vote account itself. This applies the identical floor so a vote must
+    /// clear the same stake bar no matter which port it entered on.
+    ///
+    /// It is applied in
+    /// [`Self::process_and_record_transactions_with_pre_results`], the one
+    /// function every leader path funnels through — the non-vote scheduler
+    /// (`consume_worker`), the vote worker, and the external packer — so no
+    /// lane, present or future, can reach a block without clearing the floor.
+    ///
+    /// Only transactions that actually receive the vote fee exemption are
+    /// candidates: a vote-program transaction that pays a normal fee carries a
+    /// real cost and is left alone.
+    ///
+    /// This is a leader-side block-production filter only: it is ungated, takes
+    /// effect immediately, and never changes replay, so there is no fork risk. It
+    /// shares [`is_underfunded_vote`](solana_runtime::vote_admission::is_underfunded_vote)
+    /// with the gated consensus rule
+    /// ([`reject_underfunded_vote_in_consensus`](solana_runtime::vote_admission::reject_underfunded_vote_in_consensus)),
+    /// so an honest leader never admits a vote that consensus would then reject.
+    pub fn reject_unstaked_vote(
+        transaction: &impl SVMMessage,
+        bank: &Bank,
+    ) -> Result<(), TransactionError> {
+        if solana_runtime::vote_admission::is_underfunded_vote(
+            transaction,
+            bank.current_epoch_stakes(),
+            bank.cluster_type(),
+            bank.feature_set.as_ref(),
+        ) {
+            return Err(TransactionError::InvalidProgramForExecution);
+        }
+        Ok(())
+    }
+
+    /// Keep fee-exempt vote submissions off the non-vote (RPC / TPU-transaction)
+    /// lane so that every block-included vote flows through the vote-buffer lane.
+    ///
+    /// Vote submissions have a dedicated ingress path: the vote-buffer lane
+    /// (TPU-vote port + gossip), where they are deduplicated per vote account and
+    /// admitted against the stake floor. The non-vote lane has neither step, so
+    /// handling votes here would route them through a second, inconsistent path.
+    /// Validators already submit votes on the TPU-vote port (see
+    /// `voting_service`), not via `sendTransaction`, so nothing legitimate relies
+    /// on votes reaching this lane.
+    ///
+    /// The predicate is [`solana_fee::is_vote_fee_exempt`] — the same check the
+    /// fee calculator uses to zero a vote's fee, so this matches exactly the
+    /// transactions that pay no fee, and nothing else. Vote-program
+    /// administration (`Withdraw`, `Authorize`, `UpdateCommission`, …) pays a
+    /// normal fee and is unaffected.
+    ///
+    /// It is deliberately scoped to the non-vote lane and must NOT be moved to
+    /// the shared record chokepoint: the vote lane carries genuine consensus
+    /// votes, which are fee-exempt by design, so applying this predicate there
+    /// would stop the leader including any votes at all. The floor
+    /// ([`Self::reject_unstaked_vote`]) is the predicate that is safe on every
+    /// lane; this one is strictly broader and strictly lane-local.
+    ///
+    /// This is a leader-side block-production filter only: it never runs in
+    /// replay, so it cannot change a bank hash. It is ungated. On this lane it
+    /// is strictly broader than [`Self::reject_unstaked_vote`] — it drops every
+    /// fee-exempt vote, not only below-floor ones — but it does not replace it:
+    /// the floor is enforced separately at the shared record chokepoint, where
+    /// it also covers the vote lane and the external packer.
+    pub fn reject_vote_fee_exempt(
+        transaction: &impl SVMMessage,
+        fee_features: FeeFeatures,
+    ) -> Result<(), TransactionError> {
+        if solana_fee::is_vote_fee_exempt(transaction, fee_features) {
+            return Err(TransactionError::InvalidProgramForExecution);
+        }
+        Ok(())
+    }
+
     pub fn check_fee_payer_unlocked(
         bank: &Bank,
         transaction: &impl TransactionWithMeta,
@@ -654,6 +814,340 @@ mod tests {
         }
     }
 
+    #[test]
+    fn test_reject_non_vote_submission() {
+        use {
+            solana_vote::vote_transaction,
+            solana_vote_program::{
+                vote_instruction,
+                vote_state::{TowerSync, VoteAuthorize},
+            },
+        };
+
+        // Legacy exemption (vote-submission opcode gate inactive): a single
+        // vote-program instruction is fee-exempt.
+        let gate_off = FeeFeatures {
+            enable_secp256r1_precompile: true,
+            validate_fee_vote_transaction_instructions: true,
+            enforce_minimum_transaction_fee: false,
+            require_vote_submission_for_fee_exemption: false,
+        };
+        // Opcode gate active: only genuine submissions are fee-exempt; everything
+        // else pays a normal fee.
+        let gate_on = FeeFeatures {
+            require_vote_submission_for_fee_exemption: true,
+            ..gate_off
+        };
+
+        let payer = Keypair::new();
+        let node = Keypair::new();
+        let vote_keypair = Keypair::new();
+        let authority = Keypair::new();
+
+        // A plain transfer carries no vote-program instruction -> always allowed.
+        let transfer = RuntimeTransaction::from_transaction_for_tests(
+            system_transaction::transfer(&payer, &payer.pubkey(), 1, Hash::default()),
+        );
+        assert!(Consumer::reject_non_vote_submission(&transfer, gate_off).is_ok());
+        assert!(Consumer::reject_non_vote_submission(&transfer, gate_on).is_ok());
+
+        // A genuine TowerSync vote submission is exempt and legitimate -> always allowed.
+        let tower_sync = RuntimeTransaction::from_transaction_for_tests(
+            vote_transaction::new_tower_sync_transaction(
+                TowerSync::from(vec![(42, 1)]),
+                Hash::default(),
+                &node,
+                &vote_keypair,
+                &authority,
+                None,
+            ),
+        );
+        assert!(Consumer::reject_non_vote_submission(&tower_sync, gate_off).is_ok());
+        assert!(Consumer::reject_non_vote_submission(&tower_sync, gate_on).is_ok());
+
+        // A single Vote::Withdraw: rejected only while it rides the exemption
+        // (gate off). Once the gate makes it pay (gate on), it is allowed.
+        let withdraw =
+            RuntimeTransaction::from_transaction_for_tests(Transaction::new_signed_with_payer(
+                &[vote_instruction::withdraw(
+                    &vote_keypair.pubkey(),
+                    &authority.pubkey(),
+                    1,
+                    &Pubkey::new_unique(),
+                )],
+                Some(&authority.pubkey()),
+                &[&authority],
+                Hash::default(),
+            ));
+        assert!(Consumer::reject_non_vote_submission(&withdraw, gate_off).is_err());
+        assert!(Consumer::reject_non_vote_submission(&withdraw, gate_on).is_ok());
+
+        // A single Vote::Authorize: same as withdraw.
+        let authorize =
+            RuntimeTransaction::from_transaction_for_tests(Transaction::new_signed_with_payer(
+                &[vote_instruction::authorize(
+                    &vote_keypair.pubkey(),
+                    &authority.pubkey(),
+                    &Pubkey::new_unique(),
+                    VoteAuthorize::Voter,
+                )],
+                Some(&authority.pubkey()),
+                &[&authority],
+                Hash::default(),
+            ));
+        assert!(Consumer::reject_non_vote_submission(&authorize, gate_off).is_err());
+        assert!(Consumer::reject_non_vote_submission(&authorize, gate_on).is_ok());
+
+        // A multi-instruction vote-account operation is never fee-exempt (more than
+        // one instruction), so it pays a normal fee and is allowed regardless of gate.
+        let multi =
+            RuntimeTransaction::from_transaction_for_tests(Transaction::new_signed_with_payer(
+                &[
+                    vote_instruction::withdraw(
+                        &vote_keypair.pubkey(),
+                        &authority.pubkey(),
+                        1,
+                        &Pubkey::new_unique(),
+                    ),
+                    vote_instruction::authorize(
+                        &vote_keypair.pubkey(),
+                        &authority.pubkey(),
+                        &Pubkey::new_unique(),
+                        VoteAuthorize::Voter,
+                    ),
+                ],
+                Some(&authority.pubkey()),
+                &[&authority],
+                Hash::default(),
+            ));
+        assert!(Consumer::reject_non_vote_submission(&multi, gate_off).is_ok());
+        assert!(Consumer::reject_non_vote_submission(&multi, gate_on).is_ok());
+    }
+
+    #[test]
+    fn test_reject_unstaked_vote() {
+        // A genuine, fee-exempt vote from a zero-stake vote account must be
+        // dropped on the non-vote (RPC / TPU) lane, the same way the vote-buffer
+        // lane drops it. A staked vote account is admitted; a non-vote
+        // transaction is never affected.
+        use {
+            solana_cluster_type::ClusterType,
+            solana_runtime::genesis_utils::{self, ValidatorVoteKeypairs},
+            solana_vote::vote_transaction::new_tower_sync_transaction,
+            solana_vote_program::vote_state::TowerSync,
+        };
+
+        // `staked` has real activated stake in genesis; `unfunded` exists only
+        // as an off-genesis keypair, so its vote account has zero activated
+        // stake.
+        let staked = ValidatorVoteKeypairs::new_rand();
+        let unfunded = ValidatorVoteKeypairs::new_rand();
+        let genesis_config = genesis_utils::create_genesis_config_with_vote_accounts(
+            1_000_000_000,
+            &[&staked],
+            vec![1_000_000_000],
+        )
+        .genesis_config;
+        let (bank, _bank_forks) = Bank::new_with_bank_forks_for_tests(&genesis_config);
+        // Development cluster -> floor is the ungated default (MUST_BE_STAKED,
+        // i.e. any non-zero stake).
+        assert_eq!(bank.cluster_type(), ClusterType::Development);
+
+        let vote_from = |keypairs: &ValidatorVoteKeypairs| {
+            RuntimeTransaction::from_transaction_for_tests(new_tower_sync_transaction(
+                TowerSync::from(vec![(0, 1)]),
+                Hash::default(),
+                &keypairs.node_keypair,
+                &keypairs.vote_keypair,
+                &keypairs.vote_keypair,
+                None,
+            ))
+        };
+
+        // Staked vote account clears the floor -> admitted.
+        assert!(Consumer::reject_unstaked_vote(&vote_from(&staked), &bank).is_ok());
+
+        // Zero-stake vote account -> rejected on this lane, matching the
+        // vote-buffer lane's behaviour.
+        assert!(
+            Consumer::reject_unstaked_vote(&vote_from(&unfunded), &bank).is_err(),
+            "a zero-stake vote account must be rejected on the non-vote lane"
+        );
+
+        // A non-vote transaction is not fee-exempt and is never a candidate.
+        let payer = Keypair::new();
+        let transfer = RuntimeTransaction::from_transaction_for_tests(
+            system_transaction::transfer(&payer, &payer.pubkey(), 1, Hash::default()),
+        );
+        assert!(Consumer::reject_unstaked_vote(&transfer, &bank).is_ok());
+    }
+
+    #[test]
+    fn test_reject_vote_fee_exempt() {
+        // The non-vote-lane filter drops EVERY fee-exempt vote — even a genuine,
+        // fully-staked submission — because genuine votes belong on the
+        // vote-buffer lane. It rejects exactly the set that pays no fee, and
+        // leaves fee-paying vote-program administration alone.
+        use {
+            solana_vote::vote_transaction,
+            solana_vote_program::{vote_instruction, vote_state::TowerSync},
+        };
+
+        // Live X1 config: shape validation + submission-opcode gate both active.
+        let gate_on = FeeFeatures {
+            enable_secp256r1_precompile: true,
+            validate_fee_vote_transaction_instructions: true,
+            enforce_minimum_transaction_fee: true,
+            require_vote_submission_for_fee_exemption: true,
+        };
+        // Legacy: submission-opcode gate inactive, so any single vote-program
+        // instruction (including Withdraw) rides the exemption.
+        let gate_off = FeeFeatures {
+            require_vote_submission_for_fee_exemption: false,
+            ..gate_on
+        };
+
+        let payer = Keypair::new();
+        let node = Keypair::new();
+        let vote_keypair = Keypair::new();
+        let authority = Keypair::new();
+
+        // A genuine, fee-exempt vote submission -> dropped on this lane, staked
+        // or not. This is the whole point: no votes over the non-vote lane.
+        let tower_sync = RuntimeTransaction::from_transaction_for_tests(
+            vote_transaction::new_tower_sync_transaction(
+                TowerSync::from(vec![(42, 1)]),
+                Hash::default(),
+                &node,
+                &vote_keypair,
+                &authority,
+                None,
+            ),
+        );
+        assert!(
+            Consumer::reject_vote_fee_exempt(&tower_sync, gate_on).is_err(),
+            "a genuine fee-exempt vote must be rejected on the non-vote lane"
+        );
+
+        // A plain transfer pays a fee -> never a candidate.
+        let transfer = RuntimeTransaction::from_transaction_for_tests(
+            system_transaction::transfer(&payer, &payer.pubkey(), 1, Hash::default()),
+        );
+        assert!(Consumer::reject_vote_fee_exempt(&transfer, gate_on).is_ok());
+
+        // Vote-account administration (Withdraw) pays a normal fee under the live
+        // gate -> allowed. Only when it rides the legacy exemption (gate off) is
+        // it fee-exempt, and then it is correctly dropped too.
+        let withdraw =
+            RuntimeTransaction::from_transaction_for_tests(Transaction::new_signed_with_payer(
+                &[vote_instruction::withdraw(
+                    &vote_keypair.pubkey(),
+                    &authority.pubkey(),
+                    1,
+                    &Pubkey::new_unique(),
+                )],
+                Some(&authority.pubkey()),
+                &[&authority],
+                Hash::default(),
+            ));
+        assert!(
+            Consumer::reject_vote_fee_exempt(&withdraw, gate_on).is_ok(),
+            "fee-paying vote administration must pass"
+        );
+        assert!(Consumer::reject_vote_fee_exempt(&withdraw, gate_off).is_err());
+    }
+
+    #[test]
+    fn test_reject_underfunded_vote_in_consensus() {
+        // The consensus rule rejects a fee-exempt vote from a below-floor vote
+        // account, but ONLY once a `vote_min_stake_*` gate is
+        // active (the switch), so deploying the binary is bank-hash neutral until
+        // a coordinated activation. It shares the underfunded-vote predicate with
+        // the leader-side filter above, so the two never disagree.
+        use {
+            agave_feature_set::{
+                vote_min_stake_1_xnt, vote_min_stake_10_xnt, vote_min_stake_100_xnt,
+            },
+            solana_cluster_type::ClusterType,
+            solana_runtime::{
+                genesis_utils::{self, ValidatorVoteKeypairs},
+                vote_admission::reject_underfunded_vote_in_consensus,
+            },
+            solana_transaction_error::TransactionError,
+            solana_vote::vote_transaction::new_tower_sync_transaction,
+            solana_vote_program::vote_state::TowerSync,
+        };
+
+        let staked = ValidatorVoteKeypairs::new_rand();
+        let unfunded = ValidatorVoteKeypairs::new_rand();
+        let genesis_config = genesis_utils::create_genesis_config_with_vote_accounts(
+            1_000_000_000,
+            &[&staked],
+            vec![1_000_000_000],
+        )
+        .genesis_config;
+        let (bank, _bank_forks) = Bank::new_with_bank_forks_for_tests(&genesis_config);
+        assert_eq!(bank.cluster_type(), ClusterType::Development);
+
+        let vote_from = |keypairs: &ValidatorVoteKeypairs| {
+            RuntimeTransaction::from_transaction_for_tests(new_tower_sync_transaction(
+                TowerSync::from(vec![(0, 1)]),
+                Hash::default(),
+                &keypairs.node_keypair,
+                &keypairs.vote_keypair,
+                &keypairs.vote_keypair,
+                None,
+            ))
+        };
+
+        let epoch_stakes = bank.current_epoch_stakes();
+        let cluster_type = bank.cluster_type();
+
+        // The test bank activates all features, so its feature set already carries
+        // the `vote_min_stake_*` gates: the consensus switch is ON. On a
+        // development cluster the floor stays MUST_BE_STAKED, so the zero-stake
+        // vote is invalid in consensus while the staked vote is accepted.
+        let on = bank.feature_set.as_ref();
+        assert_eq!(
+            reject_underfunded_vote_in_consensus(
+                &vote_from(&unfunded),
+                epoch_stakes,
+                cluster_type,
+                on
+            ),
+            Err(TransactionError::InvalidProgramForExecution),
+            "a below-floor vote must be invalid in consensus once gated"
+        );
+        assert!(
+            reject_underfunded_vote_in_consensus(
+                &vote_from(&staked),
+                epoch_stakes,
+                cluster_type,
+                on
+            )
+            .is_ok(),
+            "a staked vote must remain valid in consensus"
+        );
+
+        // With every `vote_min_stake_*` gate deactivated the switch is OFF, so the
+        // rule is inert even for the zero-stake vote — deploying the binary is bank-hash
+        // neutral until a gate is activated.
+        let mut off = bank.feature_set.as_ref().clone();
+        off.deactivate(&vote_min_stake_1_xnt::id());
+        off.deactivate(&vote_min_stake_10_xnt::id());
+        off.deactivate(&vote_min_stake_100_xnt::id());
+        assert!(
+            reject_underfunded_vote_in_consensus(
+                &vote_from(&unfunded),
+                epoch_stakes,
+                cluster_type,
+                &off
+            )
+            .is_ok(),
+            "the consensus rule must be inert until a vote_min_stake gate activates"
+        );
+    }
+
     fn execute_transactions_for_test(
         bank: Arc<Bank>,
         transactions: Vec<Transaction>,
@@ -712,6 +1206,318 @@ mod tests {
         bank.store_account(&account_address, &account);
 
         account
+    }
+
+    #[test]
+    fn test_process_and_record_transactions_rejects_unstaked_vote() {
+        // The stake floor must be a property of block production, not of the
+        // lane a packet happened to arrive on.
+        // `process_and_record_transactions_with_pre_results` is the single
+        // funnel every leader path reaches -- the non-vote scheduler, the vote
+        // worker and the external packer -- so a below-floor fee-exempt vote
+        // must be excluded there even when no lane-specific filter ran.
+        use {
+            solana_runtime::genesis_utils::ValidatorVoteKeypairs,
+            solana_vote::vote_transaction::new_tower_sync_transaction,
+            solana_vote_program::vote_state::{self, TowerSync, VoteStateV4},
+        };
+
+        agave_logger::setup();
+        let GenesisConfigInfo {
+            genesis_config,
+            mint_keypair,
+            ..
+        } = create_genesis_config_with_leader(
+            10_000,
+            &Pubkey::new_unique(),
+            bootstrap_validator_stake_lamports(),
+        );
+        let mut bank = Bank::new_for_tests(&genesis_config);
+        // Test banks activate every feature, which would switch on the *gated
+        // consensus* rule and reject the vote before the leader-side filter is
+        // ever reached. Deactivating the three gates reproduces the state both
+        // X1 chains are actually in, so this exercises block production alone;
+        // the floor then falls back to MUST_BE_STAKED_LAMPORTS.
+        bank.deactivate_feature(&agave_feature_set::vote_min_stake_1_xnt::id());
+        bank.deactivate_feature(&agave_feature_set::vote_min_stake_10_xnt::id());
+        bank.deactivate_feature(&agave_feature_set::vote_min_stake_100_xnt::id());
+        let (bank, _bank_forks) = bank.wrap_with_bank_forks_for_tests();
+        assert!(
+            !solana_runtime::vote_admission::consensus_floor_enforced(bank.feature_set.as_ref()),
+            "the consensus rule must be inactive so this isolates the leader-side filter"
+        );
+
+        let (record_sender, mut record_receiver) = record_channels(false);
+        let recorder = TransactionRecorder::new(record_sender);
+        record_receiver.restart(bank.bank_id());
+        let (replay_vote_sender, _replay_vote_receiver) = unbounded();
+        let committer = Committer::new(None, replay_vote_sender, None);
+        let consumer = Consumer::new(committer, recorder, QosService::new(1), None);
+
+        // Never present in genesis, so this vote account has zero activated
+        // stake and sits below even the ungated one-lamport floor.
+        let unstaked = ValidatorVoteKeypairs::new_rand();
+        // Fund the fee payer so the transaction is rejected by the floor rather
+        // than by an unfundable payer.
+        bank.transfer(
+            bank.get_minimum_balance_for_rent_exemption(0),
+            &mint_keypair,
+            &unstaked.node_keypair.pubkey(),
+        )
+        .unwrap();
+
+        // Install a real, rent-funded vote account that simply carries no
+        // delegated stake. Storing it does not enter it into epoch stakes, so
+        // its activated stake is zero while the account itself loads and
+        // executes normally.
+        // Without this the transaction would fail to load its accounts and the
+        // test would pass for a reason unrelated to the floor.
+        let vote_pubkey = unstaked.vote_keypair.pubkey();
+        bank.store_account(
+            &vote_pubkey,
+            &vote_state::create_v4_account_with_authorized(
+                &unstaked.node_keypair.pubkey(),
+                &vote_pubkey,
+                unstaked.bls_keypair.public.to_bytes_compressed(),
+                &vote_pubkey,
+                0,
+                &vote_pubkey,
+                0,
+                &vote_pubkey,
+                bank.get_minimum_balance_for_rent_exemption(VoteStateV4::size_of()),
+            ),
+        );
+        assert_eq!(
+            bank.current_epoch_stakes().vote_account_stake(&vote_pubkey),
+            0,
+            "the vote account must exist yet hold no activated stake"
+        );
+
+        let vote = sanitize_transactions(vec![new_tower_sync_transaction(
+            TowerSync::from(vec![(bank.slot().saturating_sub(1), 1)]),
+            bank.confirmed_last_blockhash(),
+            &unstaked.node_keypair,
+            &unstaked.vote_keypair,
+            &unstaked.vote_keypair,
+            None,
+        )]);
+
+        let ExecuteAndCommitTransactionsOutput {
+            transaction_counts, ..
+        } = consumer
+            .process_and_record_transactions(&bank, &vote)
+            .execute_and_commit_transactions_output;
+
+        assert_eq!(
+            transaction_counts,
+            LeaderProcessedTransactionCounts {
+                attempted_processing_count: 1,
+                // Excluded before execution by the stake floor.
+                processed_count: 0,
+                processed_with_successful_result_count: 0,
+            },
+            "a below-floor fee-exempt vote must not reach execution at the shared chokepoint"
+        );
+    }
+
+    #[test]
+    fn test_process_and_record_transactions_admits_staked_vote() {
+        // The counterpart guard to the floor: a genuine vote from a properly
+        // staked validator must still reach the block. The chokepoint filter
+        // runs on every lane including the vote lane, so an over-broad
+        // predicate here would stop the leader including consensus votes at
+        // all -- a far worse failure than the one being fixed.
+        use {
+            solana_runtime::genesis_utils::{
+                ValidatorVoteKeypairs, create_genesis_config_with_vote_accounts,
+            },
+            solana_vote::vote_transaction::new_tower_sync_transaction,
+            solana_vote_program::vote_state::TowerSync,
+        };
+
+        agave_logger::setup();
+        let staked = ValidatorVoteKeypairs::new_rand();
+        let genesis_config = create_genesis_config_with_vote_accounts(
+            1_000_000_000,
+            &[&staked],
+            vec![1_000_000_000],
+        )
+        .genesis_config;
+        let mut bank = Bank::new_for_tests(&genesis_config);
+        // Same gate state as the rejection test, so the two differ only in
+        // whether the vote account carries stake.
+        bank.deactivate_feature(&agave_feature_set::vote_min_stake_1_xnt::id());
+        bank.deactivate_feature(&agave_feature_set::vote_min_stake_10_xnt::id());
+        bank.deactivate_feature(&agave_feature_set::vote_min_stake_100_xnt::id());
+        let (bank, _bank_forks) = bank.wrap_with_bank_forks_for_tests();
+
+        let vote_pubkey = staked.vote_keypair.pubkey();
+        assert!(
+            bank.current_epoch_stakes().vote_account_stake(&vote_pubkey) > 0,
+            "this vote account must carry activated stake for the test to mean anything"
+        );
+
+        let (record_sender, mut record_receiver) = record_channels(false);
+        let recorder = TransactionRecorder::new(record_sender);
+        record_receiver.restart(bank.bank_id());
+        let (replay_vote_sender, _replay_vote_receiver) = unbounded();
+        let committer = Committer::new(None, replay_vote_sender, None);
+        let consumer = Consumer::new(committer, recorder, QosService::new(1), None);
+
+        let vote = sanitize_transactions(vec![new_tower_sync_transaction(
+            TowerSync::from(vec![(bank.slot().saturating_sub(1), 1)]),
+            bank.confirmed_last_blockhash(),
+            &staked.node_keypair,
+            &staked.vote_keypair,
+            &staked.vote_keypair,
+            None,
+        )]);
+
+        let ExecuteAndCommitTransactionsOutput {
+            transaction_counts, ..
+        } = consumer
+            .process_and_record_transactions(&bank, &vote)
+            .execute_and_commit_transactions_output;
+
+        assert_eq!(
+            transaction_counts.processed_count, 1,
+            "a staked validator's vote must still be processed into the block"
+        );
+    }
+
+    #[test]
+    fn test_process_and_record_aged_transactions_rejects_unstaked_vote_in_bundle() {
+        // Covers the path the consume workers actually use
+        // (`process_and_record_aged_transactions`), including the external
+        // packer at `consume_worker.rs:409`, which is the lane that has no
+        // filter of its own and so justified putting the floor at the shared
+        // chokepoint. The packer also supplies non-default `ExecutionFlags`,
+        // so this pins down what an injected floor rejection does to an
+        // `all_or_nothing` bundle.
+        use {
+            crate::banking_stage::scheduler_messages::MaxAge,
+            solana_runtime::genesis_utils::ValidatorVoteKeypairs,
+            solana_vote::vote_transaction::new_tower_sync_transaction,
+            solana_vote_program::vote_state::{self, TowerSync, VoteStateV4},
+        };
+
+        agave_logger::setup();
+        let GenesisConfigInfo {
+            genesis_config,
+            mint_keypair,
+            ..
+        } = create_genesis_config_with_leader(
+            10_000,
+            &Pubkey::new_unique(),
+            bootstrap_validator_stake_lamports(),
+        );
+        let mut bank = Bank::new_for_tests(&genesis_config);
+        // Gates off, so only the leader-side floor can reject — see
+        // `test_process_and_record_transactions_rejects_unstaked_vote`.
+        bank.deactivate_feature(&agave_feature_set::vote_min_stake_1_xnt::id());
+        bank.deactivate_feature(&agave_feature_set::vote_min_stake_10_xnt::id());
+        bank.deactivate_feature(&agave_feature_set::vote_min_stake_100_xnt::id());
+        let (bank, _bank_forks) = bank.wrap_with_bank_forks_for_tests();
+
+        let (record_sender, mut record_receiver) = record_channels(false);
+        let recorder = TransactionRecorder::new(record_sender);
+        record_receiver.restart(bank.bank_id());
+        let (replay_vote_sender, _replay_vote_receiver) = unbounded();
+        let committer = Committer::new(None, replay_vote_sender, None);
+        let consumer = Consumer::new(committer, recorder, QosService::new(1), None);
+
+        let rent_exempt = bank.get_minimum_balance_for_rent_exemption(0);
+        let unstaked = ValidatorVoteKeypairs::new_rand();
+        bank.transfer(rent_exempt, &mint_keypair, &unstaked.node_keypair.pubkey())
+            .unwrap();
+        let vote_pubkey = unstaked.vote_keypair.pubkey();
+        bank.store_account(
+            &vote_pubkey,
+            &vote_state::create_v4_account_with_authorized(
+                &unstaked.node_keypair.pubkey(),
+                &vote_pubkey,
+                unstaked.bls_keypair.public.to_bytes_compressed(),
+                &vote_pubkey,
+                0,
+                &vote_pubkey,
+                0,
+                &vote_pubkey,
+                bank.get_minimum_balance_for_rent_exemption(VoteStateV4::size_of()),
+            ),
+        );
+
+        // A bundle pairing an ordinary transfer with a below-floor vote.
+        let build_batch = || {
+            sanitize_transactions(vec![
+                system_transaction::transfer(
+                    &mint_keypair,
+                    &solana_pubkey::new_rand(),
+                    rent_exempt,
+                    bank.confirmed_last_blockhash(),
+                ),
+                new_tower_sync_transaction(
+                    TowerSync::from(vec![(bank.slot().saturating_sub(1), 1)]),
+                    bank.confirmed_last_blockhash(),
+                    &unstaked.node_keypair,
+                    &unstaked.vote_keypair,
+                    &unstaked.vote_keypair,
+                    None,
+                ),
+            ])
+        };
+
+        // Independent transactions: the floor removes only the vote, and the
+        // unrelated transfer still lands.
+        let batch = build_batch();
+        let ExecuteAndCommitTransactionsOutput {
+            transaction_counts, ..
+        } = consumer
+            .process_and_record_aged_transactions(
+                &bank,
+                &batch,
+                &[MaxAge::MAX, MaxAge::MAX],
+                ExecutionFlags::default(),
+            )
+            .execute_and_commit_transactions_output;
+        assert_eq!(
+            transaction_counts,
+            LeaderProcessedTransactionCounts {
+                attempted_processing_count: 2,
+                processed_count: 1,
+                processed_with_successful_result_count: 1,
+            },
+            "the floor must remove the vote without disturbing the rest of the batch"
+        );
+
+        // All-or-nothing bundle: the packer asked for atomicity, so a bundle
+        // carrying an inadmissible vote must commit nothing at all.
+        let batch = build_batch();
+        let ExecuteAndCommitTransactionsOutput {
+            commit_transactions_result,
+            ..
+        } = consumer
+            .process_and_record_aged_transactions(
+                &bank,
+                &batch,
+                &[MaxAge::MAX, MaxAge::MAX],
+                ExecutionFlags {
+                    drop_on_failure: true,
+                    all_or_nothing: true,
+                },
+            )
+            .execute_and_commit_transactions_output;
+        assert!(
+            commit_transactions_result
+                .as_ref()
+                .map(|results| {
+                    results
+                        .iter()
+                        .all(|r| matches!(r, CommitTransactionDetails::NotCommitted(_)))
+                })
+                .unwrap_or(true),
+            "an all-or-nothing bundle containing a below-floor vote must commit nothing, got \
+             {commit_transactions_result:?}"
+        );
     }
 
     #[test]

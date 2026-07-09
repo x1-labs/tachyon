@@ -3630,7 +3630,7 @@ impl Bank {
     ) -> LoadAndExecuteTransactionsOutput {
         let sanitized_txs = batch.sanitized_transactions();
 
-        let (check_results, check_us) = measure_us!(self.check_transactions(
+        let (mut check_results, check_us) = measure_us!(self.check_transactions(
             sanitized_txs,
             batch.lock_results(),
             max_age,
@@ -3638,6 +3638,32 @@ impl Bank {
             error_counters,
         ));
         timings.saturating_add_in_place(ExecuteTimingType::CheckUs, check_us);
+
+        // Once a `vote_min_stake_*` gate is active, a fee-exempt vote from a
+        // vote account below the stake floor is invalid in consensus. Injecting
+        // the check here — the one stage every path (block production, replay,
+        // simulation) funnels through — keeps the floor a property of the chain
+        // rather than of each leader's block-production configuration: such a
+        // vote is excluded at production and makes a block that force-includes
+        // one fatal on replay (dead slot). No-op (bank-hash neutral) until a
+        // gate activates. See `crate::vote_admission`.
+        if crate::vote_admission::consensus_floor_enforced(self.feature_set.as_ref()) {
+            let epoch_stakes = self.current_epoch_stakes();
+            let cluster_type = self.cluster_type();
+            let feature_set = self.feature_set.as_ref();
+            for (check_result, tx) in check_results.iter_mut().zip(sanitized_txs.iter()) {
+                if check_result.is_ok() {
+                    if let Err(err) = crate::vote_admission::reject_underfunded_vote_in_consensus(
+                        tx,
+                        epoch_stakes,
+                        cluster_type,
+                        feature_set,
+                    ) {
+                        *check_result = Err(err);
+                    }
+                }
+            }
+        }
 
         let (blockhash, blockhash_lamports_per_signature) =
             self.last_blockhash_and_lamports_per_signature();

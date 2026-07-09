@@ -24,6 +24,7 @@ use {
     solana_address_lookup_table_interface::state::estimate_last_valid_slot,
     solana_clock::{Epoch, MAX_PROCESSING_AGE, Slot},
     solana_cost_model::cost_model::CostModel,
+    solana_fee::FeeFeatures,
     solana_fee_structure::FeeBudgetLimits,
     solana_message::v0::LoadedAddresses,
     solana_runtime::{
@@ -60,6 +61,9 @@ pub(crate) struct ReceivingStats {
     pub num_dropped_on_age: usize,
     pub num_dropped_on_already_processed: usize,
     pub num_dropped_on_fee_payer: usize,
+    /// Fee-exempt vote submissions kept off the non-vote lane
+    /// (reject_vote_fee_exempt).
+    pub num_dropped_on_vote_fee_exempt: usize,
     pub num_dropped_on_capacity: usize,
 
     pub num_buffered: usize,
@@ -79,6 +83,7 @@ impl ReceivingStats {
         self.num_dropped_on_age += other.num_dropped_on_age;
         self.num_dropped_on_already_processed += other.num_dropped_on_already_processed;
         self.num_dropped_on_fee_payer += other.num_dropped_on_fee_payer;
+        self.num_dropped_on_vote_fee_exempt += other.num_dropped_on_vote_fee_exempt;
         self.num_dropped_on_capacity += other.num_dropped_on_capacity;
         self.num_buffered += other.num_buffered;
 
@@ -136,6 +141,7 @@ impl ReceiveAndBuffer for TransactionViewReceiveAndBuffer {
             num_dropped_on_age: 0,
             num_dropped_on_already_processed: 0,
             num_dropped_on_fee_payer: 0,
+            num_dropped_on_vote_fee_exempt: 0,
             num_dropped_on_capacity: 0,
             num_buffered: 0,
             receive_time_us: 0,
@@ -213,6 +219,7 @@ impl ReceiveAndBuffer for TransactionViewReceiveAndBuffer {
             num_dropped_on_age: stats.num_dropped_on_age,
             num_dropped_on_already_processed: stats.num_dropped_on_already_processed,
             num_dropped_on_fee_payer: stats.num_dropped_on_fee_payer,
+            num_dropped_on_vote_fee_exempt: stats.num_dropped_on_vote_fee_exempt,
             num_dropped_on_capacity: stats.num_dropped_on_capacity,
             num_buffered: stats.num_buffered,
             receive_time_us: stats.receive_time_us,
@@ -257,6 +264,7 @@ impl TransactionViewReceiveAndBuffer {
         let mut num_dropped_on_age = 0;
         let mut num_dropped_on_already_processed = 0;
         let mut num_dropped_on_fee_payer = 0;
+        let mut num_dropped_on_vote_fee_exempt = 0;
         let mut num_dropped_on_capacity = 0;
         let mut num_buffered = 0;
 
@@ -302,6 +310,32 @@ impl TransactionViewReceiveAndBuffer {
                     let transaction = container
                         .get_transaction(priority_id.id)
                         .expect("transaction must exist");
+                    // Drop transactions that ride the vote fee exemption without
+                    // being a genuine vote submission. Leader-side only.
+                    if let Err(err) = Consumer::reject_non_vote_submission(
+                        transaction,
+                        FeeFeatures::from(working_bank.feature_set.as_ref()),
+                    ) {
+                        *result = Err(err);
+                        num_dropped_on_fee_payer += 1;
+                        container.remove_by_id(priority_id.id);
+                        continue;
+                    }
+                    // Vote submissions are handled on the vote-buffer lane
+                    // (deduplicated, stake-gated); keep them off the non-vote
+                    // lane so every vote flows through that single path.
+                    // Consensus votes arrive on the TPU-vote port, not here.
+                    // Leader-side only. Broader than the stake floor, which is
+                    // applied for every lane at the shared record chokepoint.
+                    if let Err(err) = Consumer::reject_vote_fee_exempt(
+                        transaction,
+                        FeeFeatures::from(working_bank.feature_set.as_ref()),
+                    ) {
+                        *result = Err(err);
+                        num_dropped_on_vote_fee_exempt += 1;
+                        container.remove_by_id(priority_id.id);
+                        continue;
+                    }
                     if let Err(err) = Consumer::check_fee_payer_unlocked(
                         working_bank,
                         transaction,
@@ -400,6 +434,7 @@ impl TransactionViewReceiveAndBuffer {
             num_dropped_on_age,
             num_dropped_on_already_processed,
             num_dropped_on_fee_payer,
+            num_dropped_on_vote_fee_exempt,
             num_dropped_on_capacity,
             num_buffered,
             receive_time_us: 0, // receive is outside this function
@@ -710,6 +745,7 @@ mod tests {
             num_dropped_on_age,
             num_dropped_on_already_processed,
             num_dropped_on_fee_payer,
+            num_dropped_on_vote_fee_exempt,
             num_dropped_on_capacity,
             num_buffered,
             receive_time_us: _,
@@ -729,6 +765,7 @@ mod tests {
         assert_eq!(num_dropped_on_age, 0);
         assert_eq!(num_dropped_on_already_processed, 0);
         assert_eq!(num_dropped_on_fee_payer, 0);
+        assert_eq!(num_dropped_on_vote_fee_exempt, 0);
         assert_eq!(num_dropped_on_capacity, 0);
         assert_eq!(num_buffered, 0);
         verify_container(&mut container, 0);
@@ -764,6 +801,7 @@ mod tests {
             num_dropped_on_age,
             num_dropped_on_already_processed,
             num_dropped_on_fee_payer,
+            num_dropped_on_vote_fee_exempt,
             num_dropped_on_capacity,
             num_buffered,
             receive_time_us: _,
@@ -780,6 +818,7 @@ mod tests {
         assert_eq!(num_dropped_on_age, 0);
         assert_eq!(num_dropped_on_already_processed, 0);
         assert_eq!(num_dropped_on_fee_payer, 0);
+        assert_eq!(num_dropped_on_vote_fee_exempt, 0);
         assert_eq!(num_dropped_on_capacity, 0);
         assert_eq!(num_buffered, 0);
 
@@ -807,6 +846,7 @@ mod tests {
             num_dropped_on_age,
             num_dropped_on_already_processed,
             num_dropped_on_fee_payer,
+            num_dropped_on_vote_fee_exempt,
             num_dropped_on_capacity,
             num_buffered,
             receive_time_us: _,
@@ -823,6 +863,7 @@ mod tests {
         assert_eq!(num_dropped_on_age, 0);
         assert_eq!(num_dropped_on_already_processed, 0);
         assert_eq!(num_dropped_on_fee_payer, 0);
+        assert_eq!(num_dropped_on_vote_fee_exempt, 0);
         assert_eq!(num_dropped_on_capacity, 0);
         assert_eq!(num_buffered, 0);
 
@@ -849,6 +890,7 @@ mod tests {
             num_dropped_on_age,
             num_dropped_on_already_processed,
             num_dropped_on_fee_payer,
+            num_dropped_on_vote_fee_exempt,
             num_dropped_on_capacity,
             num_buffered,
             receive_time_us: _,
@@ -865,6 +907,7 @@ mod tests {
         assert_eq!(num_dropped_on_age, 1);
         assert_eq!(num_dropped_on_already_processed, 0);
         assert_eq!(num_dropped_on_fee_payer, 0);
+        assert_eq!(num_dropped_on_vote_fee_exempt, 0);
         assert_eq!(num_dropped_on_capacity, 0);
         assert_eq!(num_buffered, 0);
 
@@ -896,6 +939,7 @@ mod tests {
             num_dropped_on_age,
             num_dropped_on_already_processed,
             num_dropped_on_fee_payer,
+            num_dropped_on_vote_fee_exempt,
             num_dropped_on_capacity,
             num_buffered,
             receive_time_us: _,
@@ -912,6 +956,7 @@ mod tests {
         assert_eq!(num_dropped_on_age, 0);
         assert_eq!(num_dropped_on_already_processed, 0);
         assert_eq!(num_dropped_on_fee_payer, 1);
+        assert_eq!(num_dropped_on_vote_fee_exempt, 0);
         assert_eq!(num_dropped_on_capacity, 0);
         assert_eq!(num_buffered, 0);
 
@@ -958,6 +1003,7 @@ mod tests {
             num_dropped_on_age,
             num_dropped_on_already_processed,
             num_dropped_on_fee_payer,
+            num_dropped_on_vote_fee_exempt,
             num_dropped_on_capacity,
             num_buffered,
             receive_time_us: _,
@@ -974,6 +1020,7 @@ mod tests {
         assert_eq!(num_dropped_on_age, 0);
         assert_eq!(num_dropped_on_already_processed, 0);
         assert_eq!(num_dropped_on_fee_payer, 0);
+        assert_eq!(num_dropped_on_vote_fee_exempt, 0);
         assert_eq!(num_dropped_on_capacity, 0);
         assert_eq!(num_buffered, 0);
 
@@ -1005,6 +1052,7 @@ mod tests {
             num_dropped_on_age,
             num_dropped_on_already_processed,
             num_dropped_on_fee_payer,
+            num_dropped_on_vote_fee_exempt,
             num_dropped_on_capacity,
             num_buffered,
             receive_time_us: _,
@@ -1021,6 +1069,7 @@ mod tests {
         assert_eq!(num_dropped_on_age, 0);
         assert_eq!(num_dropped_on_already_processed, 0);
         assert_eq!(num_dropped_on_fee_payer, 0);
+        assert_eq!(num_dropped_on_vote_fee_exempt, 0);
         assert_eq!(num_dropped_on_capacity, 0);
         assert_eq!(num_buffered, 1);
 
@@ -1056,6 +1105,7 @@ mod tests {
             num_dropped_on_age,
             num_dropped_on_already_processed,
             num_dropped_on_fee_payer,
+            num_dropped_on_vote_fee_exempt,
             num_dropped_on_capacity,
             num_buffered,
             receive_time_us: _,
@@ -1072,6 +1122,7 @@ mod tests {
         assert_eq!(num_dropped_on_age, 0);
         assert_eq!(num_dropped_on_already_processed, 0);
         assert_eq!(num_dropped_on_fee_payer, 0);
+        assert_eq!(num_dropped_on_vote_fee_exempt, 0);
         assert!(num_dropped_on_capacity > 0);
         assert_eq!(num_buffered, num_transactions);
 
@@ -1135,6 +1186,7 @@ mod tests {
             num_dropped_on_age,
             num_dropped_on_already_processed,
             num_dropped_on_fee_payer,
+            num_dropped_on_vote_fee_exempt,
             num_dropped_on_capacity,
             num_buffered,
             receive_time_us: _,
@@ -1151,6 +1203,7 @@ mod tests {
         assert_eq!(num_dropped_on_age, 0);
         assert_eq!(num_dropped_on_already_processed, 0);
         assert_eq!(num_dropped_on_fee_payer, 0);
+        assert_eq!(num_dropped_on_vote_fee_exempt, 0);
         assert_eq!(num_dropped_on_capacity, 0);
         assert_eq!(num_buffered, 0);
 

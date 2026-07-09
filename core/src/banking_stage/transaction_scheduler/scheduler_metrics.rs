@@ -79,6 +79,8 @@ pub struct SchedulerCountMetricsInner {
     pub num_dropped_on_receive_already_processed: Saturating<usize>,
     /// Number of transactions that were dropped on fee payer checks during receive checks.
     pub num_dropped_on_receive_fee_payer: Saturating<usize>,
+    /// Number of fee-exempt vote submissions kept off the non-vote lane during receive checks.
+    pub num_dropped_on_receive_vote_fee_exempt: Saturating<usize>,
     /// Number of transactions that were dropped due to clearing.
     pub num_dropped_on_clear: Saturating<usize>,
     /// Number of transactions that were dropped during cleaning.
@@ -137,6 +139,8 @@ impl SchedulerCountMetricsInner {
             num_dropped_on_receive_already_processed:
                 Saturating(num_dropped_on_receive_already_processed),
             num_dropped_on_receive_fee_payer: Saturating(num_dropped_on_receive_fee_payer),
+            num_dropped_on_receive_vote_fee_exempt:
+                Saturating(num_dropped_on_receive_vote_fee_exempt),
             num_dropped_on_clear: Saturating(num_dropped_on_clear),
             num_dropped_on_clean: Saturating(num_dropped_on_clean),
             num_dropped_on_capacity: Saturating(num_dropped_on_capacity),
@@ -184,6 +188,11 @@ impl SchedulerCountMetricsInner {
                 num_dropped_on_receive_fee_payer,
                 i64
             ),
+            (
+                "num_dropped_on_receive_vote_fee_exempt",
+                num_dropped_on_receive_vote_fee_exempt,
+                i64
+            ),
             ("num_dropped_on_clear", num_dropped_on_clear, i64),
             (
                 "num_dropped_on_clean",
@@ -227,6 +236,7 @@ impl SchedulerCountMetricsInner {
         self.num_dropped_on_receive_age = Saturating(0);
         self.num_dropped_on_receive_already_processed = Saturating(0);
         self.num_dropped_on_receive_fee_payer = Saturating(0);
+        self.num_dropped_on_receive_vote_fee_exempt = Saturating(0);
         self.num_dropped_on_clear = Saturating(0);
         self.num_dropped_on_clean = Saturating(0);
         self.num_dropped_on_capacity = Saturating(0);
