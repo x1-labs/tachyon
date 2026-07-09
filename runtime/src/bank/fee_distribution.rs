@@ -1,6 +1,7 @@
 use {
     super::Bank,
     crate::{bank::CollectorFeeDetails, reward_info::RewardInfo},
+    agave_feature_set::reward_full_priority_fee,
     log::debug,
     solana_account::{ReadableAccount, WritableAccount},
     solana_fee::FeeFeatures,
@@ -47,6 +48,38 @@ impl Bank {
     // earning transaction fees are fairly distributed by stake. And missing the opportunity
     // (not producing a block as a leader) earns nothing. So, being online is incentivized as a
     // form of transaction fees as well.
+    // Legacy fee distribution path used when reward_full_priority_fee is inactive.
+    // Uses collector_fees (AtomicU64) and fee_rate_governor.burn() for deposit/burn split.
+    pub(super) fn distribute_transaction_fees(&self) {
+        let collector_fees = self.collector_fees.load(Relaxed);
+        if collector_fees != 0 {
+            let (deposit, mut burn) = self.fee_rate_governor.burn(collector_fees);
+            if deposit > 0 {
+                match self.deposit_fees(&self.leader_id, deposit) {
+                    Ok(post_balance) => {
+                        self.rewards.write().unwrap().push((
+                            self.leader_id,
+                            RewardInfo {
+                                reward_type: RewardType::Fee,
+                                lamports: deposit as i64,
+                                post_balance,
+                                commission_bps: None,
+                            },
+                        ));
+                    }
+                    Err(err) => {
+                        debug!(
+                            "Burned {} lamport tx fee instead of sending to {} due to {}",
+                            deposit, self.leader_id, err
+                        );
+                        burn = burn.saturating_add(deposit);
+                    }
+                }
+            }
+            self.capitalization.fetch_sub(burn, Relaxed);
+        }
+    }
+
     pub(super) fn distribute_transaction_fee_details(&self) {
         let fee_details = self.collector_fee_details.read().unwrap();
         if fee_details.total_transaction_fee() == 0 {
@@ -78,8 +111,19 @@ impl Bank {
         let FeeDistribution {
             deposit: reward,
             burn: _,
-        } = self.calculate_reward_and_burn_fee_details(&CollectorFeeDetails::from(fee_details));
+        } = if self.feature_set.is_active(&reward_full_priority_fee::id()) {
+            self.calculate_reward_and_burn_fee_details(&CollectorFeeDetails::from(fee_details))
+        } else {
+            let fee = fee_details.total_fee();
+            self.calculate_reward_and_burn_fees(fee)
+        };
         reward
+    }
+
+    fn calculate_reward_and_burn_fees(&self, fee: u64) -> FeeDistribution {
+        // `FeeRateGovernor::burn` returns `(unburned, burned)`.
+        let (deposit, burn) = self.fee_rate_governor.burn(fee);
+        FeeDistribution { deposit, burn }
     }
 
     pub fn calculate_reward_and_burn_fee_details(
@@ -190,6 +234,23 @@ pub mod tests {
         solana_signer::Signer,
         std::sync::RwLock,
     };
+
+    #[test]
+    fn test_calculate_reward_and_burn_fees_tuple_order() {
+        let genesis = create_genesis_config(0);
+        let bank = Bank::new_for_tests(&genesis.genesis_config);
+        // Odd fee so the burned and unburned halves differ by one lamport;
+        // a swapped destructure of `FeeRateGovernor::burn` would fail this.
+        let fee = 1_001;
+        let expected_burn = fee * u64::from(bank.fee_rate_governor.burn_percent) / 100;
+        let expected_deposit = fee - expected_burn;
+        assert_ne!(expected_burn, expected_deposit);
+
+        let FeeDistribution { deposit, burn } = bank.calculate_reward_and_burn_fees(fee);
+        assert_eq!(burn, expected_burn);
+        assert_eq!(deposit, expected_deposit);
+        assert_eq!(deposit + burn, fee);
+    }
 
     #[test]
     fn test_deposit_or_burn_zero_fee() {

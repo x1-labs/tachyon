@@ -70,6 +70,7 @@ use {
     agave_feature_set::{
         self as feature_set, FeatureSet, increase_cpi_account_info_limit,
         raise_cpi_nesting_limit_to_8, relax_programdata_account_check_migration,
+        reward_full_priority_fee,
     },
     agave_precompiles::{get_precompile, get_precompiles, is_precompile},
     agave_reserved_account_keys::ReservedAccountKeys,
@@ -598,6 +599,7 @@ impl PartialEq for Bank {
             transaction_processor: _,
             check_program_deployment_slot: _,
             collector_fee_details: _,
+            collector_fees: _,
             compute_budget: _,
             transaction_account_lock_limit: _,
             fee_structure: _,
@@ -908,6 +910,11 @@ pub struct Bank {
     /// Collected fee details
     collector_fee_details: RwLock<CollectorFeeDetails>,
 
+    /// Total collected transaction fees, used by the legacy fee-distribution
+    /// path while `reward_full_priority_fee` is inactive (X1). Runtime-only;
+    /// not serialized to snapshots.
+    collector_fees: AtomicU64,
+
     /// The compute budget to use for transaction execution.
     compute_budget: Option<ComputeBudget>,
 
@@ -1154,6 +1161,7 @@ impl Bank {
             transaction_processor: TransactionBatchProcessor::default(),
             check_program_deployment_slot: false,
             collector_fee_details: RwLock::new(CollectorFeeDetails::default()),
+            collector_fees: AtomicU64::new(0),
             compute_budget: None,
             transaction_account_lock_limit: None,
             fee_structure: FeeStructure::default(),
@@ -1402,6 +1410,7 @@ impl Bank {
             transaction_processor,
             check_program_deployment_slot: false,
             collector_fee_details: RwLock::new(CollectorFeeDetails::default()),
+            collector_fees: AtomicU64::new(0),
             compute_budget: parent.compute_budget,
             transaction_account_lock_limit: parent.transaction_account_lock_limit,
             fee_structure: parent.fee_structure.clone(),
@@ -1969,6 +1978,7 @@ impl Bank {
             check_program_deployment_slot: false,
             // collector_fee_details is not serialized to snapshot
             collector_fee_details: RwLock::new(CollectorFeeDetails::default()),
+            collector_fees: AtomicU64::new(0),
             compute_budget: runtime_config.compute_budget,
             transaction_account_lock_limit: runtime_config.transaction_account_lock_limit,
             fee_structure: FeeStructure::default(),
@@ -2680,7 +2690,11 @@ impl Bank {
         let mut hash = self.hash.write().unwrap();
         if *hash == Hash::default() {
             // finish up any deferred changes to account state
-            self.distribute_transaction_fee_details();
+            if self.feature_set.is_active(&reward_full_priority_fee::id()) {
+                self.distribute_transaction_fee_details();
+            } else {
+                self.distribute_transaction_fees();
+            }
             self.update_slot_history();
             self.run_incinerator();
 
@@ -3875,6 +3889,21 @@ impl Bank {
         self.update_accounts_data_size_delta_off_chain(data_size_delta);
     }
 
+    fn filter_program_errors_and_collect_fee(
+        &self,
+        processing_results: &[TransactionProcessingResult],
+    ) {
+        let mut fees = 0;
+
+        processing_results.iter().for_each(|processing_result| {
+            if let Ok(processed_tx) = processing_result {
+                fees += processed_tx.fee_details().total_fee();
+            }
+        });
+
+        self.collector_fees.fetch_add(fees, Relaxed);
+    }
+
     fn filter_program_errors_and_collect_fee_details(
         &self,
         processing_results: &[TransactionProcessingResult],
@@ -4019,7 +4048,11 @@ impl Bank {
         let ((), update_transaction_statuses_us) =
             measure_us!(self.update_transaction_statuses(sanitized_txs, &processing_results));
 
-        self.filter_program_errors_and_collect_fee_details(&processing_results);
+        if self.feature_set.is_active(&reward_full_priority_fee::id()) {
+            self.filter_program_errors_and_collect_fee_details(&processing_results)
+        } else {
+            self.filter_program_errors_and_collect_fee(&processing_results)
+        };
 
         timings.saturating_add_in_place(ExecuteTimingType::StoreUs, store_accounts_us);
         timings.saturating_add_in_place(
