@@ -56,16 +56,6 @@ cargo_audit_ignores=(
   # Solution:  Upgrade to >=0.12.3
   --ignore RUSTSEC-2024-0376
 
-  # Crate:     rustls-webpki
-  # Version:   0.101.7
-  # Title:     CRLs not considered authoritative by Distribution Point due to faulty matching logic
-  # Date:      2026-03-20
-  # ID:        RUSTSEC-2026-0049
-  # URL:       https://rustsec.org/advisories/RUSTSEC-2026-0049
-  # Solution:  Upgrade to >=0.103.10
-  #
-  # NOTE: we took the fix for 0.103.6 dependents. 0.101.7 is unaffected
-  --ignore RUSTSEC-2026-0049
 
   # Crate:     rustls-webpki
   # Version:   0.101.7
@@ -75,7 +65,16 @@ cargo_audit_ignores=(
   # URL:       https://rustsec.org/advisories/RUSTSEC-2026-0098
   # Solution:  Upgrade to >=0.103.12, <0.104.0-alpha.1 OR >=0.104.0-alpha.6
   #
-  # AVAVE OK: we picked upstream fix atop our vendored branches
+  # SCOPE (verified 2026-09-02): the root workspace resolves rustls-webpki
+  # through the [patch.crates-io] anza-xyz vendored tags (anza-0.101.7-2 and
+  # anza-0.103.10-2), which carry the upstream fixes. That patch does NOT reach
+  # dev-bins, platform-tools-sdk or programs/sbf, which resolve from the
+  # registry. Their 0.103.x line was bumped to 0.103.13 (clearing
+  # RUSTSEC-2026-0049 outright, ignore since removed), but they still carry
+  # registry rustls-webpki 0.101.7, which is the terminal 0.101 release with no
+  # backport, pulled by rustls 0.21.12 (requires ^0.101.7). These are build and
+  # test tooling workspaces, not the validator. Re-check when rustls 0.21.x is
+  # dropped from those trees.
   --ignore RUSTSEC-2026-0098
 
   # Crate:     rustls-webpki
@@ -86,7 +85,7 @@ cargo_audit_ignores=(
   # URL:       https://rustsec.org/advisories/RUSTSEC-2026-0099
   # Solution:  Upgrade to >=0.103.12, <0.104.0-alpha.1 OR >=0.104.0-alpha.6
   #
-  # AVAVE OK: we picked upstream fix atop our vendored branches
+  # Same scope as RUSTSEC-2026-0098 above.
   --ignore RUSTSEC-2026-0099
 
   # Crate:     rustls-webpki
@@ -97,8 +96,39 @@ cargo_audit_ignores=(
   # URL:       https://rustsec.org/advisories/RUSTSEC-2026-0104
   # Solution:  Upgrade to >=0.103.13, <0.104.0-alpha.1 OR >=0.104.0-alpha.7
   #
-  # AGAVE OK: vendored the upstream fix again
+  # Same scope as RUSTSEC-2026-0098 above.
   --ignore RUSTSEC-2026-0104
+
+  # Crate:     h2
+  # Version:   0.3.26 (root, programs/sbf), 0.3.27 (dev-bins, platform-tools-sdk)
+  # Title:     h2 unbounded empty DATA frames
+  # Date:      2026-08-17
+  # ID:        RUSTSEC-2026-0258
+  # URL:       https://rustsec.org/advisories/RUSTSEC-2026-0258
+  # Severity:  low
+  # Solution:  Upgrade to >=0.4.16
+  #
+  # NO FIX AT THIS BASE (accepted risk, X1): the only patched range is >=0.4.16.
+  # h2 0.3.27 is the final 0.3.x release and predates the advisory, so no 0.3.x
+  # backport exists. Three parents pull h2 0.3 and all hard-require ^0.3:
+  # tonic 0.9.2 (via solana-storage-bigtable), hyper 0.14.32, and reqwest 0.11.27
+  # (non-optional). `cargo update -p h2 --precise 0.4.16` therefore fails in every
+  # affected workspace. Both reachable paths are OUTBOUND clients to known hosts:
+  # gRPC to Google BigTable, and the toolchain download in platform-tools-sdk,
+  # which has no tonic at all. The validator exposes no h2 listener, and the flaw
+  # is a server queueing attacker-supplied empty DATA frames, so triggering it
+  # needs a hostile endpoint. Clearing it requires agave PR #11093 (dc5d96f907):
+  # tonic 0.9.2 -> 0.14.x with prost 0.11 -> 0.14, http 0.2 -> 1.1, hyper 0.14 ->
+  # hyper-util and regenerated bigtable protos. That never landed on v4.0.
+  #
+  # WARNING for the next rebase: v4.1 and v4.2 pin h2 0.4.13, which is STILL
+  # below 0.4.16, so audit keeps firing there and this ignore is NOT removable on
+  # arrival. Only agave master carries the fix (ab0821e5d7, PR #14694). Post-
+  # rebase it does become lockfile-only, because h2's only parents are then
+  # hyper 1.x and tonic 0.14.x, both on ^0.4:
+  #   scripts/cargo-for-all-lock-files.sh update -p h2 --precise 0.4.16
+  # Drop this ignore at that point, not merely because the base moved.
+  --ignore RUSTSEC-2026-0258
 )
 scripts/cargo-for-all-lock-files.sh audit "${cargo_audit_ignores[@]}" | $dep_tree_filter
 # we want the `cargo audit` exit code, not `$dep_tree_filter`'s
