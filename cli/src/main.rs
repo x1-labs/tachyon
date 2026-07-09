@@ -1,5 +1,5 @@
 use {
-    clap::{ArgMatches, crate_description, crate_name, value_t_or_exit},
+    clap::{ArgMatches, crate_description, value_t_or_exit},
     console::style,
     solana_clap_utils::{
         DisplayError,
@@ -232,12 +232,8 @@ pub fn parse_args<'a>(
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn error::Error>> {
     agave_logger::setup_with_default("off");
-    let matches = get_clap_app(
-        crate_name!(),
-        crate_description!(),
-        solana_version::version!(),
-    )
-    .get_matches();
+    let matches =
+        get_clap_app("x1-cli", crate_description!(), solana_version::version!()).get_matches();
 
     do_main(&matches)
         .await

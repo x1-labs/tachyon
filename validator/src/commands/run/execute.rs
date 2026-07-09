@@ -13,7 +13,7 @@ use {
     },
     agave_votor::vote_history_storage,
     agave_xdp::{set_cpu_affinity, xdp_retransmitter::XdpConfig},
-    clap::{ArgMatches, crate_name, value_t, value_t_or_exit, values_t, values_t_or_exit},
+    clap::{ArgMatches, value_t, value_t_or_exit, values_t, values_t_or_exit},
     crossbeam_channel::unbounded,
     log::*,
     rand::{rng, seq::SliceRandom},
@@ -142,7 +142,7 @@ pub fn execute(
 
     cli::warn_for_deprecated_arguments(matches);
 
-    info!("{} {}", crate_name!(), solana_version);
+    info!("x1-validator {solana_version}");
     info!("Starting validator with: {:#?}", std::env::args_os());
 
     solana_metrics::set_host_id(identity_keypair.pubkey().to_string());

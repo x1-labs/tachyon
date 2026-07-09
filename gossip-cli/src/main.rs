@@ -3,8 +3,8 @@
 use solana_gossip::{contact_info::ContactInfo, gossip_service::discover_peers};
 use {
     clap::{
-        App, AppSettings, Arg, ArgMatches, SubCommand, crate_description, crate_name, value_t,
-        value_t_or_exit, values_t,
+        App, AppSettings, Arg, ArgMatches, SubCommand, crate_description, value_t, value_t_or_exit,
+        values_t,
     },
     log::{info, warn},
     solana_clap_utils::{
@@ -159,7 +159,7 @@ fn get_clap_app<'ab, 'v>(name: &str, about: &'ab str, version: &'v str) -> App<'
 
 fn parse_matches() -> ArgMatches<'static> {
     get_clap_app(
-        crate_name!(),
+        "x1-gossip",
         crate_description!(),
         solana_version::version!(),
     )

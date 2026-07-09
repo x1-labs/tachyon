@@ -139,7 +139,7 @@ pub enum Error {
     ProgramError(#[from] ProgramError),
     #[error("Exit signal received")]
     ExitSignal,
-    #[error("Bad input data for SOL value: {input}")]
+    #[error("Bad input data for XNT value: {input}")]
     BadInputNumberError { input: String },
 }
 

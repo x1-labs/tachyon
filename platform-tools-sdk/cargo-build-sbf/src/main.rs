@@ -153,7 +153,7 @@ fn invoke_cargo(config: &Config, platform_tools_dir: &Path, validated_toolchain_
 
     if corrupted_toolchain(platform_tools_dir) {
         error!(
-            "The Solana toolchain is corrupted. Please, run cargo-build-sbf with the \
+            "The X1 toolchain is corrupted. Please, run cargo-build-sbf with the \
              --force-tools-install argument to fix it."
         );
         exit(1);
@@ -401,7 +401,7 @@ fn main() {
                 .long("sbf-sdk")
                 .value_name("PATH")
                 .takes_value(true)
-                .help("UNUSED: Path to the Solana SBF SDK."),
+                .help("UNUSED: Path to the X1 SBF SDK."),
         )
         .arg(
             Arg::new("cargo_args")
@@ -470,8 +470,8 @@ fn main() {
                 .conflicts_with("force_tools_install")
                 .help(
                     "Do not use rustup to manage the toolchain. By default, cargo-build-sbf \
-                     invokes rustup to find the Solana rustc using a `+solana` toolchain \
-                     override. This flag disables that behavior.",
+                     invokes rustup to find the X1 rustc using a `+x1` toolchain override. This \
+                     flag disables that behavior.",
                 ),
         )
         .arg(
@@ -528,7 +528,7 @@ fn main() {
                 .long("workspace")
                 .takes_value(false)
                 .alias("all")
-                .help("Build all Solana packages in the workspace"),
+                .help("Build all X1 packages in the workspace"),
         )
         .arg(
             Arg::new("jobs")

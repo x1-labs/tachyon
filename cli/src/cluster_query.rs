@@ -238,7 +238,7 @@ impl ClusterQuerySubCommands for App<'_, '_> {
         )
         .subcommand(
             SubCommand::with_name("supply")
-                .about("Get information about the cluster supply of SOL")
+                .about("Get information about the cluster supply of XNT")
                 .arg(
                     Arg::with_name("print_accounts")
                         .long("print-accounts")
@@ -248,7 +248,7 @@ impl ClusterQuerySubCommands for App<'_, '_> {
         )
         .subcommand(
             SubCommand::with_name("total-supply")
-                .about("Get total number of SOL")
+                .about("Get total number of XNT")
                 .setting(AppSettings::Hidden),
         )
         .subcommand(
@@ -350,7 +350,7 @@ impl ClusterQuerySubCommands for App<'_, '_> {
                     Arg::with_name("lamports")
                         .long("lamports")
                         .takes_value(false)
-                        .help("Display balance in lamports instead of SOL"),
+                        .help("Display balance in lamports instead of XNT"),
                 )
                 .arg(pubkey!(
                     Arg::with_name("vote_account_pubkeys")
@@ -375,7 +375,7 @@ impl ClusterQuerySubCommands for App<'_, '_> {
                     Arg::with_name("lamports")
                         .long("lamports")
                         .takes_value(false)
-                        .help("Display balance in lamports instead of SOL"),
+                        .help("Display balance in lamports instead of XNT"),
                 )
                 .arg(
                     Arg::with_name("number")
@@ -498,7 +498,7 @@ impl ClusterQuerySubCommands for App<'_, '_> {
                     Arg::with_name("lamports")
                         .long("lamports")
                         .takes_value(false)
-                        .help("Display rent in lamports instead of SOL"),
+                        .help("Display rent in lamports instead of XNT"),
                 ),
         )
     }
@@ -1480,7 +1480,7 @@ pub async fn process_total_supply(
 ) -> ProcessResult {
     let supply = rpc_client.supply().await?.value;
     Ok(format!(
-        "{} SOL",
+        "{} XNT",
         build_balance_message(supply.total, false, false)
     ))
 }

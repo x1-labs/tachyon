@@ -2,7 +2,7 @@
 #![allow(clippy::arithmetic_side_effects)]
 
 use {
-    clap::{App, Arg, crate_description, crate_name, value_t, value_t_or_exit, values_t},
+    clap::{App, Arg, crate_description, value_t, value_t_or_exit, values_t},
     log::*,
     solana_clap_utils::{
         hidden_unless_forced,
@@ -41,7 +41,7 @@ struct Config {
 }
 
 fn get_config() -> Config {
-    let matches = App::new(crate_name!())
+    let matches = App::new("x1-watchtower")
         .about(crate_description!())
         .version(solana_version::version!())
         .after_help(
@@ -141,11 +141,11 @@ fn get_config() -> Config {
         .arg(
             Arg::with_name("minimum_validator_identity_balance")
                 .long("minimum-validator-identity-balance")
-                .value_name("SOL")
+                .value_name("XNT")
                 .takes_value(true)
                 .default_value("10")
                 .validator(is_parsable::<f64>)
-                .help("Alert when the validator identity balance is less than this amount of SOL"),
+                .help("Alert when the validator identity balance is less than this amount of XNT"),
         )
         .arg(
             // Deprecated parameter, now always enabled

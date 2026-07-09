@@ -296,9 +296,7 @@ fn test_corrupted_toolchain() {
             .output()
             .unwrap();
 
-        assert!(
-            String::from_utf8_lossy(&output.stderr).contains("The Solana toolchain is corrupted.")
-        );
+        assert!(String::from_utf8_lossy(&output.stderr).contains("The X1 toolchain is corrupted."));
     }
 
     let bin_folder = platform_tools_path().join("rust").join("bin");

@@ -263,7 +263,7 @@ impl ProgramSubCommands for App<'_, '_> {
                                 .takes_value(false)
                                 .help(
                                     "Use the designated program id even if the account already \
-                                     holds a large balance of SOL (Obsolete)",
+                                     holds a large balance of XNT (Obsolete)",
                                 ),
                         )
                         .arg(
@@ -552,7 +552,7 @@ impl ProgramSubCommands for App<'_, '_> {
                             Arg::with_name("lamports")
                                 .long("lamports")
                                 .takes_value(false)
-                                .help("Display balance in lamports instead of SOL"),
+                                .help("Display balance in lamports instead of XNT"),
                         ),
                 )
                 .subcommand(
@@ -615,7 +615,7 @@ impl ProgramSubCommands for App<'_, '_> {
                             Arg::with_name("lamports")
                                 .long("lamports")
                                 .takes_value(false)
-                                .help("Display balance in lamports instead of SOL"),
+                                .help("Display balance in lamports instead of XNT"),
                         )
                         .arg(
                             Arg::with_name("bypass_warning")
@@ -700,7 +700,7 @@ impl ProgramSubCommands for App<'_, '_> {
         .subcommand(
             SubCommand::with_name("deploy")
                 .about(
-                    "Deploy has been removed. Use `solana program deploy` instead to deploy \
+                    "Deploy has been removed. Use `x1 program deploy` instead to deploy \
                      upgradeable programs",
                 )
                 .setting(AppSettings::Hidden),
@@ -3454,12 +3454,12 @@ fn report_ephemeral_mnemonic(words: usize, mnemonic: bip39::Mnemonic, ephemeral_
     let phrase: &str = mnemonic.phrase();
     let divider = String::from_utf8(vec![b'='; phrase.len()]).unwrap();
     eprintln!("{divider}\nRecover the intermediate account's ephemeral keypair file with");
-    eprintln!("`solana-keygen recover` and the following {words}-word seed phrase:");
+    eprintln!("`x1-keygen recover` and the following {words}-word seed phrase:");
     eprintln!("{divider}\n{phrase}\n{divider}");
     eprintln!("To resume a deploy, pass the recovered keypair as the");
-    eprintln!("[BUFFER_SIGNER] to `solana program deploy` or `solana program write-buffer'.");
+    eprintln!("[BUFFER_SIGNER] to `x1 program deploy` or `x1 program write-buffer'.");
     eprintln!("Or to recover the account's lamports, use:");
-    eprintln!("{divider}\nsolana program close {ephemeral_pubkey}\n{divider}");
+    eprintln!("{divider}\nx1 program close {ephemeral_pubkey}\n{divider}");
 }
 
 async fn fetch_feature_set(

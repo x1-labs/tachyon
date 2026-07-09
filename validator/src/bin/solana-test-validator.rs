@@ -3,7 +3,7 @@ use {
         admin_rpc_service, cli, commands::FromClapArgMatches, dashboard::Dashboard,
         ledger_lockfile, lock_ledger, println_name_value,
     },
-    clap::{crate_name, value_t, value_t_or_exit, values_t_or_exit},
+    clap::{value_t, value_t_or_exit, values_t_or_exit},
     crossbeam_channel::unbounded,
     itertools::Itertools,
     log::*,
@@ -133,7 +133,7 @@ fn main() {
     };
     agave_logger::initialize_logging(logfile);
 
-    info!("{} {}", crate_name!(), solana_version::version!());
+    info!("x1-test-validator {}", solana_version::version!());
     info!("Starting validator with: {:#?}", std::env::args_os());
     solana_core::validator::report_target_features();
 
@@ -396,7 +396,7 @@ fn main() {
     } else if random_mint {
         println_name_value(
             "\nNotice!",
-            "No wallet available. `solana airdrop` localnet SOL after creating one\n",
+            "No wallet available. `solana airdrop` localnet XNT after creating one\n",
         );
     }
 
