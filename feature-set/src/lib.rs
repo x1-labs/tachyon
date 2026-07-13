@@ -1319,8 +1319,15 @@ pub mod replace_spl_token_with_p_token {
     pub const SPL_TOKEN_PROGRAM_ID: Pubkey =
         Pubkey::from_str_const("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
 
+    // X1-controlled buffer address (keypair in the feature-gate keystore). The
+    // upstream buffer `ptok6rngomXrDbWf5v5Mkmu5CEbB51hzSCPDoj9DrvF` is unusable on
+    // X1: its keypair is upstream-held, so no account can ever exist there. The
+    // migration is one-shot at the activation epoch — this buffer must hold the
+    // p-token ELF (sha256 8190d3f7ceb6cb7a7a8d8924bff89f9f611e15ce1f806f2b6237f3311a98f697,
+    // dumped from Solana mainnet's post-migration Tokenkeg programdata) BEFORE
+    // the gate activates.
     pub const PTOKEN_PROGRAM_BUFFER: Pubkey =
-        Pubkey::from_str_const("ptok6rngomXrDbWf5v5Mkmu5CEbB51hzSCPDoj9DrvF");
+        Pubkey::from_str_const("A7yWQvqszSmwYhsrh2AyYcmj82Vh4LYmKqrerScd5anH");
 }
 
 pub mod alt_bn128_little_endian {
