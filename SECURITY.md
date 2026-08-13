@@ -29,9 +29,7 @@ include attachments or provide detail sufficient for exploitation regarding the
 security issue in this email. **Only provide such details in the advisory**.
 
 If you do not receive a response from security@x1.xyz please followup with
-the team directly. You can do this in the `#validators` channel of the
-[X1 discord server](https://discord.gg/x1), referencing the fact that you
-submitted a security problem.
+the team directly, referencing the fact that you submitted a security problem.
 
 <a name="process"></a>
 ## Incident Response Process
