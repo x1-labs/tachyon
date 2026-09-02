@@ -1,18 +1,22 @@
 # Security Policy
 
 1. [Reporting security problems](#reporting)
-4. [Security Bug Bounties](#bounty)
 2. [Incident Response Process](#process)
+3. [Security Bug Bounties](#bounty)
 
-<a name="reporting"></a>
-## Reporting security problems in the Agave Validator
+<a id="reporting"></a>
+## Reporting security problems in the X1 Tachyon Validator
 
 **DO NOT CREATE A GITHUB ISSUE** to report a security problem.
 
-Instead please use this [Report a Vulnerability](https://github.com/anza-xyz/agave/security/advisories/new) link.
+Instead please use this [Report a Vulnerability](https://github.com/x1-labs/tachyon/security/advisories/new) link.
 Provide a helpful title, detailed description of the vulnerability and an exploit
 proof-of-concept. Speculative submissions without proof-of-concept will be closed
 with no further consideration.
+
+Create one GHSA per finding. GHSAs reporting multiple findings will be closed as
+invalid. Such reports will not be eligible for bug bounties and will not hold a
+position in duplicate report standings.
 
 For vulnerabilities regarding SPL programs, please refer to the repositories
 and their associated security policy within the [solana-program organization](https://github.com/solana-program).
@@ -24,16 +28,14 @@ Expect a response as fast as possible in the advisory, typically within 72 hours
 --
 
 If you do not receive a response in the advisory, send an email to
-security@anza.xyz with the full URL of the advisory you have created.  DO NOT
+security@x1.xyz with the full URL of the advisory you have created.  DO NOT
 include attachments or provide detail sufficient for exploitation regarding the
 security issue in this email. **Only provide such details in the advisory**.
 
-If you do not receive a response from security@anza.xyz please followup with
-the team directly. You can do this in the `#core-technology` channel of the
-[Solana Tech discord server](https://solana.com/discord), by pinging the `Anza`
-role in the channel and referencing the fact that you submitted a security problem.
+If you do not receive a response from security@x1.xyz please followup with
+the team directly, referencing the fact that you submitted a security problem.
 
-<a name="process"></a>
+<a id="process"></a>
 ## Incident Response Process
 
 In case an incident is discovered or reported, the following process will be
@@ -41,27 +43,27 @@ followed to contain, respond and remediate:
 
 ### 1. Accept the new report
 In response a newly reported security problem, a member of the
-`anza-xyz/admins` group will accept the report to turn it into a draft
-advisory.  The `anza-xyz/security-incident-response` group should be added to
+`x1-labs/admins` group will accept the report to turn it into a draft
+advisory.  The `x1-labs/security-incident-response` group should be added to
 the draft security advisory, and create a private fork of the repository (grey
 button towards the bottom of the page) if necessary.
 
 If the advisory is the result of an audit finding, follow the same process as above but add the auditor's github user(s) and begin the title with "[Audit]".
 
-If the report is out of scope, a member of the `anza-xyz/admins` group will
+If the report is out of scope, a member of the `x1-labs/admins` group will
 comment as such and then close the report.
 
 ### 2. Triage
-Within the draft security advisory, discuss and determine the severity of the issue. If necessary, members of the anza-xyz/security-incident-response group may add other github users to the advisory to assist.
-If it is determined that this is not a critical network issue then the advisory should be closed and if more follow-up is required a normal Solana public github issue should be created.
+Within the draft security advisory, discuss and determine the severity of the issue. If necessary, members of the x1-labs/security-incident-response group may add other github users to the advisory to assist.
+If it is determined that this is not a critical network issue then the advisory should be closed and if more follow-up is required a normal public github issue should be created in this repository.
 
 ### 3. Prepare Fixes
-For the affected branches, typically all three (edge, beta and stable), prepare a fix for the issue and push them to the corresponding branch in the private repository associated with the draft security advisory.
+For the affected branches, prepare a fix for the issue and push them to the corresponding branch in the private repository associated with the draft security advisory.
 There is no CI available in the private repository so you must build from source and manually verify fixes.
 Code review from the reporter is ideal, as well as from multiple members of the core development team.
 
 ### 4. Notify Security Group Validators
-Once an ETA is available for the fix, a member of the anza-xyz/security-incident-response group should notify the validators so they can prepare for an update using the "Solana Red Alert" notification system.
+Once an ETA is available for the fix, a member of the x1-labs/security-incident-response group should notify the validators so they can prepare for an update.
 The teams are all over the world and it's critical to provide actionable information at the right time. Don't be the person that wakes everybody up at 2am when a fix won't be available for hours.
 
 ### 5. Ship the patch
@@ -79,86 +81,122 @@ security advisory with one of the following, depending on the severity:
 - [Bounty Category: Critical: DoS Attacks]
 - [Bounty Category: Supply Chain Attacks]
 - [Bounty Category: RPC]
+- [Bounty Category: Other]
 
 Confirm with the reporter that they agree with the severity assessment, and discuss as required to reach a conclusion.
 
 We currently do not use the Github workflow to publish security advisories. Once the issue and fix have been disclosed, and a bounty category is assessed if appropriate, the GitHub security advisory is no longer needed and can be closed.
 
-<a name="bounty"></a>
+<a id="bounty"></a>
 ## Security Bug Bounties
-At its sole discretion, the Solana Foundation may offer a bounty for
-[valid reports](#reporting) of critical Solana vulnerabilities. Please see below
+At its sole discretion, X1 Labs may offer a bounty for
+[valid reports](#reporting) of critical X1 vulnerabilities. Please see below
 for more details. The submitter is not required to provide a
 mitigation to qualify.
 
 #### IMPORTANT | PLEASE NOTE
-_Beginning February 1st 2024, the Security bounty program payouts will be updated in the following ways:_
-- _Bug Bounty rewards will be denominated in SOL tokens, rather than USD value._
-_This change is to better reflect for changing value of the Solana network._
-- _Categories will now have a discretionary range to distinguish the varying severity_
+- _Bug Bounty rewards are denominated in XNT tokens, rather than USD value._
+- _Categories have a discretionary range to distinguish the varying severity_
 _and impact of bugs reported within each broader category._
 
-_Note: Payments will continue to be paid out in 12-month locked SOL._
+_Note: Payments are paid out in 12-month locked XNT._
 
 
 #### Loss of Funds:
-_Max: 25,000 SOL tokens. Min: 6,250 SOL tokens_
+_Max: 25,000 XNT tokens. Min: 6,250 XNT tokens_
 
 * Theft of funds without users signature from any account
 * Theft of funds without users interaction in system, stake, vote programs
 * Theft of funds that requires users signature - creating a vote program that drains the delegated stakes.
 
 #### Consensus/Safety Violations:
-_Max: 12,500 SOL tokens. Min: 3,125 SOL tokens_
+_Max: 12,500 XNT tokens. Min: 3,125 XNT tokens_
 
 * Consensus safety violation
 * Tricking a validator to accept an optimistic confirmation or rooted slot without a double vote, etc.
 
 #### Liveness / Loss of Availability:
-_Max: 5,000 SOL tokens. Min: 1,250 SOL tokens_
+_Max: 5,000 XNT tokens. Min: 1,250 XNT tokens_
 
 * Whereby consensus halts and requires human intervention
 * Eclipse attacks,
 * Remote attacks that partition the network,
 
 #### DoS Attacks:
-_Max: 1,250 SOL tokens. Min: 315 SOL tokens_
+_Max: 1,250 XNT tokens. Min: 315 XNT tokens_
 
 * Remote resource exhaustion via Non-RPC protocols
 
 #### Supply Chain Attacks:
-_Max: 1,250 SOL tokens. Min: 315 SOL tokens_
+_Max: 1,250 XNT tokens. Min: 315 XNT tokens_
 
 * Non-social attacks against source code change management, automated testing, release build, release publication and release hosting infrastructure of the monorepo.
 
 #### RPC DoS/Crashes:
-_Max: 65 SOL tokens. Min: 20 SOL tokens_
+_Max: 65 XNT tokens. Min: 20 XNT tokens_
 
 * RPC attacks
 
+#### Other:
+_Max: None. Min: None_
+
+This category may be assigned at the sole discretion of X1 Labs for reports that
+fall outside the explicitly declared categories, but are deemed worthy of a reward
+nonetheless. Attempting to self-assign this category will almost certainly
+disqualify the report.
+
 ### Out of Scope:
-The following components are out of scope for the bounty program
-* Metrics: `/metrics` in the monorepo as well as https://metrics.solana.com
+The following components and subjects are out of scope for the bounty program.
+Findings in these areas are urged to be reported as normal public issues against
+the repo.
+* Metrics: `/metrics` in the monorepo as well as any hosted metrics endpoints
 * Any encrypted credentials, auth tokens, etc. checked into the repo
 * Bugs in dependencies. Please take them upstream!
 * Attacks that require social engineering
-* Any undeveloped automated tooling (scanners, etc) results. (OK with developed PoC)
-* Any asset whose source code does not exist in this repository (including, but not limited
-to, any and all web properties not explicitly listed on this page)
-* Programs in the Solana Program Library, such as SPL Token. Please refer to the
-[SPL security policy](https://github.com/solana-labs/solana-program-library/security/policy).
-* Alpenglow crates (votor, votor-messages, etc) and plumbing. Migration of the
-Alpenglow logic from a feature fork to agave master is currently underway. As
-such there are many paritially migrated changes isolated to a few areas. These
-are disqualified from reports and bounties. Bugs in integration logic that impact
-the no-Alpenglow code path remain in scope
+* Any undeveloped automated tooling (ai, scanners, etc) results. (OK with developed PoC)
+* Any asset whose source code does not exist in this repository. Including, but
+not limited to;
+  * Any and all web properties
+  * [SPL member projects](https://github.com/solana-program) (See repo security tab)
+  * SDK crates, whether patched from [x1-labs/x1-sdk](https://github.com/x1-labs/x1-sdk)
+    or consumed upstream from [anza-xyz/solana-sdk](https://github.com/anza-xyz/solana-sdk)
+    (See the respective security tab)
+* Findings that require a Geyser plugin or `scheduler-bindings` external
+process to violate interface requirements. These integrations are operator-trusted
+components, and validator crashes or other instability caused by non-conforming
+implementations are out of scope.
+* Issues that have been previously disclosed in a public venue
+* Issues that affect node stability during the bootstrap phase and can be trivially
+mitigated by configuration adjustments. The bootstrap phase is defined as the time
+between process creation and completion of replay for the first block after the
+snapshot slot or genesis.
+* Issues involving maliciously crafted snapshots. Snapshots have historically been
+considered trust on first use and have many shortcomings with respect to consistency
+and verifiability as a result.
+* The in-built RPC service is not intended to be directly exposed to untrusted clients.
+Any environments which require features like authentication and rate-limiting _*MUST*_ be
+deployed behind a reverse proxy or similar. For the RPC DoS category, the following
+classes of issue are out of scope
+  * Those requiring a call rate greater than twice per slot
+  * Those requiring calls from multiple clients
+  * Those impacting getProgramAccounts, et al. without secondary indexes enabled and/or
+    unfiltered requests, which are known to be slow on clusters with large accounts sets
+* Alpenglow crates (`votor`, `votor-messages`, etc) and migration plumbing. This logic
+is inherited from upstream in a partially migrated state and the `alpenglow` feature is
+not activated on any X1 cluster. These are disqualified from reports and bounties. Bugs
+in integration logic that impact the no-Alpenglow code path remain in scope
+* Loader V4 (the `loader-v4` crate and associated code paths, including the
+`bpf_loader` Migrate instruction). The `enable_loader_v4` feature is not activated on
+any X1 cluster and the code is being removed upstream. Bugs relating to Loader V4
+functionality are disqualified from reports and bounties.
 
 ### Eligibility:
 * Submissions _MUST_ include an exploit proof-of-concept to be considered eligible
+* Only reports describing a [single finding](#reporting) will be considered eligible
 * The participant submitting the bug report shall follow the process outlined within this document
 * Valid exploits can be eligible even if they are not successfully executed on a public cluster
 * Multiple submissions for the same class of exploit are still eligible for compensation, though may be compensated at a lower rate, however these will be assessed on a case-by-case basis
-* Participants must complete KYC and sign the participation agreement here when the registrations are open https://solana.foundation/kyc. Security exploits will still be assessed and open for submission at all times. This needs only be done prior to distribution of tokens.
+* Participants must complete KYC and sign the participation agreement before tokens can be distributed. Contact security@x1.xyz for details. Security exploits will still be assessed and open for submission at all times.
 
 ### Duplicate Reports
 Compensation for duplicative reports will be split among reporters with first to report taking priority using the following equation
@@ -181,5 +219,5 @@ bi = 2 ^ (R - ri) / ((2^R) - 1)
 
 ### Payment of Bug Bounties:
 * Bounties are currently awarded on a rolling/weekly basis and paid out within 30 days upon receipt of an invoice.
-* Bug bounties that are paid out in SOL are paid to stake accounts with a lockup expiring 12 months from the date of delivery of SOL.
-* **Note: payment notices need to be sent to ap@solana.org within 90 days of receiving payment advice instructions.** Failure to do so may result in forfeiture of the bug bounty reward.
+* Bug bounties that are paid out in XNT are paid to stake accounts with a lockup expiring 12 months from the date of delivery of XNT.
+* **Note: payment notices need to be sent to security@x1.xyz within 90 days of receiving payment advice instructions.** Failure to do so may result in forfeiture of the bug bounty reward.
