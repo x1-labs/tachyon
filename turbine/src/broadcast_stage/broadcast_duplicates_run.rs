@@ -45,7 +45,6 @@ pub(super) struct BroadcastDuplicatesRun {
     next_code_index: u32,
     shred_version: u16,
     recent_blockhash: Option<Hash>,
-    prev_entry_hash: Option<Hash>,
     num_slots_broadcasted: usize,
     cluster_nodes_cache: Arc<ClusterNodesCache<BroadcastStage>>,
     original_last_data_shreds: Arc<Mutex<HashSet<Signature>>>,
@@ -75,7 +74,6 @@ impl BroadcastDuplicatesRun {
             shred_version,
             current_slot: 0,
             recent_blockhash: None,
-            prev_entry_hash: None,
             num_slots_broadcasted: 0,
             cluster_nodes_cache,
             original_last_data_shreds: Arc::<Mutex<HashSet<Signature>>>::default(),
@@ -113,7 +111,6 @@ impl BroadcastRun for BroadcastDuplicatesRun {
             self.next_shred_index = 0;
             self.next_code_index = 0;
             self.current_slot = bank.slot();
-            self.prev_entry_hash = None;
             self.num_slots_broadcasted += 1;
         }
 
@@ -138,13 +135,21 @@ impl BroadcastRun for BroadcastDuplicatesRun {
                 && let Some(recent_blockhash) = self.recent_blockhash
             {
                 let entry_batch_len = receive_results.entries.len();
-                let prev_entry_hash =
-                    // Try to get second-to-last entry before last tick
-                    if entry_batch_len > 1 {
-                        Some(receive_results.entries[entry_batch_len - 2].hash)
-                    } else {
-                        self.prev_entry_hash
-                    };
+                // Try to get second-to-last entry before last tick.
+                //
+                // Only inject when the batch holds more than the last tick. The
+                // injection pops the last entry, so a single-entry batch would be
+                // left empty and then serialized into shreds as an empty entry
+                // batch. Since #13232 the blockstore rejects that
+                // (BlockstoreError::EmptyEntryBatch), so the slot can never be
+                // replayed: it is marked dead, repair fetches the same bytes, and
+                // ReplayStage panics after MAX_REPAIR_RETRY_LOOP_ATTEMPTS. Skipping
+                // here just defers the duplicate to the next eligible slot.
+                let prev_entry_hash = if entry_batch_len > 1 {
+                    Some(receive_results.entries[entry_batch_len - 2].hash)
+                } else {
+                    None
+                };
 
                 if let Some(prev_entry_hash) = prev_entry_hash {
                     let original_last_entry = receive_results.entries.pop().unwrap();
@@ -178,11 +183,6 @@ impl BroadcastRun for BroadcastDuplicatesRun {
                 None
             }
         };
-
-        self.prev_entry_hash = last_entries
-            .as_ref()
-            .map(|(original_last_entry, _)| original_last_entry.hash)
-            .or_else(|| Some(receive_results.entries.last().unwrap().hash));
 
         let shredder = Shredder::new(
             bank.slot(),
