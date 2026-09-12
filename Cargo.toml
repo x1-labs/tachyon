@@ -620,3 +620,9 @@ codegen-units = 1
 [patch.crates-io]
 # for details, see https://github.com/anza-xyz/crossbeam/commit/fd279d707025f0e60951e429bf778b4813d1b6bf
 crossbeam-epoch = { git = "https://github.com/anza-xyz/crossbeam", rev = "fd279d707025f0e60951e429bf778b4813d1b6bf" }
+
+# X1 SDK patches - custom cluster types and genesis hashes
+solana-cluster-type = { git = "https://github.com/x1-labs/x1-sdk", branch = "x1-cluster-type@v4.1.0" }
+solana-hash = { git = "https://github.com/x1-labs/x1-sdk", branch = "x1-cluster-type@v4.1.0" }
+solana-sanitize = { git = "https://github.com/x1-labs/x1-sdk", branch = "x1-cluster-type@v4.1.0" }
+solana-frozen-abi = { git = "https://github.com/x1-labs/x1-sdk", branch = "x1-cluster-type@v4.1.0" }
