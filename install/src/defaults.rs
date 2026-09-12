@@ -1,6 +1,6 @@
 use std::sync::LazyLock;
 
-pub const JSON_RPC_URL: &str = "http://api.devnet.solana.com";
+pub const JSON_RPC_URL: &str = "http://rpc.testnet.x1.xyz";
 
 pub static CONFIG_FILE: LazyLock<Option<String>> = LazyLock::new(|| {
     dirs_next::home_dir().map(|mut path| {
