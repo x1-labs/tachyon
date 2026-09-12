@@ -1,3 +1,5 @@
+#[cfg(test)]
+use solana_runtime::vote_admission::MIN_VOTE_ACCOUNT_STAKE_LAMPORTS;
 use {
     super::latest_validator_vote_packet::{LatestValidatorVote, VoteSource},
     crate::banking_stage::transaction_scheduler::transaction_state_container::SharedBytes,
@@ -11,6 +13,7 @@ use {
     solana_runtime::{
         bank::Bank,
         epoch_stakes::{EpochAuthorizedVoters, VersionedEpochStakes},
+        vote_admission::min_vote_account_stake,
     },
     solana_sysvar::{self as sysvar, slot_hashes::SlotHashes},
     std::{cmp, sync::Arc},
@@ -51,6 +54,9 @@ pub struct VoteStorage {
     cached_epoch_authorized_voters: Arc<EpochAuthorizedVoters>,
     deprecate_legacy_vote_ixs: bool,
     current_epoch: Epoch,
+    /// Minimum activated stake a vote account must have for its votes to be
+    /// admitted (resolved from the cluster type at construction).
+    min_vote_account_stake: u64,
 }
 
 impl VoteStorage {
@@ -68,6 +74,10 @@ impl VoteStorage {
             cached_epoch_authorized_voters,
             current_epoch: bank.epoch(),
             deprecate_legacy_vote_ixs: bank.feature_set.snapshot().deprecate_legacy_vote_ixs,
+            min_vote_account_stake: min_vote_account_stake(
+                bank.cluster_type(),
+                bank.feature_set.as_ref(),
+            ),
         }
     }
 
@@ -77,7 +87,12 @@ impl VoteStorage {
 
         let vote_accounts = vote_pubkeys_to_stake
             .iter()
-            .map(|pubkey| (*pubkey, (1u64, VoteAccount::new_random())))
+            .map(|pubkey| {
+                (
+                    *pubkey,
+                    (MIN_VOTE_ACCOUNT_STAKE_LAMPORTS, VoteAccount::new_random()),
+                )
+            })
             .collect();
         let epoch_stakes = VersionedEpochStakes::new_for_tests(vote_accounts, 0);
         // Authorized voters don't change in tests so it's fine to use the authorized voters from the "wrong" epoch
@@ -90,6 +105,7 @@ impl VoteStorage {
             cached_epoch_authorized_voters: epoch_authorized_voters,
             current_epoch: 0,
             deprecate_legacy_vote_ixs: true,
+            min_vote_account_stake: MIN_VOTE_ACCOUNT_STAKE_LAMPORTS,
         }
     }
 
@@ -196,16 +212,24 @@ impl VoteStorage {
             self.cached_epoch_stakes = current_epoch_stakes;
             self.current_epoch = bank.epoch();
             self.deprecate_legacy_vote_ixs = bank.feature_set.snapshot().deprecate_legacy_vote_ixs;
+            // Re-resolve so an escalation gate activation takes effect at the
+            // epoch boundary without a restart.
+            self.min_vote_account_stake =
+                min_vote_account_stake(bank.cluster_type(), bank.feature_set.as_ref());
         }
 
-        // Evict entries that are now unstaked or have a stale authorized voter
+        // Evict entries that are below the stake floor or have a stale authorized voter.
+        // With no vote_min_stake_* gate active the floor is MUST_BE_STAKED_LAMPORTS (1),
+        // so `< floor` is exactly upstream's `== 0` check.
         let mut unstaked_votes = 0;
         let mut evicted_stale_authority_votes = 0;
         let mut total_evicted = 0;
+        let min_vote_account_stake = self.min_vote_account_stake;
         self.latest_vote_per_vote_pubkey
             .retain(|vote_pubkey, vote| {
                 let is_present = !vote.is_vote_taken();
-                let has_no_stake = self.cached_epoch_stakes.vote_account_stake(vote_pubkey) == 0;
+                let has_no_stake = self.cached_epoch_stakes.vote_account_stake(vote_pubkey)
+                    < min_vote_account_stake;
                 let has_stale_authority = self
                     .cached_epoch_authorized_voters
                     .get(vote_pubkey)
@@ -244,10 +268,11 @@ impl VoteStorage {
         let mut num_dropped_tpu = 0;
 
         for vote in votes {
+            // Drop votes from vote accounts below the minimum stake threshold.
             if self
                 .cached_epoch_stakes
                 .vote_account_stake(&vote.vote_pubkey())
-                == 0
+                < self.min_vote_account_stake
             {
                 continue;
             }
@@ -341,8 +366,8 @@ impl VoteStorage {
             .keys()
             .filter_map(|&pubkey| {
                 let stake = self.cached_epoch_stakes.vote_account_stake(&pubkey);
-                if stake == 0 {
-                    None // Ignore votes from unstaked validators
+                if stake < self.min_vote_account_stake {
+                    None // Ignore votes from validators below the minimum stake floor
                 } else {
                     Some((rng().random::<f64>().powf(1.0 / (stake as f64)), pubkey))
                 }
@@ -526,9 +551,12 @@ pub(crate) mod tests {
     #[test]
     fn test_reinsert_packets() {
         let keypair = ValidatorVoteKeypairs::new_rand();
-        let genesis_config =
-            genesis_utils::create_genesis_config_with_vote_accounts(100, &[&keypair], vec![200])
-                .genesis_config;
+        let genesis_config = genesis_utils::create_genesis_config_with_vote_accounts(
+            100,
+            &[&keypair],
+            vec![MIN_VOTE_ACCOUNT_STAKE_LAMPORTS],
+        )
+        .genesis_config;
         let (bank, _bank_forks) = Bank::new_with_bank_forks_for_tests(&genesis_config);
 
         let vote = packet_from_slots(vec![(0, 1)], &keypair, None);
@@ -796,9 +824,12 @@ pub(crate) mod tests {
         let keypair = ValidatorVoteKeypairs::new_rand();
         let unauthorized_keypair = solana_keypair::Keypair::new();
 
-        let genesis_config =
-            genesis_utils::create_genesis_config_with_vote_accounts(100, &[&keypair], vec![200])
-                .genesis_config;
+        let genesis_config = genesis_utils::create_genesis_config_with_vote_accounts(
+            100,
+            &[&keypair],
+            vec![MIN_VOTE_ACCOUNT_STAKE_LAMPORTS],
+        )
+        .genesis_config;
         let (bank, _bank_forks) = Bank::new_with_bank_forks_for_tests(&genesis_config);
         let mut vote_storage = VoteStorage::new(&bank);
 
@@ -878,22 +909,31 @@ pub(crate) mod tests {
 
         // Create epoch stakes for epochs 1 and 2
         let epoch1_stakes = VersionedEpochStakes::new_for_tests(
-            [(vote_pubkey, (100, vote_account_epoch1))]
-                .into_iter()
-                .collect(),
+            [(
+                vote_pubkey,
+                (MIN_VOTE_ACCOUNT_STAKE_LAMPORTS, vote_account_epoch1),
+            )]
+            .into_iter()
+            .collect(),
             1, // leader_schedule_epoch
         );
         let epoch2_stakes = VersionedEpochStakes::new_for_tests(
-            [(vote_pubkey, (100, vote_account_epoch2))]
-                .into_iter()
-                .collect(),
+            [(
+                vote_pubkey,
+                (MIN_VOTE_ACCOUNT_STAKE_LAMPORTS, vote_account_epoch2),
+            )]
+            .into_iter()
+            .collect(),
             2, // leader_schedule_epoch
         );
 
         // Create a bank in epoch 1 with custom epoch stakes
-        let genesis_config =
-            genesis_utils::create_genesis_config_with_vote_accounts(100, &[&keypair], vec![200])
-                .genesis_config;
+        let genesis_config = genesis_utils::create_genesis_config_with_vote_accounts(
+            100,
+            &[&keypair],
+            vec![MIN_VOTE_ACCOUNT_STAKE_LAMPORTS],
+        )
+        .genesis_config;
         let (bank_0, _bank_forks) =
             Bank::new_for_tests(&genesis_config).wrap_with_bank_forks_for_tests();
         let mut bank = Bank::new_from_parent(
@@ -976,9 +1016,12 @@ pub(crate) mod tests {
         assert!(vote_storage.is_empty());
 
         // Bank in same epoch should not update stakes
-        let config =
-            genesis_utils::create_genesis_config_with_vote_accounts(100, &[&keypair_a], vec![200])
-                .genesis_config;
+        let config = genesis_utils::create_genesis_config_with_vote_accounts(
+            100,
+            &[&keypair_a],
+            vec![MIN_VOTE_ACCOUNT_STAKE_LAMPORTS],
+        )
+        .genesis_config;
         let (bank_0, _bank_forks) = Bank::new_for_tests(&config).wrap_with_bank_forks_for_tests();
         let bank = Bank::new_from_parent(
             bank_0,
@@ -991,9 +1034,12 @@ pub(crate) mod tests {
         assert!(vote_storage.is_empty());
 
         // Bank in next epoch should update stakes
-        let config =
-            genesis_utils::create_genesis_config_with_vote_accounts(100, &[&keypair_b], vec![200])
-                .genesis_config;
+        let config = genesis_utils::create_genesis_config_with_vote_accounts(
+            100,
+            &[&keypair_b],
+            vec![MIN_VOTE_ACCOUNT_STAKE_LAMPORTS],
+        )
+        .genesis_config;
         let (bank_0, _bank_forks) = Bank::new_for_tests(&config).wrap_with_bank_forks_for_tests();
         let bank = Bank::new_from_parent(bank_0, SlotLeader::new_unique(), MINIMUM_SLOTS_PER_EPOCH);
         assert_eq!(bank.epoch(), 1);
@@ -1009,9 +1055,12 @@ pub(crate) mod tests {
         // Use warp_from_parent: it explicitly calls update_epoch_stakes(get_epoch(slot)),
         // which populates epoch_stakes with the key cache_epoch_boundary_info expects
         // (bank.epoch()). new_from_parent uses get_leader_schedule_epoch which can differ.
-        let config =
-            genesis_utils::create_genesis_config_with_vote_accounts(100, &[&keypair_c], vec![200])
-                .genesis_config;
+        let config = genesis_utils::create_genesis_config_with_vote_accounts(
+            100,
+            &[&keypair_c],
+            vec![MIN_VOTE_ACCOUNT_STAKE_LAMPORTS],
+        )
+        .genesis_config;
         let (bank_0, _bank_forks) = Bank::new_for_tests(&config).wrap_with_bank_forks_for_tests();
         let bank = Bank::warp_from_parent(
             bank_0,
@@ -1040,7 +1089,10 @@ pub(crate) mod tests {
         let genesis_config = genesis_utils::create_genesis_config_with_vote_accounts(
             100,
             &[&keypair_a, &keypair_b],
-            vec![200, 200],
+            vec![
+                MIN_VOTE_ACCOUNT_STAKE_LAMPORTS,
+                MIN_VOTE_ACCOUNT_STAKE_LAMPORTS,
+            ],
         )
         .genesis_config;
 

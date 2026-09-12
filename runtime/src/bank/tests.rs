@@ -1213,9 +1213,10 @@ fn test_detect_failed_duplicate_transactions() {
     assert_eq!(bank.get_balance(&dest.pubkey()), 0);
 
     // This should be the original balance minus the transaction fee.
+    // Dynamic fee: system transfer = 150 CU × 10 = 1500
     assert_eq!(
         bank.get_balance(&mint_keypair.pubkey()),
-        LAMPORTS_PER_SOL - fee_structure.lamports_per_signature
+        LAMPORTS_PER_SOL - 1_500
     );
 }
 
@@ -1418,24 +1419,8 @@ fn test_bank_tx_fee() {
         ..
     } = create_genesis_config_with_leader(mint, &leader.id, 3);
 
-    let fee_structure = FeeStructure {
-        lamports_per_signature: 5000,
-        ..FeeStructure::default()
-    };
-    let expected_fee_paid = fee_structure.lamports_per_signature;
-    let expected_fee_burned =
-        expected_fee_paid * solana_fee_calculator::DEFAULT_BURN_PERCENT as u64 / 100;
-    let expected_fee_collected = expected_fee_paid - expected_fee_burned;
-
-    let mut bank = Bank::new_for_tests(&genesis_config);
-    bank.set_fee_structure(&fee_structure);
-
-    let leader = *bank.leader();
+    let (bank, bank_forks) = Bank::new_with_bank_forks_for_tests(&genesis_config);
     let collector_id = leader.id;
-
-    let (bank, bank_forks) = bank.wrap_with_bank_forks_for_tests();
-
-    let capitalization = bank.capitalization();
 
     let key = solana_pubkey::new_rand();
     let tx = system_transaction::transfer(
@@ -1445,7 +1430,17 @@ fn test_bank_tx_fee() {
         bank.last_blockhash(),
     );
 
-    let initial_balance = bank.get_balance(&collector_id);
+    // Calculate fee based on actual message (dynamic fees)
+    let expected_fee_paid = calculate_test_fee(
+        &new_sanitized_message(tx.message.clone()),
+        bank.fee_structure(),
+    );
+    let (expected_fee_collected, expected_fee_burned) =
+        genesis_config.fee_rate_governor.burn(expected_fee_paid);
+
+    let capitalization = bank.capitalization();
+
+    let initial_balance = bank.get_balance(&leader.id);
     assert_eq!(bank.process_transaction(&tx), Ok(()));
     assert_eq!(bank.get_balance(&key), arbitrary_transfer_amount);
     assert_eq!(
@@ -1533,19 +1528,7 @@ fn test_bank_tx_compute_unit_fee() {
     genesis_config.fee_rate_governor = FeeRateGovernor::new(4, 0); // something divisible by 2
 
     let (bank, bank_forks) = Bank::new_with_bank_forks_for_tests(&genesis_config);
-
-    let leader = *bank.leader();
     let collector_id = leader.id;
-
-    let expected_fee_paid = calculate_test_fee(
-        &new_sanitized_message(Message::new(&[], Some(&Pubkey::new_unique()))),
-        bank.fee_structure(),
-    );
-
-    let (expected_fee_collected, expected_fee_burned) =
-        genesis_config.fee_rate_governor.burn(expected_fee_paid);
-
-    let capitalization = bank.capitalization();
 
     let tx = system_transaction::transfer(
         &mint_keypair,
@@ -1554,7 +1537,18 @@ fn test_bank_tx_compute_unit_fee() {
         bank.last_blockhash(),
     );
 
-    let initial_balance = bank.get_balance(&collector_id);
+    // Calculate fee based on actual message (dynamic fees)
+    let expected_fee_paid = calculate_test_fee(
+        &new_sanitized_message(tx.message.clone()),
+        bank.fee_structure(),
+    );
+
+    let (expected_fee_collected, expected_fee_burned) =
+        genesis_config.fee_rate_governor.burn(expected_fee_paid);
+
+    let capitalization = bank.capitalization();
+
+    let initial_balance = bank.get_balance(&leader.id);
     assert_eq!(bank.process_transaction(&tx), Ok(()));
     assert_eq!(bank.get_balance(&key), arbitrary_transfer_amount);
     assert_eq!(
@@ -1627,6 +1621,140 @@ fn test_bank_tx_compute_unit_fee() {
 }
 
 #[test]
+fn test_bank_blockhash_fee_structure() {
+    //agave_logger::setup();
+
+    let leader = solana_pubkey::new_rand();
+    let GenesisConfigInfo {
+        mut genesis_config,
+        mint_keypair,
+        ..
+    } = create_genesis_config_with_leader(1_000_000, &leader, 3);
+    genesis_config
+        .fee_rate_governor
+        .target_lamports_per_signature = 5000;
+    genesis_config.fee_rate_governor.target_signatures_per_slot = 0;
+
+    let (bank, bank_forks) = Bank::new_with_bank_forks_for_tests(&genesis_config);
+    goto_end_of_slot(bank.clone());
+    let cheap_blockhash = bank.last_blockhash();
+    let cheap_lamports_per_signature = bank.get_lamports_per_signature();
+    assert_eq!(cheap_lamports_per_signature, 0);
+
+    let bank = Bank::new_from_parent_with_bank_forks(
+        bank_forks.as_ref(),
+        bank,
+        SlotLeader::new_unique(),
+        1,
+    );
+    goto_end_of_slot(bank.clone());
+    let expensive_blockhash = bank.last_blockhash();
+    let expensive_lamports_per_signature = bank.get_lamports_per_signature();
+    assert!(cheap_lamports_per_signature < expensive_lamports_per_signature);
+
+    let bank = Bank::new_from_parent_with_bank_forks(
+        bank_forks.as_ref(),
+        bank,
+        SlotLeader::new_unique(),
+        2,
+    );
+
+    // Send a transfer using cheap_blockhash
+    let key = solana_pubkey::new_rand();
+    let initial_mint_balance = bank.get_balance(&mint_keypair.pubkey());
+    let tx = system_transaction::transfer(&mint_keypair, &key, 1, cheap_blockhash);
+    assert_eq!(bank.process_transaction(&tx), Ok(()));
+    assert_eq!(bank.get_balance(&key), 1);
+    // Calculate fee based on actual message (dynamic fees)
+    let cheap_fee = calculate_test_fee(&new_sanitized_message(tx.message), bank.fee_structure());
+    assert_eq!(
+        bank.get_balance(&mint_keypair.pubkey()),
+        initial_mint_balance - 1 - cheap_fee
+    );
+
+    // Send a transfer using expensive_blockhash
+    let key = solana_pubkey::new_rand();
+    let initial_mint_balance = bank.get_balance(&mint_keypair.pubkey());
+    let tx = system_transaction::transfer(&mint_keypair, &key, 1, expensive_blockhash);
+    assert_eq!(bank.process_transaction(&tx), Ok(()));
+    assert_eq!(bank.get_balance(&key), 1);
+    // Calculate fee based on actual message (dynamic fees)
+    let expensive_fee =
+        calculate_test_fee(&new_sanitized_message(tx.message), bank.fee_structure());
+    assert_eq!(
+        bank.get_balance(&mint_keypair.pubkey()),
+        initial_mint_balance - 1 - expensive_fee
+    );
+}
+
+#[test]
+fn test_bank_blockhash_compute_unit_fee_structure() {
+    //agave_logger::setup();
+
+    let leader = solana_pubkey::new_rand();
+    let GenesisConfigInfo {
+        mut genesis_config,
+        mint_keypair,
+        ..
+    } = create_genesis_config_with_leader(1_000_000_000, &leader, 3);
+    genesis_config
+        .fee_rate_governor
+        .target_lamports_per_signature = 1000;
+    genesis_config.fee_rate_governor.target_signatures_per_slot = 1;
+
+    let (bank, bank_forks) = Bank::new_with_bank_forks_for_tests(&genesis_config);
+    goto_end_of_slot(bank.clone());
+    let cheap_blockhash = bank.last_blockhash();
+    let cheap_lamports_per_signature = bank.get_lamports_per_signature();
+    assert_eq!(cheap_lamports_per_signature, 0);
+
+    let bank = Bank::new_from_parent_with_bank_forks(
+        bank_forks.as_ref(),
+        bank,
+        SlotLeader::new_unique(),
+        1,
+    );
+    goto_end_of_slot(bank.clone());
+    let expensive_blockhash = bank.last_blockhash();
+    let expensive_lamports_per_signature = bank.get_lamports_per_signature();
+    assert!(cheap_lamports_per_signature < expensive_lamports_per_signature);
+
+    let bank = Bank::new_from_parent_with_bank_forks(
+        bank_forks.as_ref(),
+        bank,
+        SlotLeader::new_unique(),
+        2,
+    );
+
+    // Send a transfer using cheap_blockhash
+    let key = solana_pubkey::new_rand();
+    let initial_mint_balance = bank.get_balance(&mint_keypair.pubkey());
+    let tx = system_transaction::transfer(&mint_keypair, &key, 1, cheap_blockhash);
+    assert_eq!(bank.process_transaction(&tx), Ok(()));
+    assert_eq!(bank.get_balance(&key), 1);
+    // Calculate fee based on actual message (dynamic fees)
+    let cheap_fee = calculate_test_fee(&new_sanitized_message(tx.message), bank.fee_structure());
+    assert_eq!(
+        bank.get_balance(&mint_keypair.pubkey()),
+        initial_mint_balance - 1 - cheap_fee
+    );
+
+    // Send a transfer using expensive_blockhash
+    let key = solana_pubkey::new_rand();
+    let initial_mint_balance = bank.get_balance(&mint_keypair.pubkey());
+    let tx = system_transaction::transfer(&mint_keypair, &key, 1, expensive_blockhash);
+    assert_eq!(bank.process_transaction(&tx), Ok(()));
+    assert_eq!(bank.get_balance(&key), 1);
+    // Calculate fee based on actual message (dynamic fees)
+    let expensive_fee =
+        calculate_test_fee(&new_sanitized_message(tx.message), bank.fee_structure());
+    assert_eq!(
+        bank.get_balance(&mint_keypair.pubkey()),
+        initial_mint_balance - 1 - expensive_fee
+    );
+}
+
+#[test]
 fn test_debits_before_credits() {
     let (genesis_config, mint_keypair) =
         create_genesis_config_no_tx_fee_no_rent(2 * LAMPORTS_PER_SOL);
@@ -1660,7 +1788,21 @@ fn test_readonly_accounts() {
         mint_keypair,
         ..
     } = create_genesis_config_with_leader(500, &solana_pubkey::new_rand(), 0);
-    let bank = Bank::new_for_tests(&genesis_config);
+    let mut bank = Bank::new_for_tests(&genesis_config);
+    // X1: this test votes from freshly created, unstaked vote accounts. A test
+    // bank enables every feature, which turns on the vote-account stake floor
+    // that `solana_runtime::vote_admission` enforces in consensus, and a
+    // fee-exempt vote below the floor is rejected there with
+    // InvalidProgramForExecution. The gates are inactive on both live X1
+    // clusters, so switch them off here and let the test exercise what it is
+    // actually about: read-only account handling.
+    for id in [
+        feature_set::vote_min_stake_1_xnt::id(),
+        feature_set::vote_min_stake_10_xnt::id(),
+        feature_set::vote_min_stake_100_xnt::id(),
+    ] {
+        bank.deactivate_feature(&id);
+    }
     let (bank, _bank_forks) = bank.wrap_with_bank_forks_for_tests();
     let next_slot = bank.slot() + 1;
     let bank = Bank::new_from_parent(bank, SlotLeader::default(), next_slot);
@@ -1812,15 +1954,25 @@ fn test_interleaving_locks() {
 #[test_case(false; "old_fee_only")]
 #[test_case(true; "simd186_fee_only")]
 fn test_load_and_execute_commit_transactions_fees_only(define_ltds_fee_only_semantics: bool) {
+    // Dynamic fee: system advance_nonce (150 CU) + BPF missing program (200,000 CU) = 200,150 × 10 = 2,001,500
+    let dynamic_fee = 2001500;
     let GenesisConfigInfo {
         mut genesis_config, ..
     } = genesis_utils::create_genesis_config(100 * LAMPORTS_PER_SOL);
     genesis_config.rent = Rent::default();
-    genesis_config.fee_rate_governor = FeeRateGovernor::new(5000, 0);
+    genesis_config.fee_rate_governor = FeeRateGovernor::new(dynamic_fee, 0);
     let mut bank = Bank::new_for_tests(&genesis_config);
+    // SIMD-0186 loaded-transaction-data-size fee-only semantics is a new v4.1
+    // gate; this test covers both sides of it.
     if !define_ltds_fee_only_semantics {
         bank.deactivate_feature(&agave_feature_set::define_ltds_fee_only_semantics::id());
     }
+    let (bank, _bank_forks) = bank.wrap_with_bank_forks_for_tests();
+    let bank = Bank::new_from_parent(
+        bank,
+        SlotLeader::new_unique(),
+        genesis_config.epoch_schedule.get_first_slot_in_epoch(1),
+    );
 
     let fee_payer = Pubkey::new_unique();
     let fee_payer_initial_balance = 10 * genesis_config.rent.minimum_balance(0);
@@ -1889,12 +2041,12 @@ fn test_load_and_execute_commit_transactions_fees_only(define_ltds_fee_only_sema
             inner_instructions: None,
             return_data: None,
             executed_units: 0,
-            fee_details: FeeDetails::new(5000, 0),
+            fee_details: FeeDetails::new(dynamic_fee, 0),
             loaded_account_stats: TransactionLoadedAccountsStats {
                 loaded_accounts_count: 2,
                 loaded_accounts_data_size,
             },
-            fee_payer_post_balance: fee_payer_initial_balance - 5000,
+            fee_payer_post_balance: fee_payer_initial_balance - dynamic_fee,
         })]
     );
 }
@@ -1963,12 +2115,12 @@ fn test_load_and_execute_commit_transactions_failure() {
             inner_instructions: Some(vec![vec![], vec![]]),
             return_data: None,
             executed_units: 300,
-            fee_details: FeeDetails::new(5000, 0),
+            fee_details: FeeDetails::new(3000, 0), // X1: 2 system instrs x 150 CU x 10
             loaded_account_stats: TransactionLoadedAccountsStats {
                 loaded_accounts_count: 3,
                 loaded_accounts_data_size: 142, // size of system account (initially recipient does not exist)
             },
-            fee_payer_post_balance: starting_balance - 5000,
+            fee_payer_post_balance: starting_balance - 3000,
         })]
     );
 }
@@ -2030,12 +2182,12 @@ fn test_load_and_execute_commit_transactions_success() {
             inner_instructions: Some(vec![vec![]]),
             return_data: None,
             executed_units: 150,
-            fee_details: FeeDetails::new(5000, 0),
+            fee_details: FeeDetails::new(1500, 0), // X1: 1 transfer x 150 CU x 10
             loaded_account_stats: TransactionLoadedAccountsStats {
                 loaded_accounts_count: 3,
                 loaded_accounts_data_size: 142, // size of system account (initially recipient does not exist)
             },
-            fee_payer_post_balance: starting_balance - 5000 - transfer_amount,
+            fee_payer_post_balance: starting_balance - 1500 - transfer_amount,
         })]
     );
 }
@@ -4673,9 +4825,11 @@ fn test_pre_post_transaction_balances() {
         transaction_balances_set.pre_balances[0],
         vec![908_000, 911_000, 1]
     );
+    // Dynamic fee: system transfer = 150 CU × 10 = 1500
+    // 908_000 - 2_000 (transfer) - 1500 (fee) = 904_500
     assert_eq!(
         transaction_balances_set.post_balances[0],
-        vec![901_000, 913_000, 1]
+        vec![904_500, 913_000, 1]
     );
 
     // Failed transactions still produce balance sets
@@ -4697,9 +4851,11 @@ fn test_pre_post_transaction_balances() {
         transaction_balances_set.pre_balances[2],
         vec![909_000, 0, 1]
     );
+    // Dynamic fee: system transfer = 150 CU × 10 = 1500
+    // 909_000 - 1500 (fee) = 907_500
     assert_eq!(
         transaction_balances_set.post_balances[2],
-        vec![904_000, 0, 1]
+        vec![907_500, 0, 1]
     );
 }
 
@@ -8746,13 +8902,20 @@ fn calculate_test_fee(message: &impl SVMMessage, fee_structure: &FeeStructure) -
         message,
         fee_structure.lamports_per_signature,
         prioritization_fee,
-        FeeFeatures {},
+        FeeFeatures {
+            enable_secp256r1_precompile: true,
+            validate_fee_vote_transaction_instructions: true,
+            // New fee-hardening gates default off here so these tests keep
+            // exercising the currently-active mainnet fee behavior.
+            enforce_minimum_transaction_fee: false,
+            require_vote_submission_for_fee_exemption: false,
+        },
     )
 }
 
 #[test]
 fn test_calculate_fee() {
-    // Default: no fee.
+    // No instructions = no fee (dynamic fees are based on compute units)
     let message = new_sanitized_message(Message::new(&[], Some(&Pubkey::new_unique())));
     assert_eq!(
         calculate_test_fee(
@@ -8765,19 +8928,7 @@ fn test_calculate_fee() {
         0
     );
 
-    // One signature, a fee.
-    assert_eq!(
-        calculate_test_fee(
-            &message,
-            &FeeStructure {
-                lamports_per_signature: 1,
-                ..FeeStructure::default()
-            },
-        ),
-        1
-    );
-
-    // Two signatures, double the fee.
+    // Two system transfers = 300 CU × 10 = 3000
     let key0 = Pubkey::new_unique();
     let key1 = Pubkey::new_unique();
     let ix0 = system_instruction::transfer(&key0, &key1, 1);
@@ -8791,7 +8942,7 @@ fn test_calculate_fee() {
                 ..FeeStructure::default()
             },
         ),
-        4
+        3000
     );
 }
 
@@ -8801,26 +8952,19 @@ fn test_calculate_fee_compute_units() {
         lamports_per_signature: 1,
         ..FeeStructure::default()
     };
-    let max_fee = fee_structure.compute_fee_bins.last().unwrap().fee;
-    let lamports_per_signature = fee_structure.lamports_per_signature;
 
-    // One signature, no unit request
-
+    // No instructions = no fee (dynamic fees based on compute units)
     let message = new_sanitized_message(Message::new(&[], Some(&Pubkey::new_unique())));
-    assert_eq!(
-        calculate_test_fee(&message, &fee_structure,),
-        max_fee + lamports_per_signature
-    );
+    assert_eq!(calculate_test_fee(&message, &fee_structure), 0);
 
-    // Three signatures, two instructions, no unit request
-
+    // Two system transfers = 300 CU × 10 = 3000
     let ix0 = system_instruction::transfer(&Pubkey::new_unique(), &Pubkey::new_unique(), 1);
     let ix1 = system_instruction::transfer(&Pubkey::new_unique(), &Pubkey::new_unique(), 1);
     let message = new_sanitized_message(Message::new(&[ix0, ix1], Some(&Pubkey::new_unique())));
-    assert_eq!(
-        calculate_test_fee(&message, &fee_structure,),
-        max_fee + 3 * lamports_per_signature
-    );
+    assert_eq!(calculate_test_fee(&message, &fee_structure), 3000);
+
+    // Builtin cost for compute budget instructions
+    let builtin_cu = 300;
 
     // Explicit fee schedule
 
@@ -8853,7 +8997,12 @@ fn test_calculate_fee_compute_units() {
             ..ComputeBudgetLimits::default()
         }
         .get_prioritization_fee();
-        assert_eq!(fee, lamports_per_signature + prioritization_fee);
+        // Dynamic fee: (requested_compute_units + builtin_cu) × 10 + prioritization_fee
+        let compute_cost = (requested_compute_units as u64)
+            .saturating_add(builtin_cu)
+            .saturating_mul(10)
+            .saturating_add(prioritization_fee);
+        assert_eq!(fee, compute_cost);
     }
 }
 
@@ -8882,10 +9031,8 @@ fn test_calculate_prioritization_fee() {
     ));
 
     let fee = calculate_test_fee(&message, &fee_structure);
-    assert_eq!(
-        fee,
-        fee_structure.lamports_per_signature + prioritization_fee
-    );
+    // Dynamic fee: 2 compute budget instructions = 300 CU × 10 = 3000 + prioritization_fee
+    assert_eq!(fee, 3000 + prioritization_fee);
 }
 
 #[test]
@@ -8917,7 +9064,8 @@ fn test_calculate_fee_secp256k1() {
         ],
         Some(&key0),
     ));
-    assert_eq!(calculate_test_fee(&message, &fee_structure,), 2);
+    // Dynamic fee: system transfer (150 CU) + secp256k1 (0 CU) × 2 = 150 × 10 = 1500
+    assert_eq!(calculate_test_fee(&message, &fee_structure), 1500);
 
     secp_instruction1.data = vec![0];
     secp_instruction2.data = vec![10];
@@ -8925,7 +9073,8 @@ fn test_calculate_fee_secp256k1() {
         &[ix0, secp_instruction1, secp_instruction2],
         Some(&key0),
     ));
-    assert_eq!(calculate_test_fee(&message, &fee_structure,), 11);
+    // Dynamic fee: same as above = 1500
+    assert_eq!(calculate_test_fee(&message, &fee_structure), 1500);
 }
 
 #[test]
@@ -10186,6 +10335,33 @@ fn test_cap_accounts_data_allocations_per_transaction() {
 }
 
 #[test]
+fn test_calculate_fee_with_congestion_multiplier() {
+    let lamports_scale: u64 = 5;
+    let base_lamports_per_signature: u64 = 5_000;
+    // Dynamic fees ignore lamports_per_signature entirely; these are kept to
+    // document the congestion range the test used to exercise.
+    let _cheap_lamports_per_signature: u64 = base_lamports_per_signature / lamports_scale;
+    let _expensive_lamports_per_signature: u64 = base_lamports_per_signature * lamports_scale;
+    let fee_structure = FeeStructure {
+        lamports_per_signature: 10,
+        ..FeeStructure::default()
+    };
+
+    // Two system transfers = 300 CU × 10 = 3000 (dynamic fees ignore lamports_per_signature)
+    let key0 = Pubkey::new_unique();
+    let key1 = Pubkey::new_unique();
+    let ix0 = system_instruction::transfer(&key0, &key1, 1);
+    let ix1 = system_instruction::transfer(&key1, &key0, 1);
+    let message = new_sanitized_message(Message::new(&[ix0, ix1], Some(&key0)));
+
+    // congestion_multiplier has no effect on dynamic fees
+    assert_eq!(calculate_test_fee(&message, &fee_structure), 3000);
+
+    // same fee regardless of lamports_per_signature (dynamic fees based on CU)
+    assert_eq!(calculate_test_fee(&message, &fee_structure), 3000);
+}
+
+#[test]
 fn test_calculate_fee_with_request_heap_frame_flag() {
     let key0 = Pubkey::new_unique();
     let key1 = Pubkey::new_unique();
@@ -10206,12 +10382,9 @@ fn test_calculate_fee_with_request_heap_frame_flag() {
         Some(&key0),
     ));
 
-    // assert when request_heap_frame is presented in tx, prioritization fee will be counted
-    // into transaction fee
-    assert_eq!(
-        calculate_test_fee(&message, &fee_structure),
-        signature_fee + request_cu * lamports_per_cu
-    );
+    // Dynamic fee: 4 builtin instructions (150 CU each) = 600 CU × 10 = 6000 + prioritization_fee
+    // prioritization_fee = request_cu * lamports_per_cu = 1 * 5 = 5
+    assert_eq!(calculate_test_fee(&message, &fee_structure), 6005);
 }
 
 #[test]

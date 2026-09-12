@@ -15,7 +15,6 @@ use {
     solana_epoch_schedule::EpochSchedule,
     solana_faucet::faucet::run_local_faucet_with_unique_port_for_tests,
     solana_fee_calculator::FeeRateGovernor,
-    solana_fee_structure::FeeStructure,
     solana_keypair::{Keypair, keypair_from_seed},
     solana_native_token::LAMPORTS_PER_SOL,
     solana_net_utils::SocketAddrSpace,
@@ -1387,8 +1386,6 @@ async fn test_stake_authorize(compute_unit_price: Option<u64>) {
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_stake_authorize_with_fee_payer() {
     agave_logger::setup();
-    let fee_one_sig = FeeStructure::default().get_max_fee(1, 0);
-    let fee_two_sig = FeeStructure::default().get_max_fee(2, 0);
 
     let mint_keypair = Keypair::new();
     let faucet_addr = run_local_faucet_with_unique_port_for_tests(mint_keypair.insecure_clone());
@@ -1468,11 +1465,7 @@ async fn test_stake_authorize_with_fee_payer() {
         compute_unit_price: None,
     };
     process_command(&config).await.unwrap();
-    check_balance!(
-        4_000_000_000_000 - fee_two_sig,
-        &rpc_client,
-        &default_pubkey
-    );
+    check_balance!(4_000_000_000_000 - 2_001_500, &rpc_client, &default_pubkey);
 
     // Assign authority with separate fee payer
     config.signers = vec![&default_signer, &payer_keypair];
@@ -1497,14 +1490,10 @@ async fn test_stake_authorize_with_fee_payer() {
     };
     process_command(&config).await.unwrap();
     // `config` balance has not changed, despite submitting the TX
-    check_balance!(
-        4_000_000_000_000 - fee_two_sig,
-        &rpc_client,
-        &default_pubkey
-    );
+    check_balance!(4_000_000_000_000 - 2_001_500, &rpc_client, &default_pubkey);
     // `config_payer` however has paid `config`'s authority sig
     // and `config_payer`'s fee sig
-    check_balance!(5_000_000_000_000 - fee_two_sig, &rpc_client, &payer_pubkey);
+    check_balance!(5_000_000_000_000 - 2_000_000, &rpc_client, &payer_pubkey);
 
     // Assign authority with offline fee payer
     let blockhash = rpc_client.get_latest_blockhash().await.unwrap();
@@ -1554,18 +1543,10 @@ async fn test_stake_authorize_with_fee_payer() {
     };
     process_command(&config).await.unwrap();
     // `config`'s balance again has not changed
-    check_balance!(
-        4_000_000_000_000 - fee_two_sig,
-        &rpc_client,
-        &default_pubkey
-    );
+    check_balance!(4_000_000_000_000 - 2_001_500, &rpc_client, &default_pubkey);
     // `config_offline` however has paid 1 sig due to being both authority
     // and fee payer
-    check_balance!(
-        5_000_000_000_000 - fee_one_sig,
-        &rpc_client,
-        &offline_pubkey
-    );
+    check_balance!(5_000_000_000_000 - 2_000_000, &rpc_client, &offline_pubkey);
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]

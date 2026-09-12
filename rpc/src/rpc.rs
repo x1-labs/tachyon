@@ -4625,7 +4625,8 @@ pub mod tests {
     };
 
     const TEST_MINT_LAMPORTS: u64 = 1_000_000_000;
-    const TEST_SIGNATURE_FEE: u64 = 5_000;
+    // Dynamic fee: system transfer = 150 CU × 10 = 1500
+    const TEST_SIGNATURE_FEE: u64 = 1_500;
     const TEST_SLOTS_PER_EPOCH: u64 = 256;
 
     pub(crate) fn new_test_cluster_info() -> ClusterInfo {
@@ -5201,7 +5202,7 @@ pub mod tests {
             "pubsub": format!("127.0.0.1:8900"),
             "version": format!("{version}"),
             "featureSet": version.feature_set(),
-            "clientId": "Agave",
+            "clientId": "Tachyon",
         }, {
             "pubkey": rpc.leader_pubkey().to_string(),
             "gossip": "127.0.0.1:1235",
@@ -5217,7 +5218,7 @@ pub mod tests {
             "pubsub": format!("127.0.0.1:8900"),
             "version": format!("{version}"),
             "featureSet": version.feature_set(),
-            "clientId": "Agave",
+            "clientId": "Tachyon",
         }]);
         assert_eq!(result, expected);
     }
@@ -6085,10 +6086,10 @@ pub mod tests {
                     "err":null,
                     "innerInstructions": null,
                     "loadedAccountsDataSize": loaded_accounts_data_size,
-                    "fee": 5000,
+                    "fee": 1500, // Dynamic fee: system transfer = 150 CU × 10
                     "loadedAddresses": {"readonly": [], "writable": []},
                     "preBalances": [1000000000, 0, 1],
-                    "postBalances": [999982200, 12800, 1],
+                    "postBalances": [999985700, 12800, 1], // 1B - 12800 - 1500 fee
                     "preTokenBalances": [],
                     "postTokenBalances": [],
                     "logs":[
@@ -6193,10 +6194,10 @@ pub mod tests {
                     "err":null,
                     "innerInstructions":null,
                     "loadedAccountsDataSize": loaded_accounts_data_size,
-                    "fee": 5000,
+                    "fee": 1500, // Dynamic fee: system transfer = 150 CU × 10
                     "loadedAddresses": {"readonly": [], "writable": []},
                     "preBalances": [1000000000, 0, 1],
-                    "postBalances": [999982200, 12800, 1],
+                    "postBalances": [999985700, 12800, 1], // 1B - 12800 - 1500 fee
                     "preTokenBalances": [],
                     "postTokenBalances": [],
                     "logs":[
@@ -6230,10 +6231,10 @@ pub mod tests {
                     "err":null,
                     "innerInstructions":null,
                     "loadedAccountsDataSize": loaded_accounts_data_size,
-                    "fee": 5000,
+                    "fee": 1500, // Dynamic fee: system transfer = 150 CU × 10
                     "loadedAddresses": {"readonly": [], "writable": []},
                     "preBalances": [1000000000, 0, 1],
-                    "postBalances": [999982200, 12800, 1],
+                    "postBalances": [999985700, 12800, 1], // 1B - 12800 - 1500 fee
                     "preTokenBalances": [],
                     "postTokenBalances": [],
                     "logs":[
@@ -6331,10 +6332,10 @@ pub mod tests {
                     "err":null,
                     "innerInstructions":null,
                     "loadedAccountsDataSize": loaded_accounts_data_size,
-                    "fee": 5000,
+                    "fee": 1500, // Dynamic fee: system transfer = 150 CU × 10
                     "loadedAddresses": {"readonly": [], "writable": []},
                     "preBalances": [1000000000, 0, 1],
-                    "postBalances": [999982200, 12800, 1],
+                    "postBalances": [999985700, 12800, 1], // 1B - 12800 - 1500 fee
                     "preTokenBalances": [],
                     "postTokenBalances": [],
                     "logs":[
@@ -6488,10 +6489,10 @@ pub mod tests {
                     "err": null,
                     "innerInstructions": null,
                     "loadedAccountsDataSize": loaded_accounts_data_size,
-                    "fee": 5000,
+                    "fee": 1500, // Dynamic fee: system transfer = 150 CU × 10
                     "loadedAddresses": {"readonly": [], "writable": []},
                     "preBalances": [1000000000, 29300, 1],
-                    "postBalances": [999994999, 29301, 1],
+                    "postBalances": [999998499, 29301, 1], // 1B - 1500 fee - 1 transfer
                     "preTokenBalances": [],
                     "postTokenBalances": [],
                     "logs":[
@@ -6573,10 +6574,10 @@ pub mod tests {
                     "err":null,
                     "innerInstructions": null,
                     "loadedAccountsDataSize": loaded_accounts_data_size,
-                    "fee": 10000,
+                    "fee": 2000000,
                     "loadedAddresses": {"readonly": [], "writable": []},
                     "preBalances": [1000000000, 0, 1, 0, 1],
-                    "postBalances": [999977200, 12800, 1, 0, 1],
+                    "postBalances": [997987200, 12800, 1, 0, 1], // 1B - 12800 - 2M fee
                     "preTokenBalances": [],
                     "postTokenBalances": [],
                     "logs":[
@@ -6622,10 +6623,10 @@ pub mod tests {
                     "err":null,
                     "innerInstructions": null,
                     "loadedAccountsDataSize": loaded_accounts_data_size,
-                    "fee": 10000,
+                    "fee": 2000000,
                     "loadedAddresses": {"readonly": [], "writable": []},
                     "preBalances": [1000000000, 0, 1, 0, 1],
-                    "postBalances": [999977200, 12800, 1, 0, 1],
+                    "postBalances": [997987200, 12800, 1, 0, 1], // 1B - 12800 - 2M fee
                     "preTokenBalances": [],
                     "postTokenBalances": [],
                     "logs":[
@@ -6692,10 +6693,10 @@ pub mod tests {
                         }
                     ],
                     "loadedAccountsDataSize": loaded_accounts_data_size,
-                    "fee": 10000,
+                    "fee": 2000000, // Dynamic fee: test program treated as BPF
                     "loadedAddresses": {"readonly": [], "writable": []},
                     "preBalances": [1000000000, 0, 1, 0, 1],
-                    "postBalances": [999977200, 12800, 1, 0, 1],
+                    "postBalances": [997987200, 12800, 1, 0, 1], // 1B - 12800 - 2M fee
                     "preTokenBalances": [],
                     "postTokenBalances": [],
                     "logs":[

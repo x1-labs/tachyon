@@ -60,7 +60,9 @@ pub mod transaction_scheduler;
 
 mod committer;
 mod consume_worker;
-mod consumer;
+// X1: the vote_admission bench exercises Consumer's stake-floor filter directly.
+// Upstream privatised this module in v4.1; X1 keeps it public for that bench.
+pub mod consumer;
 mod decision_maker;
 mod latest_validator_vote_packet;
 mod leader_slot_metrics;

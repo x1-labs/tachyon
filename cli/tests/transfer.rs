@@ -32,8 +32,6 @@ use {
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_transfer(skip_preflight: bool) {
     agave_logger::setup();
-    let fee_one_sig = FeeStructure::default().get_max_fee(1, 0);
-    let fee_two_sig = FeeStructure::default().get_max_fee(2, 0);
     let mint_keypair = Keypair::new();
     let faucet_addr = run_local_faucet_with_unique_port_for_tests(mint_keypair.insecure_clone());
     let test_validator = TestValidator::async_start_with_config(
@@ -84,11 +82,7 @@ async fn test_transfer(skip_preflight: bool) {
         compute_unit_price: None,
     };
     process_command(&config).await.unwrap();
-    check_balance!(
-        4 * LAMPORTS_PER_SOL - fee_one_sig,
-        &rpc_client,
-        &sender_pubkey
-    );
+    check_balance!(4 * LAMPORTS_PER_SOL - 1500, &rpc_client, &sender_pubkey);
     check_balance!(LAMPORTS_PER_SOL, &rpc_client, &recipient_pubkey);
 
     // Plain ole transfer, failure due to InsufficientFundsForSpendAndFee
@@ -110,11 +104,7 @@ async fn test_transfer(skip_preflight: bool) {
         compute_unit_price: None,
     };
     assert!(process_command(&config).await.is_err());
-    check_balance!(
-        4 * LAMPORTS_PER_SOL - fee_one_sig,
-        &rpc_client,
-        &sender_pubkey
-    );
+    check_balance!(4 * LAMPORTS_PER_SOL - 1500, &rpc_client, &sender_pubkey);
     check_balance!(LAMPORTS_PER_SOL, &rpc_client, &recipient_pubkey);
 
     let mut offline = CliConfig::recent_for_tests();
@@ -173,11 +163,7 @@ async fn test_transfer(skip_preflight: bool) {
         compute_unit_price: None,
     };
     process_command(&config).await.unwrap();
-    check_balance!(
-        LAMPORTS_PER_SOL / 2 - fee_one_sig,
-        &rpc_client,
-        &offline_pubkey
-    );
+    check_balance!(LAMPORTS_PER_SOL / 2 - 1500, &rpc_client, &offline_pubkey);
     check_balance!(1_500_000_000, &rpc_client, &recipient_pubkey);
 
     // Create nonce account
@@ -197,7 +183,7 @@ async fn test_transfer(skip_preflight: bool) {
     };
     process_command(&config).await.unwrap();
     check_balance!(
-        4 * LAMPORTS_PER_SOL - fee_one_sig - fee_two_sig - minimum_nonce_balance,
+        4 * LAMPORTS_PER_SOL - 4500 - minimum_nonce_balance,
         &rpc_client,
         &sender_pubkey,
     );
@@ -237,7 +223,7 @@ async fn test_transfer(skip_preflight: bool) {
     };
     process_command(&config).await.unwrap();
     check_balance!(
-        3 * LAMPORTS_PER_SOL - 2 * fee_one_sig - fee_two_sig - minimum_nonce_balance,
+        3 * LAMPORTS_PER_SOL - 7500 - minimum_nonce_balance,
         &rpc_client,
         &sender_pubkey,
     );
@@ -264,7 +250,7 @@ async fn test_transfer(skip_preflight: bool) {
     };
     process_command(&config).await.unwrap();
     check_balance!(
-        3 * LAMPORTS_PER_SOL - 3 * fee_one_sig - fee_two_sig - minimum_nonce_balance,
+        3 * LAMPORTS_PER_SOL - 9000 - minimum_nonce_balance,
         &rpc_client,
         &sender_pubkey,
     );
@@ -325,11 +311,7 @@ async fn test_transfer(skip_preflight: bool) {
         compute_unit_price: None,
     };
     process_command(&config).await.unwrap();
-    check_balance!(
-        LAMPORTS_PER_SOL / 10 - 2 * fee_one_sig,
-        &rpc_client,
-        &offline_pubkey
-    );
+    check_balance!(LAMPORTS_PER_SOL / 10 - 4500, &rpc_client, &offline_pubkey);
     check_balance!(2_900_000_000, &rpc_client, &recipient_pubkey);
 }
 
@@ -475,7 +457,7 @@ async fn test_transfer_multisession_signing() {
 
     check_balance!(LAMPORTS_PER_SOL, &rpc_client, &offline_from_signer.pubkey(),);
     check_balance!(
-        LAMPORTS_PER_SOL + fee_two_sig,
+        LAMPORTS_PER_SOL + 18500,
         &rpc_client,
         &offline_fee_payer_signer.pubkey(),
     );
@@ -624,7 +606,7 @@ async fn test_transfer_unfunded_recipient() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_transfer_with_seed() {
     agave_logger::setup();
-    let fee = FeeStructure::default().get_max_fee(1, 0);
+    let fee = 1500; // X1: system transfer = 150 CU x 10
     let mint_keypair = Keypair::new();
     let faucet_addr = run_local_faucet_with_unique_port_for_tests(mint_keypair.insecure_clone());
     let test_validator = TestValidator::async_start_with_config(

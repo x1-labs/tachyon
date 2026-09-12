@@ -83,7 +83,6 @@ use {
     solana_stake_interface as stake,
     solana_system_interface::program as system_program,
     solana_system_transaction as system_transaction,
-    solana_transaction_error::TransportError,
     solana_turbine::broadcast_stage::{
         BroadcastStageType,
         broadcast_duplicates_run::{BroadcastDuplicatesConfig, ClusterPartition},
@@ -2645,10 +2644,7 @@ fn test_oc_bad_signatures() {
         vote_keypair.pubkey()
     );
 
-    // 3) Start up a spy to listen for and push votes to leader TPU
-    let client = cluster
-        .build_validator_tpu_quic_client(cluster.entry_point_info.pubkey())
-        .unwrap();
+    // 3) Start up a spy to listen for and push votes over gossip
     let voter_thread_sleep_ms: usize = 100;
     let num_votes_simulated = Arc::new(AtomicUsize::new(0));
     let gossip_voter = cluster_tests::start_gossip_voter(
@@ -2669,7 +2665,8 @@ fn test_oc_bad_signatures() {
             let node_keypair = node_keypair.insecure_clone();
             let vote_keypair = vote_keypair.insecure_clone();
             let num_votes_simulated = num_votes_simulated.clone();
-            move |vote_slot, leader_vote_tx, parsed_vote, _cluster_info| {
+            let mut gossip_vote_index = 0;
+            move |vote_slot, leader_vote_tx, parsed_vote, cluster_info| {
                 info!("received vote for {vote_slot}");
                 let vote_hash = parsed_vote.hash();
                 info!("Simulating vote from our node on slot {vote_slot}, hash {vote_hash}");
@@ -2680,7 +2677,7 @@ fn test_oc_bad_signatures() {
                 let tower_sync = TowerSync::new_from_slots(vec![vote_slot], vote_hash, None);
 
                 let bad_authorized_signer_keypair = Keypair::new();
-                let mut vote_tx = vote_transaction::new_tower_sync_transaction(
+                let vote_tx = vote_transaction::new_tower_sync_transaction(
                     tower_sync,
                     leader_vote_tx.message.recent_blockhash,
                     &node_keypair,
@@ -2690,16 +2687,18 @@ fn test_oc_bad_signatures() {
                     None,
                 );
 
-                // Send the bad vote and expect transaction error.
-                assert_matches!(
-                    LocalCluster::send_transaction_with_retries(
-                        &client,
-                        &[&node_keypair, &bad_authorized_signer_keypair],
-                        &mut vote_tx,
-                        5,
-                    ),
-                    Err(TransportError::TransactionError(_))
-                );
+                // Push the bad vote over gossip rather than the TPU transaction
+                // lane. Fee-exempt votes are dropped on the non-vote lane by
+                // Consumer::reject_vote_fee_exempt, so a vote submitted there is
+                // never executed: no transaction error comes back, and each
+                // retry blocks until the blockhash expires, which times this
+                // test out. Gossip is the lane validators actually vote on, and
+                // it exercises the same property -- a vote signed by the wrong
+                // authorized signer must never be optimistically confirmed,
+                // which the block_subscribe assertion below checks.
+                gossip_vote_index += 1;
+                gossip_vote_index %= MAX_VOTES;
+                cluster_info.push_vote_at_index(vote_tx, gossip_vote_index, &node_keypair);
 
                 num_votes_simulated.fetch_add(1, Ordering::Relaxed);
             }

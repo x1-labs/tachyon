@@ -85,7 +85,9 @@ where
             },
             runtime: RuntimeState {
                 feature_set: FeatureSet::all_enabled(),
-                fee_features: FeeFeatures {},
+                // X1's FeeFeatures carries the four X1 fee gates; derive it from
+                // the same feature set rather than default-constructing.
+                fee_features: FeeFeatures::from(&FeatureSet::all_enabled()),
                 lamports_per_signature: 5000,
                 burn_percent: 50,
             },

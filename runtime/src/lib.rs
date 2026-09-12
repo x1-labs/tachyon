@@ -47,6 +47,7 @@ pub mod test_utils;
 pub mod transaction_batch;
 pub mod validated_block_finalization;
 pub mod validated_reward_certificate;
+pub mod vote_admission;
 pub mod vote_sender_types;
 
 #[macro_use]

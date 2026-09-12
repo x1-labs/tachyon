@@ -226,5 +226,9 @@ harness = false
 name = "shredder"
 harness = false
 
+[[bench]]
+name = "vote_admission"
+harness = false
+
 [lints]
 workspace = true
