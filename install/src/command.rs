@@ -309,7 +309,7 @@ fn check_env_path_for_bin_dir(config: &Config) {
 
     if !found {
         println!(
-            "\nPlease update your PATH environment variable to include the solana programs:\n    \
+            "\nPlease update your PATH environment variable to include the x1 programs:\n    \
              PATH=\"{}:$PATH\"\n",
             config.active_release_bin_dir().to_str().unwrap()
         );

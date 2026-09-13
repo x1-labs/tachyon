@@ -7,7 +7,7 @@ use {
 #[derive(Debug, Error)]
 pub enum CoreBpfMigrationError {
     /// Solana instruction error
-    #[error("Solana instruction error: {0:?}")]
+    #[error("X1 instruction error: {0:?}")]
     InstructionError(#[from] InstructionError),
     /// Bincode serialization error
     #[error("Bincode serialization error: {0:?}")]
