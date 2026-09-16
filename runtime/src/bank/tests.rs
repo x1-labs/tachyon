@@ -1414,10 +1414,21 @@ fn test_bank_tx_fee() {
     let mint = arbitrary_transfer_amount * 100;
     let leader = SlotLeader::new_unique();
     let GenesisConfigInfo {
-        genesis_config,
+        mut genesis_config,
         mint_keypair,
         ..
     } = create_genesis_config_with_leader(mint, &leader.id, 3);
+    // X1: `create_genesis_config_with_leader` uses `FeeRateGovernor::new(0, 0)`
+    // ("most tests can't handle transaction fees") and `Bank::new_for_tests`
+    // mirrors that rate into the bank's `FeeStructure`. X1 reads a zero rate as
+    // the fee-less-bank sentinel (`fee/src/lib.rs`), so the transfer below would
+    // be free, no fee reward would be recorded, and the balance assertions would
+    // pass vacuously while the `bank.rewards` assertion failed on an empty vec.
+    // Upstream sidesteps this by overriding the FeeStructure to 5000; set the
+    // governor instead, which reaches the same field via
+    // `new_with_bank_forks_for_tests`. The fee actually charged stays
+    // compute-unit based (150 CU x 10 = 1500); only the sentinel changes.
+    genesis_config.fee_rate_governor = FeeRateGovernor::new(5000, 0);
 
     let (bank, bank_forks) = Bank::new_with_bank_forks_for_tests(&genesis_config);
     // X1: rebind the leader from the bank, as upstream does. The `SlotLeader`
@@ -1977,18 +1988,21 @@ fn test_load_and_execute_commit_transactions_fees_only(define_ltds_fee_only_sema
     } = genesis_utils::create_genesis_config(100 * LAMPORTS_PER_SOL);
     genesis_config.rent = Rent::default();
     genesis_config.fee_rate_governor = FeeRateGovernor::new(dynamic_fee, 0);
-    let mut bank = Bank::new_for_tests(&genesis_config);
-    // SIMD-0186 loaded-transaction-data-size fee-only semantics is a new v4.1
-    // gate; this test covers both sides of it.
-    if !define_ltds_fee_only_semantics {
-        bank.deactivate_feature(&agave_feature_set::define_ltds_fee_only_semantics::id());
-    }
+    let bank = Bank::new_for_tests(&genesis_config);
     let (bank, _bank_forks) = bank.wrap_with_bank_forks_for_tests();
-    let bank = Bank::new_from_parent(
+    let mut bank = Bank::new_from_parent(
         bank,
         SlotLeader::new_unique(),
         genesis_config.epoch_schedule.get_first_slot_in_epoch(1),
     );
+    // SIMD-0186 loaded-transaction-data-size fee-only semantics is a new v4.1
+    // gate; this test covers both sides of it. Deactivate AFTER the hop into
+    // epoch 1: genesis enables every feature, and crossing an epoch boundary
+    // re-applies feature activation from the on-chain accounts, which silently
+    // undid a deactivation done on the parent bank.
+    if !define_ltds_fee_only_semantics {
+        bank.deactivate_feature(&agave_feature_set::define_ltds_fee_only_semantics::id());
+    }
 
     let fee_payer = Pubkey::new_unique();
     let fee_payer_initial_balance = 10 * genesis_config.rent.minimum_balance(0);
