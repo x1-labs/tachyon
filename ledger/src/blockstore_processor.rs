@@ -3803,7 +3803,12 @@ pub mod tests {
         assert_eq!(bank_forks.working_bank().slot(), 1);
 
         let bank = bank_forks[1].clone();
-        let tx_fee = bank.fee_structure().lamports_per_signature;
+        // X1: the fee model is compute-units x 10 (`fee/src/lib.rs`,
+        // BASE_FEE_MULTIPLIER) and `calculate_fee_details` ignores
+        // lamports_per_signature entirely, so upstream's
+        // `fee_structure().lamports_per_signature` is not what these transfers
+        // were actually charged. A system transfer is 150 CU => 1500 lamports.
+        let tx_fee = 1500;
         assert_eq!(
             bank.get_balance(&mint_keypair.pubkey()),
             mint - deducted_from_mint - 2 * deducted_from_mint * tx_fee

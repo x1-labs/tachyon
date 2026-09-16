@@ -1420,6 +1420,14 @@ fn test_bank_tx_fee() {
     } = create_genesis_config_with_leader(mint, &leader.id, 3);
 
     let (bank, bank_forks) = Bank::new_with_bank_forks_for_tests(&genesis_config);
+    // X1: rebind the leader from the bank, as upstream does. The `SlotLeader`
+    // built above only supplies an id to `create_genesis_config_with_leader`;
+    // its `vote_address` is random and is NOT the genesis vote account. Since
+    // v4.1 the SIMD-0232 `custom_commission_collector` path resolves the fee
+    // collector by looking that vote_address up in `epoch_stakes`, and a test
+    // bank has every feature active, so a synthetic address panics there with
+    // "The vote account for the leader must exist".
+    let leader = *bank.leader();
     let collector_id = leader.id;
 
     let key = solana_pubkey::new_rand();
@@ -1528,6 +1536,14 @@ fn test_bank_tx_compute_unit_fee() {
     genesis_config.fee_rate_governor = FeeRateGovernor::new(4, 0); // something divisible by 2
 
     let (bank, bank_forks) = Bank::new_with_bank_forks_for_tests(&genesis_config);
+    // X1: rebind the leader from the bank, as upstream does. The `SlotLeader`
+    // built above only supplies an id to `create_genesis_config_with_leader`;
+    // its `vote_address` is random and is NOT the genesis vote account. Since
+    // v4.1 the SIMD-0232 `custom_commission_collector` path resolves the fee
+    // collector by looking that vote_address up in `epoch_stakes`, and a test
+    // bank has every feature active, so a synthetic address panics there with
+    // "The vote account for the leader must exist".
+    let leader = *bank.leader();
     let collector_id = leader.id;
 
     let tx = system_transaction::transfer(
