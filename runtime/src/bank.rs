@@ -2943,7 +2943,7 @@ impl Bank {
     }
 
     pub fn get_fee_for_message(&self, message: &SanitizedMessage) -> Option<u64> {
-        let lamports_per_signature = {
+        {
             let blockhash_queue = self.blockhash_queue.read().unwrap();
             blockhash_queue.get_lamports_per_signature(message.recent_blockhash())
         }
@@ -2951,18 +2951,6 @@ impl Bank {
             self.load_message_nonce_data(message, false)
                 .map(|(_nonce_address, nonce_data)| nonce_data.get_lamports_per_signature())
         })?;
-        // X1: a zero rate for this blockhash means a fee-less bank, e.g.
-        // `TestValidator::with_no_fees` / `FeeRateGovernor::new(0, 0)`. v4.0 fed
-        // exactly this value in as `zero_fees_for_test`; v4.1.2 deleted that
-        // argument, and the rate we would otherwise consult here is
-        // `fee_structure().lamports_per_signature`, which stays at its 5000
-        // default even on a fee-less bank. Since X1's fee is compute-unit based
-        // and ignores the rate, quoting from the fee structure would report a
-        // CU x 10 fee for a bank that charges nothing, so derive it from the
-        // blockhash queue as v4.0 did.
-        if lamports_per_signature == 0 {
-            return Some(0);
-        }
         Some(self.get_fee_for_message_with_lamports_per_signature(message))
     }
 

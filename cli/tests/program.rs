@@ -51,6 +51,14 @@ use {
     test_case::test_case,
 };
 
+/// X1 charges compute-units x 10 (`fee/src/lib.rs` BASE_FEE_MULTIPLIER) rather than a
+/// flat per-signature fee, and bills the REQUESTED compute limit, so a buffer write --
+/// which fans out into one transaction per chunk -- costs far more here than upstream's
+/// airdrop of `100 * minimum_balance_for_buffer` was sized for. Upstream already uses a
+/// `fee_headroom` term elsewhere in this file for the same reason; this is that idiom
+/// sized for the X1 fee model.
+const X1_FEE_HEADROOM: u64 = 10_000_000;
+
 pub struct LoaderV3Features {
     pub minimum_extend_program_size: bool,
 }
@@ -1886,7 +1894,7 @@ async fn test_cli_program_write_buffer() {
     config.signers = vec![&keypair];
     config.command = CliCommand::Airdrop {
         pubkey: None,
-        lamports: 100 * minimum_balance_for_buffer,
+        lamports: 100 * minimum_balance_for_buffer + X1_FEE_HEADROOM,
     };
     process_command(&config).await.unwrap();
 
@@ -2301,7 +2309,7 @@ async fn test_cli_program_write_buffer_feature(enable_feature: bool) {
     config.signers = vec![&keypair];
     config.command = CliCommand::Airdrop {
         pubkey: None,
-        lamports: 100 * minimum_balance_for_buffer,
+        lamports: 100 * minimum_balance_for_buffer + X1_FEE_HEADROOM,
     };
     process_command(&config).await.unwrap();
 
@@ -2395,7 +2403,7 @@ async fn test_cli_program_set_buffer_authority() {
     config.signers = vec![&keypair];
     config.command = CliCommand::Airdrop {
         pubkey: None,
-        lamports: 100 * minimum_balance_for_buffer,
+        lamports: 100 * minimum_balance_for_buffer + X1_FEE_HEADROOM,
     };
     process_command(&config).await.unwrap();
 
@@ -2582,7 +2590,7 @@ async fn test_cli_program_mismatch_buffer_authority() {
     config.signers = vec![&keypair];
     config.command = CliCommand::Airdrop {
         pubkey: None,
-        lamports: 100 * minimum_balance_for_buffer,
+        lamports: 100 * minimum_balance_for_buffer + X1_FEE_HEADROOM,
     };
     process_command(&config).await.unwrap();
 
@@ -2920,7 +2928,7 @@ async fn test_cli_program_show() {
     config.signers = vec![&keypair];
     config.command = CliCommand::Airdrop {
         pubkey: None,
-        lamports: 100 * minimum_balance_for_buffer,
+        lamports: 100 * minimum_balance_for_buffer + X1_FEE_HEADROOM,
     };
     process_command(&config).await.unwrap();
 
@@ -3122,7 +3130,7 @@ async fn test_cli_program_dump() {
     config.signers = vec![&keypair];
     config.command = CliCommand::Airdrop {
         pubkey: None,
-        lamports: 100 * minimum_balance_for_buffer,
+        lamports: 100 * minimum_balance_for_buffer + X1_FEE_HEADROOM,
     };
     process_command(&config).await.unwrap();
 
