@@ -134,12 +134,12 @@ async fn test_show_validators_display_output() {
         .replace("\x1b[0m", "");
     let expected = concat!(
         "   Identity                                      Vote Account                              Commission  Last Vote        Root Slot     Skip Rate  Credits  Version Client Id                Active Stake\n",
-        "! 7RoSF9fUmdphVCpabEoefH81WwrW7orsWonXWqTXkKV8  7RoSF9fUmdphVCpabEoefH81WwrW7orsWonXWqTXkKV8  100.00%          -                -          -           0  unknown Agave                 0.000000000 SOL (NaN%)\n",
+        "! 7RoSF9fUmdphVCpabEoefH81WwrW7orsWonXWqTXkKV8  7RoSF9fUmdphVCpabEoefH81WwrW7orsWonXWqTXkKV8  100.00%          -                -          -           0  unknown Agave                 0.000000000 XNT (NaN%)\n",
         "\n",
         "Average Stake-Weighted Skip Rate: 100.00%\n",
         "Average Unweighted Skip Rate:     100.00%\n",
         "\n",
-        "Active Stake: 0 SOL\n",
+        "Active Stake: 0 XNT\n",
         "\n",
         "Stake By Version:\n",
         "unknown -    0 current validators (  NaN%)   1 delinquent validators (  NaN%)\n",
