@@ -10,7 +10,10 @@
 //!    ALT, RuntimeTransaction<SanitizedMessage> transits into Dynamically Loaded state,
 //!    with its dynamic metadata loaded.
 use {
-    crate::transaction_meta::{CachedTransactionMeta, TransactionConfiguration, TransactionMeta},
+    crate::{
+        transaction_meta::{CachedTransactionMeta, TransactionConfiguration, TransactionMeta},
+        transaction_with_meta::implicit_read_locks,
+    },
     agave_feature_set::FeatureSet,
     core::ops::Deref,
     solana_compute_budget_instruction::compute_budget_instruction_details::*,
@@ -37,6 +40,7 @@ pub struct RuntimeTransaction<T> {
     // transaction meta is a collection of fields, it is updated
     // during message state transition
     meta: CachedTransactionMeta,
+    implicit_read_locks: Vec<Pubkey>,
 }
 
 impl<T> RuntimeTransaction<T> {
@@ -45,7 +49,18 @@ impl<T> RuntimeTransaction<T> {
     }
 }
 
+impl<T: SVMMessage> RuntimeTransaction<T> {
+    /// Add ProgramData read locks after resolving all transaction account keys.
+    pub fn load_implicit_read_locks(&mut self) {
+        self.implicit_read_locks = implicit_read_locks(self.transaction.account_keys()).collect();
+    }
+}
+
 impl<T> TransactionMeta for RuntimeTransaction<T> {
+    fn implicit_read_locks(&self) -> &[Pubkey] {
+        &self.implicit_read_locks
+    }
+
     fn message_hash(&self) -> &Hash {
         &self.meta.message_hash
     }

@@ -460,6 +460,12 @@ impl TransactionViewReceiveAndBuffer {
             root_bank,
             transaction_account_lock_limit,
             enable_instruction_accounts_limit,
+            // Buffered transactions may outlive the working bank; only drop locks after
+            // activation is rooted.
+            !root_bank
+                .feature_set
+                .snapshot()
+                .loaderv3_programdata_size_floor,
         )?;
 
         if !filter_keys.is_empty()
@@ -493,6 +499,7 @@ pub(crate) fn translate_to_runtime_view<D: TransactionData>(
     bank: &Bank,
     transaction_account_lock_limit: usize,
     enable_instruction_accounts_limit: bool,
+    enable_implicit_read_locks: bool,
 ) -> Result<(RuntimeTransaction<ResolvedTransactionView<D>>, u64), PacketHandlingError> {
     // Parsing and basic sanitization checks
     let Ok(view) =
@@ -520,7 +527,7 @@ pub(crate) fn translate_to_runtime_view<D: TransactionData>(
 
     let (loaded_addresses, deactivation_slot) = load_addresses_for_view(&view, bank)?;
 
-    let Ok(view) = RuntimeTransaction::<ResolvedTransactionView<_>>::try_new(
+    let Ok(mut view) = RuntimeTransaction::<ResolvedTransactionView<_>>::try_new(
         view,
         loaded_addresses,
         bank.get_reserved_account_keys(),
@@ -531,6 +538,10 @@ pub(crate) fn translate_to_runtime_view<D: TransactionData>(
     // Validate no duplicate accounts (must be after resolution to catch ALT duplicates)
     if validate_account_locks(view.account_keys(), transaction_account_lock_limit).is_err() {
         return Err(PacketHandlingError::LockValidation);
+    }
+
+    if enable_implicit_read_locks {
+        view.load_implicit_read_locks();
     }
 
     Ok((view, deactivation_slot))

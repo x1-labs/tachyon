@@ -102,7 +102,9 @@ use {
     solana_clock::{Epoch, Slot},
     solana_hash::Hash,
     solana_pubkey::Pubkey,
-    solana_runtime_transaction::runtime_transaction::RuntimeTransaction,
+    solana_runtime_transaction::{
+        runtime_transaction::RuntimeTransaction, transaction_meta::TransactionMeta,
+    },
     solana_transaction::sanitized::SanitizedTransaction,
     static_assertions::const_assert_eq,
     std::{
@@ -1359,7 +1361,7 @@ impl SchedulingStateMachine {
         // `Bank::prepare_unlocked_batch_from_single_tx()` as well.
         // This redundancy is known. It was just left as-is out of abundance
         // of caution.
-        let lock_contexts = transaction
+        let mut lock_contexts: Vec<_> = transaction
             .message()
             .account_keys()
             .iter()
@@ -1375,6 +1377,9 @@ impl SchedulingStateMachine {
                 )
             })
             .collect();
+        lock_contexts.extend(transaction.implicit_read_locks().iter().map(|address| {
+            LockContext::new(usage_queue_loader(*address), RequestedUsage::Readonly)
+        }));
 
         Task::new(TaskInner {
             transaction,

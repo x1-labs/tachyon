@@ -10245,6 +10245,7 @@ dependencies = [
  "solana-hash 4.3.0",
  "solana-instruction",
  "solana-keypair",
+ "solana-loader-v3-interface",
  "solana-message",
  "solana-program-entrypoint",
  "solana-pubkey 4.2.0",

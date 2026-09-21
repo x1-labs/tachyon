@@ -8398,6 +8398,7 @@ dependencies = [
  "solana-compute-budget",
  "solana-compute-budget-instruction",
  "solana-hash 4.3.0",
+ "solana-loader-v3-interface",
  "solana-message",
  "solana-program-entrypoint",
  "solana-pubkey 4.2.0",
