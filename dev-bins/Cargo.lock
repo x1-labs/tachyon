@@ -8759,6 +8759,8 @@ version = "4.1.2"
 dependencies = [
  "agave-feature-set",
  "agave-transaction-view",
+ "lazy-lru",
+ "rand 0.9.4",
  "solana-compute-budget",
  "solana-compute-budget-instruction",
  "solana-hash 4.3.0",
