@@ -7047,6 +7047,7 @@ dependencies = [
  "solana-instruction",
  "solana-keypair",
  "solana-lattice-hash",
+ "solana-loader-v3-interface",
  "solana-measure",
  "solana-message",
  "solana-metrics",
@@ -10260,6 +10261,7 @@ dependencies = [
  "solana-transaction",
  "solana-transaction-context",
  "solana-transaction-error",
+ "test-case",
  "wincode",
 ]
 
@@ -11436,6 +11438,7 @@ dependencies = [
  "solana-clock",
  "solana-hash 4.3.0",
  "solana-instruction",
+ "solana-loader-v3-interface",
  "solana-message",
  "solana-pubkey 4.2.0",
  "solana-runtime-transaction",

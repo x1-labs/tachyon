@@ -108,6 +108,7 @@ serde_bytes = { workspace = true }
 # See order-crates-for-publishing.py for using this unusual `path = "."`
 solana-accounts-db = { path = ".", features = ["agave-unstable-api", "dev-context-only-utils"] }
 solana-instruction = { workspace = true }
+solana-loader-v3-interface = { workspace = true }
 solana-sdk-ids = { workspace = true }
 solana-sha256-hasher = { workspace = true }
 solana-signature = { workspace = true, features = ["rand"] }
