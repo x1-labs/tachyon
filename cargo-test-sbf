@@ -2,9 +2,13 @@
 
 here=$(dirname "$0")
 
+# shellcheck source=scripts/cargo-build-sbf-version.sh
+source "$here"/scripts/cargo-build-sbf-version.sh
+
 cargo --list | grep -q "^\s*test-sbf"
 found=$?
 if [[ $found -ne 0 ]]; then
-  cargo install cargo-test-sbf
+  # shellcheck disable=SC2086
+  cargo install --locked cargo-test-sbf $maybeCargoTestSbfVersionArg
 fi
 exec cargo test-sbf "$@"
