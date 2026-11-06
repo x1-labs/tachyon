@@ -20,10 +20,13 @@ use {
     solana_compute_budget_instruction::compute_budget_instruction_details::ComputeBudgetInstructionDetails,
     solana_hash::Hash,
     solana_message::TransactionSignatureDetails,
+    solana_pubkey::Pubkey,
     solana_transaction::TransactionError,
 };
 
 pub trait TransactionMeta {
+    /// Cached implicit readonly locks for the currently loaded account keys.
+    fn implicit_read_locks(&self) -> &[Pubkey];
     fn message_hash(&self) -> &Hash;
     fn is_simple_vote_transaction(&self) -> bool;
     fn signature_details(&self) -> &TransactionSignatureDetails;

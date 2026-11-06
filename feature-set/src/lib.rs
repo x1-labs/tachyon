@@ -89,6 +89,7 @@ pub struct FeatureSnapshot {
     pub enable_tx_v1: bool,
     pub define_ltds_fee_only_semantics: bool,
     pub validate_chained_block_id_2: bool,
+    pub loaderv3_programdata_size_floor: bool,
 }
 
 impl From<&AHashMap<Pubkey, u64>> for FeatureSnapshot {
@@ -206,6 +207,7 @@ impl From<&AHashMap<Pubkey, u64>> for FeatureSnapshot {
             enable_tx_v1: is_active(&enable_tx_v1::ID),
             define_ltds_fee_only_semantics: is_active(&define_ltds_fee_only_semantics::ID),
             validate_chained_block_id_2: is_active(&validate_chained_block_id_2::ID),
+            loaderv3_programdata_size_floor: is_active(&loaderv3_programdata_size_floor::ID),
         }
     }
 }
@@ -372,6 +374,7 @@ impl FeatureSet {
             enable_sha512_syscall: snapshot.enable_sha512_syscall,
             relax_post_exec_min_balance_check: snapshot.relax_post_exec_min_balance_check,
             define_ltds_fee_only_semantics: snapshot.define_ltds_fee_only_semantics,
+            loaderv3_programdata_size_floor: snapshot.loaderv3_programdata_size_floor,
         }
     }
 }
@@ -1704,6 +1707,11 @@ pub mod define_ltds_fee_only_semantics {
     // solana LTDSzjZKFJMKHYpNycG1FrWwGGTaFFwqEFjB5GGLNVD
 }
 
+pub mod loaderv3_programdata_size_floor {
+    solana_pubkey::declare_id!("6EEGb3bMQeaTNn3G1v983dDh6NnBHZFkMWWFiQojxor4");
+    // solana 8whkDenELnfwYLirBc4Wb4H2Z1z5K7tiykpdxJS7cWg1
+}
+
 pub static FEATURE_NAMES: LazyLock<AHashMap<Pubkey, &'static str>> = LazyLock::new(|| {
     [
         (secp256k1_program_enabled::id(), "secp256k1 program"),
@@ -2795,6 +2803,10 @@ pub static FEATURE_NAMES: LazyLock<AHashMap<Pubkey, &'static str>> = LazyLock::n
         (
             vote_min_stake_100_xnt::id(),
             "raise minimum vote-account stake for vote inclusion to 100 XNT",
+        ),
+        (
+            loaderv3_programdata_size_floor::id(),
+            "Apply a minimum loaded data size to loader-v3 ProgramData accounts",
         ),
     ]
     .iter()

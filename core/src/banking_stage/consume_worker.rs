@@ -405,8 +405,16 @@ pub(crate) mod external {
                     &self.allocator,
                 )
             };
-            let (translation_results, transactions, max_ages) =
-                Self::translate_transaction_batch(&batch, bank);
+            let (translation_results, transactions, max_ages) = Self::translate_transaction_batch(
+                &batch,
+                bank,
+                !self
+                    .sharable_banks
+                    .root()
+                    .feature_set
+                    .snapshot()
+                    .loaderv3_programdata_size_floor,
+            );
 
             // Enforce all or nothing on translation_results.
             let execution_flags = ExecutionFlags {
@@ -513,8 +521,14 @@ pub(crate) mod external {
             }
 
             // Do resolving next since we (currently) need resolved transactions for status checks.
-            let (parsing_and_resolve_results, txs, max_ages) =
-                Self::translate_transaction_batch(&batch, &root_bank);
+            let (parsing_and_resolve_results, txs, max_ages) = Self::translate_transaction_batch(
+                &batch,
+                &root_bank,
+                !root_bank
+                    .feature_set
+                    .snapshot()
+                    .loaderv3_programdata_size_floor,
+            );
 
             if message.flags & check_flags::LOAD_ADDRESS_LOOKUP_TABLES != 0 {
                 self.check_resolve_pubkeys(
@@ -967,6 +981,7 @@ pub(crate) mod external {
         fn translate_transaction_batch(
             batch: &TransactionPtrBatch,
             bank: &Bank,
+            enable_implicit_read_locks: bool,
         ) -> (Vec<Result<(), PacketHandlingError>>, Vec<Tx>, Vec<MaxAge>) {
             let enable_instruction_accounts_limit =
                 bank.feature_set.snapshot().limit_instruction_accounts;
@@ -981,6 +996,7 @@ pub(crate) mod external {
                     bank,
                     transaction_account_lock_limit,
                     enable_instruction_accounts_limit,
+                    enable_implicit_read_locks,
                 ) {
                     Ok((tx, max_age)) => {
                         transactions.push(tx);
@@ -999,12 +1015,14 @@ pub(crate) mod external {
             bank: &Bank,
             transaction_account_lock_limit: usize,
             enable_instruction_accounts_limit: bool,
+            enable_implicit_read_locks: bool,
         ) -> Result<(Tx, MaxAge), PacketHandlingError> {
             translate_to_runtime_view(
                 transaction_ptr,
                 bank,
                 transaction_account_lock_limit,
                 enable_instruction_accounts_limit,
+                enable_implicit_read_locks,
             )
             .map(|(view, deactivation_slot)| {
                 (
@@ -1439,6 +1457,7 @@ pub(crate) mod external {
                         &bank,
                         bank.get_transaction_account_lock_limit(),
                         true,
+                        !bank.feature_set.snapshot().loaderv3_programdata_size_floor,
                     )
                     .ok()
                     .unwrap()

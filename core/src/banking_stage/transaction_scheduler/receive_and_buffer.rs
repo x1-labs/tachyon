@@ -460,6 +460,12 @@ impl TransactionViewReceiveAndBuffer {
             root_bank,
             transaction_account_lock_limit,
             enable_instruction_accounts_limit,
+            // Buffered transactions may outlive the working bank; only drop locks after
+            // activation is rooted.
+            !root_bank
+                .feature_set
+                .snapshot()
+                .loaderv3_programdata_size_floor,
         )?;
 
         if !filter_keys.is_empty()
@@ -493,6 +499,7 @@ pub(crate) fn translate_to_runtime_view<D: TransactionData>(
     bank: &Bank,
     transaction_account_lock_limit: usize,
     enable_instruction_accounts_limit: bool,
+    enable_implicit_read_locks: bool,
 ) -> Result<(RuntimeTransaction<ResolvedTransactionView<D>>, u64), PacketHandlingError> {
     // Parsing and basic sanitization checks
     let Ok(view) =
@@ -520,7 +527,7 @@ pub(crate) fn translate_to_runtime_view<D: TransactionData>(
 
     let (loaded_addresses, deactivation_slot) = load_addresses_for_view(&view, bank)?;
 
-    let Ok(view) = RuntimeTransaction::<ResolvedTransactionView<_>>::try_new(
+    let Ok(mut view) = RuntimeTransaction::<ResolvedTransactionView<_>>::try_new(
         view,
         loaded_addresses,
         bank.get_reserved_account_keys(),
@@ -531,6 +538,10 @@ pub(crate) fn translate_to_runtime_view<D: TransactionData>(
     // Validate no duplicate accounts (must be after resolution to catch ALT duplicates)
     if validate_account_locks(view.account_keys(), transaction_account_lock_limit).is_err() {
         return Err(PacketHandlingError::LockValidation);
+    }
+
+    if enable_implicit_read_locks {
+        view.load_implicit_read_locks();
     }
 
     Ok((view, deactivation_slot))
@@ -628,6 +639,7 @@ mod tests {
         crossbeam_channel::{Receiver, unbounded},
         solana_hash::Hash,
         solana_keypair::Keypair,
+        solana_leader_schedule::SlotLeader,
         solana_ledger::genesis_utils::GenesisConfigInfo,
         solana_message::{
             AccountMeta, AddressLookupTableAccount, Instruction, VersionedMessage, v0,
@@ -639,8 +651,9 @@ mod tests {
         solana_signer::Signer,
         solana_system_interface::instruction as system_instruction,
         solana_system_transaction::transfer,
-        solana_transaction::versioned::VersionedTransaction,
+        solana_transaction::{TransactionVerificationMode, versioned::VersionedTransaction},
         std::sync::{Arc, RwLock},
+        test_case::test_case,
     };
 
     fn test_bank_forks() -> (Arc<RwLock<BankForks>>, Keypair) {
@@ -652,6 +665,63 @@ mod tests {
 
         let (_bank, bank_forks) = Bank::new_with_bank_forks_for_tests(&genesis_config);
         (bank_forks, mint_keypair)
+    }
+
+    #[test_case(false, false; "before activation")]
+    #[test_case(false, true; "activation not rooted")]
+    #[test_case(true, true; "activation rooted")]
+    fn test_implicit_locks_follow_root_for_production_and_bank_for_replay(
+        root_active: bool,
+        working_active: bool,
+    ) {
+        let GenesisConfigInfo {
+            genesis_config,
+            mint_keypair,
+            ..
+        } = create_slow_genesis_config(u64::MAX);
+        let feature = agave_feature_set::loaderv3_programdata_size_floor::id();
+        let set_floor = |bank: &mut Bank, active: bool| {
+            let feature_set = Arc::make_mut(&mut bank.feature_set);
+            if active {
+                feature_set.activate(&feature, 0);
+            } else {
+                feature_set.deactivate(&feature);
+            }
+        };
+        let mut root = Bank::new_for_tests(&genesis_config);
+        set_floor(&mut root, root_active);
+        let (root, _bank_forks) = root.wrap_with_bank_forks_for_tests();
+        let mut working = Bank::new_from_parent(root.clone(), SlotLeader::new_unique(), 1);
+        set_floor(&mut working, working_active);
+        let transaction = VersionedTransaction::from(transfer(
+            &mint_keypair,
+            &Pubkey::new_unique(),
+            1,
+            working.last_blockhash(),
+        ));
+        let bytes: SharedBytes = Arc::new(wincode::serialize(&transaction).unwrap());
+
+        // Block production follows the root bank.
+        let state = TransactionViewReceiveAndBuffer::try_handle_packet(
+            bytes,
+            &root,
+            &working,
+            working.get_transaction_account_lock_limit(),
+            true,
+            &HashSet::new(),
+        )
+        .ok()
+        .expect("transfer should be accepted");
+        assert_eq!(
+            state.transaction().implicit_read_locks().is_empty(),
+            root_active
+        );
+
+        // Replay follows the bank being replayed.
+        let replay = working
+            .verify_transaction(transaction, TransactionVerificationMode::FullVerification)
+            .unwrap();
+        assert_eq!(replay.implicit_read_locks().is_empty(), working_active);
     }
 
     const TEST_CONTAINER_CAPACITY: usize = 100;

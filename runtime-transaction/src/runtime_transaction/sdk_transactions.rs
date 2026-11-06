@@ -79,6 +79,7 @@ impl RuntimeTransaction<SanitizedVersionedTransaction> {
         };
 
         Ok(Self {
+            implicit_read_locks: Vec::new(),
             transaction: sanitized_versioned_tx,
             meta: CachedTransactionMeta {
                 message_hash,
@@ -147,12 +148,11 @@ impl RuntimeTransaction<SanitizedTransaction> {
             reserved_account_keys,
         )?;
 
-        let tx = Self {
+        Ok(Self {
+            implicit_read_locks: statically_loaded_runtime_tx.implicit_read_locks,
             transaction: sanitized_transaction,
             meta: statically_loaded_runtime_tx.meta,
-        };
-
-        Ok(tx)
+        })
     }
 }
 
@@ -178,7 +178,7 @@ impl RuntimeTransaction<SanitizedTransaction> {
     pub fn from_transaction_for_tests(transaction: solana_transaction::Transaction) -> Self {
         let versioned_transaction = VersionedTransaction::from(transaction);
         let enable_instruction_accounts_limit = true;
-        Self::try_create(
+        let mut tx = Self::try_create(
             versioned_transaction,
             MessageHash::Compute,
             None,
@@ -186,7 +186,9 @@ impl RuntimeTransaction<SanitizedTransaction> {
             &HashSet::new(),
             enable_instruction_accounts_limit,
         )
-        .expect("failed to create RuntimeTransaction from Transaction")
+        .expect("failed to create RuntimeTransaction from Transaction");
+        tx.load_implicit_read_locks();
+        tx
     }
 }
 
