@@ -26,7 +26,6 @@ use {
     solana_measure::measure_us,
     solana_pubkey::Pubkey,
     solana_runtime_transaction::transaction_with_meta::TransactionWithMeta,
-    solana_svm_transaction::svm_message::SVMMessage,
     std::num::Saturating,
 };
 
@@ -363,7 +362,7 @@ impl<Tx: TransactionWithMeta> Scheduler<Tx> for PrioGraphScheduler<Tx> {
 impl<Tx: TransactionWithMeta> PrioGraphScheduler<Tx> {
     /// Gets accessed accounts (resources) for use in `PrioGraph`.
     fn get_transaction_account_access(
-        message: &impl SVMMessage,
+        message: &Tx,
     ) -> impl Iterator<Item = (Pubkey, AccessKind)> + '_ {
         message
             .account_keys()
@@ -376,6 +375,12 @@ impl<Tx: TransactionWithMeta> PrioGraphScheduler<Tx> {
                     (*key, AccessKind::Read)
                 }
             })
+            .chain(
+                message
+                    .implicit_read_locks()
+                    .iter()
+                    .map(|key| (*key, AccessKind::Read)),
+            )
     }
 }
 
@@ -407,7 +412,8 @@ fn try_schedule_transaction<Tx: TransactionWithMeta>(
     let read_account_locks = account_keys
         .iter()
         .enumerate()
-        .filter_map(|(index, key)| (!transaction.is_writable(index)).then_some(key));
+        .filter_map(|(index, key)| (!transaction.is_writable(index)).then_some(key))
+        .chain(transaction.implicit_read_locks());
 
     let thread_id = match account_locks.try_lock_accounts(
         write_account_locks,
@@ -452,7 +458,9 @@ mod tests {
         solana_keypair::Keypair,
         solana_message::Message,
         solana_pubkey::Pubkey,
-        solana_runtime_transaction::runtime_transaction::RuntimeTransaction,
+        solana_runtime_transaction::{
+            runtime_transaction::RuntimeTransaction, transaction_meta::StaticMeta,
+        },
         solana_signer::Signer,
         solana_system_interface::instruction as system_instruction,
         solana_transaction::{Transaction, sanitized::SanitizedTransaction},
@@ -709,6 +717,120 @@ mod tests {
         assert_eq!(scheduling_summary.num_unschedulable_conflicts, 0);
         assert_eq!(collect_work(&work_receivers[0]).1, [vec![3, 1]]);
         assert_eq!(collect_work(&work_receivers[1]).1, [vec![2, 0]]);
+    }
+
+    #[test]
+    fn test_schedule_implicit_programdata_conflict() {
+        // A transaction that only references a loader-v3 program takes an implicit read lock on
+        // its ProgramData. A writer of that ProgramData must not run on another thread at the
+        // same time, even though the two transactions share no explicit account.
+        let (mut scheduler, work_receivers, finished_work_sender) = create_test_frame(2);
+        let program = Pubkey::new_unique();
+        let programdata = solana_loader_v3_interface::get_program_data_address(&program);
+
+        // id 0: transfer that writes ProgramData.
+        let mut container = create_container([(&Keypair::new(), &[programdata], 1, 1)]);
+        // id 1: higher-priority transaction that only references the program.
+        let reader =
+            RuntimeTransaction::from_transaction_for_tests(Transaction::new_unsigned(Message {
+                header: solana_message::MessageHeader {
+                    num_required_signatures: 1,
+                    num_readonly_unsigned_accounts: 1,
+                    ..solana_message::MessageHeader::default()
+                },
+                account_keys: vec![Pubkey::new_unique(), program],
+                ..Message::default()
+            }));
+        assert_eq!(reader.implicit_read_locks().len(), 2);
+        assert!(reader.implicit_read_locks().contains(&programdata));
+        container.insert_new_transaction(reader, MaxAge::MAX, 2, 5000);
+
+        let scheduling_summary = scheduler
+            .schedule(
+                &mut container,
+                u64::MAX, // no budget
+                true,
+                test_pre_graph_filter,
+                test_pre_lock_filter,
+            )
+            .unwrap();
+        assert_eq!(scheduling_summary.num_scheduled, 2);
+
+        // Non-conflicting transactions would be spread round-robin across both threads; the
+        // implicit conflict keeps both on one thread, reader first.
+        let (thread_0_work, thread_0_ids) = collect_work(&work_receivers[0]);
+        let (thread_1_work, thread_1_ids) = collect_work(&work_receivers[1]);
+        let (work, ids) = if thread_0_ids.is_empty() {
+            (thread_1_work, thread_1_ids)
+        } else {
+            assert!(
+                thread_1_ids.is_empty(),
+                "conflicting txs ran on both threads"
+            );
+            (thread_0_work, thread_0_ids)
+        };
+        assert_eq!(ids.concat(), vec![1, 0]);
+
+        // Completing the work releases the implicit locks without panicking.
+        for work in work {
+            finished_work_sender
+                .send(FinishedConsumeWork {
+                    work,
+                    retryable_indexes: vec![],
+                })
+                .unwrap();
+        }
+        assert_eq!(scheduler.receive_completed(&mut container).unwrap(), (2, 0));
+    }
+
+    #[test]
+    fn test_schedule_implicit_programdata_priority_guard() {
+        // An unschedulable high-priority transaction that implicitly reads ProgramData must
+        // block a lower-priority ProgramData writer, exactly like an explicit read would.
+        let (mut scheduler, work_receivers, _finished_work_sender) = create_test_frame(2);
+        // Shorten the look-ahead window so the reader only joins txs 0 and 1 after they have
+        // been scheduled onto different threads (same setup as test_schedule_priority_guard).
+        scheduler.config.look_ahead_window_size = 2;
+
+        let program = Pubkey::new_unique();
+        let programdata = solana_loader_v3_interface::get_program_data_address(&program);
+        let accounts = (0..4).map(|_| Keypair::new()).collect_vec();
+        let mut container = create_container([
+            // 0 and 1: high priority, disjoint accounts -> one per thread.
+            (&accounts[0], vec![accounts[1].pubkey()], 1, 6),
+            (&accounts[2], vec![accounts[3].pubkey()], 1, 5),
+            // 2: lowest priority, writes ProgramData only.
+            (&Keypair::new(), vec![programdata], 1, 3),
+        ]);
+        // 3: writes accounts held by both threads (unschedulable) and only references the
+        // program, so ProgramData is an implicit read.
+        let reader =
+            RuntimeTransaction::from_transaction_for_tests(Transaction::new_unsigned(Message {
+                header: solana_message::MessageHeader {
+                    num_required_signatures: 1,
+                    num_readonly_signed_accounts: 0,
+                    num_readonly_unsigned_accounts: 1,
+                },
+                account_keys: vec![accounts[1].pubkey(), accounts[3].pubkey(), program],
+                ..Message::default()
+            }));
+        assert!(reader.implicit_read_locks().contains(&programdata));
+        container.insert_new_transaction(reader, MaxAge::MAX, 4, 5000);
+
+        let scheduling_summary = scheduler
+            .schedule(
+                &mut container,
+                u64::MAX, // no budget
+                true,
+                test_pre_graph_filter,
+                test_pre_lock_filter,
+            )
+            .unwrap();
+        // The reader is unschedulable, and the writer must not jump ahead of it.
+        assert_eq!(scheduling_summary.num_scheduled, 2);
+        assert_eq!(scheduling_summary.num_unschedulable_conflicts, 2);
+        assert_eq!(collect_work(&work_receivers[0]).1, [vec![0]]);
+        assert_eq!(collect_work(&work_receivers[1]).1, [vec![1]]);
     }
 
     #[test]

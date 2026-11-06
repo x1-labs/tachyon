@@ -1,4 +1,8 @@
-use {ahash::AHashSet, solana_pubkey::Pubkey, solana_svm_transaction::svm_message::SVMMessage};
+use {
+    ahash::AHashSet, solana_pubkey::Pubkey,
+    solana_runtime_transaction::transaction_meta::StaticMeta,
+    solana_svm_transaction::svm_message::SVMMessage,
+};
 
 /// Wrapper struct to accumulate locks for a batch of transactions.
 #[derive(Debug, Default)]
@@ -11,7 +15,8 @@ pub struct ReadWriteAccountSet {
 
 impl ReadWriteAccountSet {
     /// Returns true if all account locks were available and false otherwise.
-    pub fn check_locks(&self, message: &impl SVMMessage) -> bool {
+    /// Implicit ProgramData read locks are checked as reads, like explicit readonly keys.
+    pub fn check_locks(&self, message: &(impl SVMMessage + StaticMeta)) -> bool {
         message
             .account_keys()
             .iter()
@@ -23,21 +28,32 @@ impl ReadWriteAccountSet {
                     self.can_read(pubkey)
                 }
             })
+            && message
+                .implicit_read_locks()
+                .iter()
+                .all(|pubkey| self.can_read(pubkey))
     }
 
     /// Add all account locks.
     /// Returns true if all account locks were available and false otherwise.
-    pub fn take_locks(&mut self, message: &impl SVMMessage) -> bool {
-        message
-            .account_keys()
-            .iter()
-            .enumerate()
-            .fold(true, |all_available, (index, pubkey)| {
+    /// Implicit ProgramData read locks are taken as reads. Every lock is recorded even
+    /// when some are unavailable.
+    pub fn take_locks(&mut self, message: &(impl SVMMessage + StaticMeta)) -> bool {
+        let explicit_available = message.account_keys().iter().enumerate().fold(
+            true,
+            |all_available, (index, pubkey)| {
                 if message.is_writable(index) {
                     all_available & self.add_write(pubkey)
                 } else {
                     all_available & self.add_read(pubkey)
                 }
+            },
+        );
+        message
+            .implicit_read_locks()
+            .iter()
+            .fold(explicit_available, |all_available, pubkey| {
+                all_available & self.add_read(pubkey)
             })
     }
 
@@ -94,7 +110,9 @@ mod tests {
         },
         solana_pubkey::Pubkey,
         solana_runtime::{bank::Bank, bank_forks::BankForks, genesis_utils::create_genesis_config},
+        solana_runtime_transaction::runtime_transaction::RuntimeTransaction,
         solana_signer::Signer,
+        solana_svm_transaction::svm_message::SVMMessage,
         solana_transaction::{
             sanitized::{MessageHash, SanitizedTransaction},
             versioned::VersionedTransaction,
@@ -128,18 +146,20 @@ mod tests {
         read_keys: &[Pubkey],
         address_table_lookups: Vec<MessageAddressTableLookup>,
         bank: &Bank,
-    ) -> SanitizedTransaction {
+    ) -> RuntimeTransaction<SanitizedTransaction> {
         let message = create_test_versioned_message(
             &[write_keypair.pubkey()],
             read_keys,
             address_table_lookups,
         );
-        SanitizedTransaction::try_create(
+        RuntimeTransaction::try_create(
             VersionedTransaction::try_new(message, &[write_keypair]).unwrap(),
             MessageHash::Compute,
             Some(false),
             bank,
             bank.get_reserved_account_keys(),
+            true,
+            true,
         )
         .unwrap()
     }
@@ -195,7 +215,7 @@ mod tests {
             }],
             &bank,
         );
-        let message = tx.message();
+        let message = &tx;
 
         let mut account_locks = ReadWriteAccountSet::default();
 
@@ -280,5 +300,36 @@ mod tests {
         account_locks.add_write(&account1);
         assert!(account_locks.can_write(&account2));
         assert!(account_locks.can_read(&account2));
+    }
+
+    #[test]
+    fn test_implicit_programdata_read_locks() {
+        // A tx that only references a loader-v3 program implicitly reads its ProgramData.
+        let program = Pubkey::new_unique();
+        let programdata = solana_loader_v3_interface::get_program_data_address(&program);
+        let reader = RuntimeTransaction::from_transaction_for_tests(
+            solana_transaction::Transaction::new_unsigned(solana_message::Message {
+                header: MessageHeader {
+                    num_required_signatures: 1,
+                    num_readonly_signed_accounts: 0,
+                    num_readonly_unsigned_accounts: 1,
+                },
+                account_keys: vec![Pubkey::new_unique(), program],
+                ..solana_message::Message::default()
+            }),
+        );
+        assert!(!reader.account_keys().iter().any(|key| *key == programdata));
+
+        // ProgramData write-locked: the implicit reader must conflict.
+        let mut locks = ReadWriteAccountSet::default();
+        locks.add_write(&programdata);
+        assert!(!locks.check_locks(&reader));
+        assert!(!locks.take_locks(&reader));
+
+        // Implicit reader taken first: a ProgramData write must then conflict.
+        let mut locks = ReadWriteAccountSet::default();
+        assert!(locks.take_locks(&reader));
+        assert!(!locks.can_write(&programdata));
+        assert!(locks.can_read(&programdata));
     }
 }

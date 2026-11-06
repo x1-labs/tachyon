@@ -18,15 +18,21 @@ name = "solana_runtime_transaction"
 
 [features]
 agave-unstable-api = []
-dev-context-only-utils = ["solana-compute-budget-instruction/dev-context-only-utils"]
+dev-context-only-utils = [
+    "solana-compute-budget-instruction/dev-context-only-utils",
+    "solana-transaction/dev-context-only-utils",
+]
 
 [dependencies]
 agave-transaction-view = { workspace = true }
 bincode = { workspace = true }
+lazy-lru = { workspace = true }
 log = { workspace = true }
+rand = { workspace = true }
 solana-compute-budget = { workspace = true }
 solana-compute-budget-instruction = { workspace = true }
 solana-hash = { workspace = true }
+solana-loader-v3-interface = { workspace = true }
 solana-message = { workspace = true, features = ["blake3"] }
 solana-pubkey = { workspace = true }
 solana-sdk-ids = { workspace = true }
@@ -41,7 +47,6 @@ thiserror = { workspace = true }
 agave-feature-set = { workspace = true }
 agave-reserved-account-keys = { workspace = true }
 criterion = { workspace = true }
-rand = { workspace = true }
 solana-compute-budget-instruction = { workspace = true, features = ["dev-context-only-utils"] }
 solana-compute-budget-interface = { workspace = true }
 solana-instruction = { workspace = true }
@@ -53,6 +58,7 @@ solana-system-interface = { workspace = true, features = ["bincode"] }
 solana-system-transaction = { workspace = true }
 solana-transaction = { workspace = true, features = ["blake3"] }
 solana-vote-interface = { workspace = true }
+test-case = { workspace = true }
 
 [[bench]]
 name = "get_signature_details"

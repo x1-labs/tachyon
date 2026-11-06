@@ -59,6 +59,7 @@ impl RuntimeTransaction<SanitizedVersionedTransaction> {
         )?;
 
         Ok(Self {
+            implicit_read_locks: Vec::new(),
             transaction: sanitized_versioned_tx,
             meta: TransactionMeta {
                 message_hash,
@@ -130,6 +131,7 @@ impl RuntimeTransaction<SanitizedTransaction> {
         )?;
 
         let mut tx = Self {
+            implicit_read_locks: statically_loaded_runtime_tx.implicit_read_locks,
             transaction: sanitized_transaction,
             meta: statically_loaded_runtime_tx.meta,
         };
@@ -166,7 +168,7 @@ impl RuntimeTransaction<SanitizedTransaction> {
         let versioned_transaction = VersionedTransaction::from(transaction);
         let enable_static_instruction_limit = true;
         let enable_instruction_accounts_limit = true;
-        Self::try_create(
+        let mut tx = Self::try_create(
             versioned_transaction,
             MessageHash::Compute,
             None,
@@ -175,7 +177,9 @@ impl RuntimeTransaction<SanitizedTransaction> {
             enable_static_instruction_limit,
             enable_instruction_accounts_limit,
         )
-        .expect("failed to create RuntimeTransaction from Transaction")
+        .expect("failed to create RuntimeTransaction from Transaction");
+        tx.load_implicit_read_locks();
+        tx
     }
 }
 

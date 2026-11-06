@@ -176,6 +176,7 @@ impl FeatureSet {
             vote_account_initialize_v2: self.is_active(&vote_account_initialize_v2::id()),
             direct_account_pointers_in_program_input: self
                 .is_active(&direct_account_pointers_in_program_input::id()),
+            loaderv3_programdata_size_floor: self.is_active(&loaderv3_programdata_size_floor::id()),
         }
     }
 }
@@ -1475,6 +1476,11 @@ pub mod vote_min_stake_100_xnt {
     solana_pubkey::declare_id!("5uSM1tstLq7aeW9xctZPPhuUADtYhWDfbvVnPxr6ayF3");
 }
 
+pub mod loaderv3_programdata_size_floor {
+    solana_pubkey::declare_id!("6EEGb3bMQeaTNn3G1v983dDh6NnBHZFkMWWFiQojxor4");
+    // solana 8whkDenELnfwYLirBc4Wb4H2Z1z5K7tiykpdxJS7cWg1
+}
+
 pub static FEATURE_NAMES: LazyLock<AHashMap<Pubkey, &'static str>> = LazyLock::new(|| {
     [
         (secp256k1_program_enabled::id(), "secp256k1 program"),
@@ -2546,6 +2552,10 @@ pub static FEATURE_NAMES: LazyLock<AHashMap<Pubkey, &'static str>> = LazyLock::n
         (
             vote_min_stake_100_xnt::id(),
             "raise minimum vote-account stake for vote inclusion to 100 XNT",
+        ),
+        (
+            loaderv3_programdata_size_floor::id(),
+            "Apply a minimum loaded data size to loader-v3 ProgramData accounts",
         ),
         /*************** ADD NEW FEATURES HERE ***************/
     ]

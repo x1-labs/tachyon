@@ -388,8 +388,14 @@ pub(crate) mod external {
                         &self.allocator,
                     )
                 };
+                // Only drop implicit locks once the size-floor activation is rooted.
+                let enable_implicit_read_locks = !self
+                    .sharable_banks
+                    .root()
+                    .feature_set
+                    .is_active(&agave_feature_set::loaderv3_programdata_size_floor::id());
                 let (translation_results, transactions, max_ages) =
-                    Self::translate_transaction_batch(&batch, bank);
+                    Self::translate_transaction_batch(&batch, bank, enable_implicit_read_locks);
 
                 // Enforce all or nothing on translation_results.
                 let execution_flags = ExecutionFlags {
@@ -505,7 +511,8 @@ pub(crate) mod external {
 
             // Do resolving next since we (currently) need resolved transactions for status checks.
             let (parsing_and_resolve_results, txs, max_ages) =
-                Self::translate_transaction_batch(&batch, &root_bank);
+                // Checked transactions are only used for ALT and status checks, never locked.
+                Self::translate_transaction_batch(&batch, &root_bank, false);
 
             if message.flags & check_flags::LOAD_ADDRESS_LOOKUP_TABLES != 0 {
                 self.check_resolve_pubkeys(
@@ -959,6 +966,7 @@ pub(crate) mod external {
         fn translate_transaction_batch(
             batch: &TransactionPtrBatch,
             bank: &Bank,
+            enable_implicit_read_locks: bool,
         ) -> (Vec<Result<(), PacketHandlingError>>, Vec<Tx>, Vec<MaxAge>) {
             let enable_static_instruction_limit = bank
                 .feature_set
@@ -978,6 +986,7 @@ pub(crate) mod external {
                     enable_static_instruction_limit,
                     transaction_account_lock_limit,
                     enable_instruction_accounts_limit,
+                    enable_implicit_read_locks,
                 ) {
                     Ok((tx, max_age)) => {
                         transactions.push(tx);
@@ -997,6 +1006,7 @@ pub(crate) mod external {
             enable_static_instruction_limit: bool,
             transaction_account_lock_limit: usize,
             enable_instruction_accounts_limit: bool,
+            enable_implicit_read_locks: bool,
         ) -> Result<(Tx, MaxAge), PacketHandlingError> {
             translate_to_runtime_view(
                 transaction_ptr,
@@ -1004,6 +1014,7 @@ pub(crate) mod external {
                 enable_static_instruction_limit,
                 transaction_account_lock_limit,
                 enable_instruction_accounts_limit,
+                enable_implicit_read_locks,
             )
             .map(|(view, deactivation_slot)| {
                 (
@@ -1187,6 +1198,7 @@ pub(crate) mod external {
                         &bank,
                         true,
                         bank.get_transaction_account_lock_limit(),
+                        true,
                         true,
                     )
                     .ok()

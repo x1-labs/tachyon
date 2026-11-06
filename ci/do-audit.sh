@@ -129,6 +129,153 @@ cargo_audit_ignores=(
   #   scripts/cargo-for-all-lock-files.sh update -p h2 --precise 0.4.16
   # Drop this ignore at that point, not merely because the base moved.
   --ignore RUSTSEC-2026-0258
+
+  # Crate:     rustls
+  # Version:   0.23.36 (root, dev-bins, platform-tools-sdk, programs/sbf)
+  # Title:     TLS 1.3 handshake messages incorrectly accepted across encryption level boundaries
+  # Date:      2026-09-14
+  # ID:        RUSTSEC-2026-0285
+  # URL:       https://rustsec.org/advisories/RUSTSEC-2026-0285
+  # Solution:  Upgrade to >=0.23.45
+  #
+  # 0.21.12 is the final 0.21.x release. 0.23.46 needs rustls-webpki >=0.103.16,
+  # which conflicts with the vendored rustls-webpki in [patch.crates-io], so it is
+  # not a lockfile-only bump at this base.
+  --ignore RUSTSEC-2026-0285
+
+  # Crate:     quinn-proto
+  # Version:   0.11.15 (root, dev-bins, platform-tools-sdk, programs/sbf)
+  # Title:     Remote peer can panic quinn-proto with zero-length STREAM frames during unordered reads
+  # Date:      2026-09-14
+  # ID:        RUSTSEC-2026-0338
+  # URL:       https://rustsec.org/advisories/RUSTSEC-2026-0338
+  # Solution:  Upgrade to >=0.11.18
+  #
+  # The patched releases raise the dependency floor (getrandom 0.4, chacha20 0.10,
+  # jni 0.22), so this is not a lockfile-only bump at this base.
+  --ignore RUSTSEC-2026-0338
+
+  # Crate:     quinn-proto
+  # Version:   0.11.15 (root, dev-bins, platform-tools-sdk, programs/sbf)
+  # Title:     Unbounded growth of pending connection ID retirements in quinn-proto
+  # Date:      2026-08-17
+  # ID:        RUSTSEC-2026-0339
+  # URL:       https://rustsec.org/advisories/RUSTSEC-2026-0339
+  # Solution:  Upgrade to >=0.11.17
+  #
+  # The patched releases raise the dependency floor (getrandom 0.4, chacha20 0.10,
+  # jni 0.22), so this is not a lockfile-only bump at this base.
+  --ignore RUSTSEC-2026-0339
+
+  # Crate:     quinn-proto
+  # Version:   0.11.15 (root, dev-bins, platform-tools-sdk, programs/sbf)
+  # Title:     Peer minimum ACK delay can panic quinn-proto when ACK_FREQUENCY transmission is enabled
+  # Date:      2026-09-14
+  # ID:        RUSTSEC-2026-0340
+  # URL:       https://rustsec.org/advisories/RUSTSEC-2026-0340
+  # Solution:  Upgrade to >=0.11.18
+  #
+  # The patched releases raise the dependency floor (getrandom 0.4, chacha20 0.10,
+  # jni 0.22), so this is not a lockfile-only bump at this base.
+  --ignore RUSTSEC-2026-0340
+
+  # Crate:     quinn-proto
+  # Version:   0.11.15 (root, dev-bins, platform-tools-sdk, programs/sbf)
+  # Title:     Stream reassembly memory-exhaustion guard in quinn-proto can be bypassed
+  # Date:      2026-08-17
+  # ID:        RUSTSEC-2026-0341
+  # URL:       https://rustsec.org/advisories/RUSTSEC-2026-0341
+  # Solution:  Upgrade to >=0.11.17
+  #
+  # The patched releases raise the dependency floor (getrandom 0.4, chacha20 0.10,
+  # jni 0.22), so this is not a lockfile-only bump at this base.
+  --ignore RUSTSEC-2026-0341
+
+  # Crate:     quinn-proto
+  # Version:   0.11.15 (root, dev-bins, platform-tools-sdk, programs/sbf)
+  # Title:     Zero-length DATAGRAM frames bypass the receive buffer limit in quinn-proto
+  # Date:      2026-08-17
+  # ID:        RUSTSEC-2026-0342
+  # URL:       https://rustsec.org/advisories/RUSTSEC-2026-0342
+  # Solution:  Upgrade to >=0.11.17
+  #
+  # The patched releases raise the dependency floor (getrandom 0.4, chacha20 0.10,
+  # jni 0.22), so this is not a lockfile-only bump at this base.
+  --ignore RUSTSEC-2026-0342
+
+  # Crate:     rustls
+  # Version:   0.21.12 (root, dev-bins, platform-tools-sdk, programs/sbf), 0.23.36 (root, dev-bins, platform-tools-sdk, programs/sbf)
+  # Title:     `Debug` impls for client session values expose TLS secrets
+  # Date:      2026-10-14
+  # ID:        RUSTSEC-2026-0346
+  # URL:       https://rustsec.org/advisories/RUSTSEC-2026-0346
+  # Solution:  Upgrade to >=0.23.46
+  #
+  # 0.21.12 is the final 0.21.x release. 0.23.46 needs rustls-webpki >=0.103.16,
+  # which conflicts with the vendored rustls-webpki in [patch.crates-io], so it is
+  # not a lockfile-only bump at this base.
+  --ignore RUSTSEC-2026-0346
+
+  # Crate:     rustls
+  # Version:   0.23.36 (root, dev-bins, platform-tools-sdk, programs/sbf)
+  # Title:     Brotli certificate decompression can allocate up to 1 GiB before authentication
+  # Date:      2026-10-14
+  # ID:        RUSTSEC-2026-0348
+  # URL:       https://rustsec.org/advisories/RUSTSEC-2026-0348
+  # Solution:  Upgrade to >=0.23.46
+  #
+  # 0.21.12 is the final 0.21.x release. 0.23.46 needs rustls-webpki >=0.103.16,
+  # which conflicts with the vendored rustls-webpki in [patch.crates-io], so it is
+  # not a lockfile-only bump at this base.
+  --ignore RUSTSEC-2026-0348
+
+  # Crate:     rustls
+  # Version:   0.21.12 (root, dev-bins, platform-tools-sdk, programs/sbf), 0.23.36 (root, dev-bins, platform-tools-sdk, programs/sbf)
+  # Title:     Unauthenticated ServerHello can downgrade later connections to classical key exchange
+  # Date:      2026-10-14
+  # ID:        RUSTSEC-2026-0349
+  # URL:       https://rustsec.org/advisories/RUSTSEC-2026-0349
+  # Solution:  Upgrade to >=0.23.46
+  #
+  # 0.21.12 is the final 0.21.x release. 0.23.46 needs rustls-webpki >=0.103.16,
+  # which conflicts with the vendored rustls-webpki in [patch.crates-io], so it is
+  # not a lockfile-only bump at this base.
+  --ignore RUSTSEC-2026-0349
+
+  # Crate:     webpki-roots
+  # Version:   0.25.2 (root, programs/sbf), 0.25.4 (dev-bins, platform-tools-sdk)
+  # Title:     Bundled root certificates allow trust in distrusted emSign intermediates
+  # Date:      2026-10-19
+  # ID:        RUSTSEC-2026-0381
+  # URL:       https://rustsec.org/advisories/RUSTSEC-2026-0381
+  # Solution:  Upgrade to >=1.0.10
+  #
+  # Only the 0.25.x line remains, pulled in by reqwest 0.11, which requires ^0.25.
+  # The 0.26.x and 1.x copies are on patched versions.
+  --ignore RUSTSEC-2026-0381
+
+  # Crate:     rustls-webpki
+  # Version:   0.101.7 (dev-bins, platform-tools-sdk, programs/sbf)
+  # Title:     Certificate verification may accept distrusted intermediates
+  # Date:      2026-10-20
+  # ID:        RUSTSEC-2026-0382
+  # URL:       https://rustsec.org/advisories/RUSTSEC-2026-0382
+  # Solution:  Upgrade to >=0.103.16, <0.104.0-alpha.1 or >=0.104.0-alpha.8
+  #
+  # Only 0.101.7 remains. It is the final 0.101.x release and rustls 0.21.12
+  # requires ^0.101.7. The 0.103.x copies are on patched versions.
+  --ignore RUSTSEC-2026-0382
+
+  # Crate:     crypto-bigint
+  # Version:   0.5.5 (root, dev-bins, programs/sbf)
+  # Title:     Multiple timing variability issues in operations intended to be constant-time
+  # Date:      2026-10-23
+  # ID:        RUSTSEC-2026-0387
+  # URL:       https://rustsec.org/advisories/RUSTSEC-2026-0387
+  # Solution:  Upgrade to >=0.7.6
+  #
+  # The fix is only in 0.7.x. elliptic-curve 0.13 (via k256) requires ^0.5.
+  --ignore RUSTSEC-2026-0387
 )
 scripts/cargo-for-all-lock-files.sh audit "${cargo_audit_ignores[@]}" | $dep_tree_filter
 # we want the `cargo audit` exit code, not `$dep_tree_filter`'s

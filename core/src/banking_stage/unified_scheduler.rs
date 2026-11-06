@@ -117,7 +117,7 @@ pub(crate) fn ensure_banking_stage_setup(
 
                     let (loaded_addresses, deactivation_slot) =
                         resolve_addresses_with_deactivation(&tx, &bank).ok()?;
-                    let tx = RuntimeTransaction::<SanitizedTransaction>::try_from(
+                    let mut tx = RuntimeTransaction::<SanitizedTransaction>::try_from(
                         tx,
                         SimpleAddressLoader::Enabled(loaded_addresses),
                         bank.get_reserved_account_keys(),
@@ -128,6 +128,14 @@ pub(crate) fn ensure_banking_stage_setup(
                         bank.get_transaction_account_lock_limit(),
                     )
                     .ok()?;
+                    // `bank` is the root bank: only drop implicit ProgramData locks once the
+                    // size-floor activation is rooted.
+                    if !bank
+                        .feature_set
+                        .is_active(&agave_feature_set::loaderv3_programdata_size_floor::id())
+                    {
+                        tx.load_implicit_read_locks();
+                    }
 
                     // Determine priority.
                     let compute_budget_limits = tx
