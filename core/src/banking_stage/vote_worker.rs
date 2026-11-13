@@ -12,7 +12,10 @@ use {
     },
     crate::banking_stage::{
         consumer::{ExecuteAndCommitTransactionsOutput, ProcessTransactionBatchOutput},
-        transaction_scheduler::transaction_state_container::{RuntimeTransactionView, SharedBytes},
+        transaction_scheduler::{
+            receive_and_buffer::implicit_read_locks_enabled,
+            transaction_state_container::{RuntimeTransactionView, SharedBytes},
+        },
     },
     agave_transaction_view::{
         transaction_version::TransactionVersion, transaction_view::SanitizedTransactionView,
@@ -250,15 +253,8 @@ impl VoteWorker {
         let mut reached_end_of_slot = false;
         let mut error_counters: TransactionErrorMetrics = TransactionErrorMetrics::default();
         let mut resolved_txs = ArrayVec::<_, UNPROCESSED_BUFFER_STEP_SIZE>::new();
-        // Only drop implicit ProgramData locks once the size-floor activation is rooted.
-        let enable_implicit_read_locks = !self
-            .bank_forks
-            .read()
-            .unwrap()
-            .root_bank()
-            .feature_set
-            .snapshot()
-            .loaderv3_programdata_size_floor;
+        let enable_implicit_read_locks =
+            implicit_read_locks_enabled(&self.bank_forks.read().unwrap().root_bank());
         for chunk in Itertools::chunks(all_vote_packets.into_iter(), UNPROCESSED_BUFFER_STEP_SIZE)
             .into_iter()
         {
@@ -561,9 +557,6 @@ fn consume_scan_should_process_packet(
     else {
         return None;
     };
-    if enable_implicit_read_locks {
-        view.load_implicit_read_locks();
-    }
 
     // Check the number of locks and whether there are duplicates
     if validate_account_locks(
@@ -586,6 +579,11 @@ fn consume_scan_should_process_packet(
 
     if Consumer::check_fee_payer_unlocked(bank, &view, error_counters).is_err() {
         return None;
+    }
+
+    // Derive the implicit locks last, so rejected votes do not pay for them.
+    if enable_implicit_read_locks {
+        view.load_implicit_read_locks();
     }
 
     Some(view)

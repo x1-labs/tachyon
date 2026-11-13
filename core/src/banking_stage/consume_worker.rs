@@ -183,7 +183,7 @@ pub(crate) mod external {
             committer::CommitTransactionDetails,
             scheduler_messages::MaxAge,
             transaction_scheduler::receive_and_buffer::{
-                PacketHandlingError, translate_to_runtime_view,
+                PacketHandlingError, implicit_read_locks_enabled, translate_to_runtime_view,
             },
         },
         agave_scheduler_bindings::{
@@ -408,12 +408,7 @@ pub(crate) mod external {
             let (translation_results, transactions, max_ages) = Self::translate_transaction_batch(
                 &batch,
                 bank,
-                !self
-                    .sharable_banks
-                    .root()
-                    .feature_set
-                    .snapshot()
-                    .loaderv3_programdata_size_floor,
+                implicit_read_locks_enabled(&self.sharable_banks.root()),
             );
 
             // Enforce all or nothing on translation_results.
@@ -521,14 +516,10 @@ pub(crate) mod external {
             }
 
             // Do resolving next since we (currently) need resolved transactions for status checks.
-            let (parsing_and_resolve_results, txs, max_ages) = Self::translate_transaction_batch(
-                &batch,
-                &root_bank,
-                !root_bank
-                    .feature_set
-                    .snapshot()
-                    .loaderv3_programdata_size_floor,
-            );
+            // Checked transactions are only used for ALT and status checks and are
+            // never locked, so do not derive implicit locks for them.
+            let (parsing_and_resolve_results, txs, max_ages) =
+                Self::translate_transaction_batch(&batch, &root_bank, false);
 
             if message.flags & check_flags::LOAD_ADDRESS_LOOKUP_TABLES != 0 {
                 self.check_resolve_pubkeys(

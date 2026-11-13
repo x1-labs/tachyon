@@ -255,6 +255,7 @@ impl TransactionViewReceiveAndBuffer {
         let enable_instruction_accounts_limit =
             root_bank.feature_set.snapshot().limit_instruction_accounts;
         let transaction_account_lock_limit = working_bank.get_transaction_account_lock_limit();
+        let enable_implicit_read_locks = implicit_read_locks_enabled(root_bank);
 
         // Create temporary batches of transactions to be age-checked.
         let mut transaction_priority_ids = ArrayVec::<_, EXTRA_CAPACITY>::new();
@@ -386,6 +387,7 @@ impl TransactionViewReceiveAndBuffer {
                             working_bank,
                             transaction_account_lock_limit,
                             enable_instruction_accounts_limit,
+                            enable_implicit_read_locks,
                             &self.filter_keys,
                         ) {
                             Ok(state) => Ok(state),
@@ -453,6 +455,7 @@ impl TransactionViewReceiveAndBuffer {
         working_bank: &Bank,
         transaction_account_lock_limit: usize,
         enable_instruction_accounts_limit: bool,
+        enable_implicit_read_locks: bool,
         filter_keys: &HashSet<Pubkey>,
     ) -> Result<TransactionViewState, PacketHandlingError> {
         let (view, deactivation_slot) = translate_to_runtime_view(
@@ -460,12 +463,7 @@ impl TransactionViewReceiveAndBuffer {
             root_bank,
             transaction_account_lock_limit,
             enable_instruction_accounts_limit,
-            // Buffered transactions may outlive the working bank; only drop locks after
-            // activation is rooted.
-            !root_bank
-                .feature_set
-                .snapshot()
-                .loaderv3_programdata_size_floor,
+            enable_implicit_read_locks,
         )?;
 
         if !filter_keys.is_empty()
@@ -489,6 +487,16 @@ impl TransactionViewReceiveAndBuffer {
 
         Ok(TransactionState::new(view, max_age, priority, cost))
     }
+}
+
+/// Whether block production takes implicit ProgramData read locks. Buffered
+/// transactions can outlive the working bank, so the locks stop only when the
+/// size-floor activation is rooted.
+pub(crate) fn implicit_read_locks_enabled(root_bank: &Bank) -> bool {
+    !root_bank
+        .feature_set
+        .snapshot()
+        .loaderv3_programdata_size_floor
 }
 
 /// Perform sanitization checks and transition from data to an executable
@@ -708,6 +716,7 @@ mod tests {
             &working,
             working.get_transaction_account_lock_limit(),
             true,
+            implicit_read_locks_enabled(&root),
             &HashSet::new(),
         )
         .ok()
