@@ -12,7 +12,10 @@ use {
     },
     crate::banking_stage::{
         consumer::{ExecuteAndCommitTransactionsOutput, ProcessTransactionBatchOutput},
-        transaction_scheduler::transaction_state_container::{RuntimeTransactionView, SharedBytes},
+        transaction_scheduler::{
+            receive_and_buffer::implicit_read_locks_enabled,
+            transaction_state_container::{RuntimeTransactionView, SharedBytes},
+        },
     },
     agave_transaction_view::{
         transaction_version::TransactionVersion, transaction_view::SanitizedTransactionView,
@@ -250,6 +253,8 @@ impl VoteWorker {
         let mut reached_end_of_slot = false;
         let mut error_counters: TransactionErrorMetrics = TransactionErrorMetrics::default();
         let mut resolved_txs = ArrayVec::<_, UNPROCESSED_BUFFER_STEP_SIZE>::new();
+        let enable_implicit_read_locks =
+            implicit_read_locks_enabled(&self.bank_forks.read().unwrap().root_bank());
         for chunk in Itertools::chunks(all_vote_packets.into_iter(), UNPROCESSED_BUFFER_STEP_SIZE)
             .into_iter()
         {
@@ -264,9 +269,12 @@ impl VoteWorker {
 
             // Sanitize & resolve our chunk.
             for packet in chunk.into_iter() {
-                if let Some(tx) =
-                    consume_scan_should_process_packet(bank, packet, &mut error_counters)
-                {
+                if let Some(tx) = consume_scan_should_process_packet(
+                    bank,
+                    packet,
+                    &mut error_counters,
+                    enable_implicit_read_locks,
+                ) {
                     resolved_txs.push(tx);
                 }
             }
@@ -526,6 +534,7 @@ fn consume_scan_should_process_packet(
     bank: &Bank,
     packet: SanitizedTransactionView<SharedBytes>,
     error_counters: &mut TransactionErrorMetrics,
+    enable_implicit_read_locks: bool,
 ) -> Option<RuntimeTransactionView> {
     // Construct the RuntimeTransaction.
     let Ok(view) = RuntimeTransaction::<SanitizedTransactionView<_>>::try_new(
@@ -543,7 +552,8 @@ fn consume_scan_should_process_packet(
 
     // Resolve the transaction (votes do not have LUTs).
     debug_assert!(!matches!(view.version(), TransactionVersion::V0));
-    let Ok(view) = RuntimeTransactionView::try_new(view, None, bank.get_reserved_account_keys())
+    let Ok(mut view) =
+        RuntimeTransactionView::try_new(view, None, bank.get_reserved_account_keys())
     else {
         return None;
     };
@@ -569,6 +579,11 @@ fn consume_scan_should_process_packet(
 
     if Consumer::check_fee_payer_unlocked(bank, &view, error_counters).is_err() {
         return None;
+    }
+
+    // Derive the implicit locks last, so rejected votes do not pay for them.
+    if enable_implicit_read_locks {
+        view.load_implicit_read_locks();
     }
 
     Some(view)

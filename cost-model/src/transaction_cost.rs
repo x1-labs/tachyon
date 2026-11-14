@@ -283,6 +283,10 @@ impl solana_svm_transaction::svm_transaction::SVMTransaction for WritableKeysTra
 
 #[cfg(feature = "dev-context-only-utils")]
 impl solana_runtime_transaction::transaction_meta::TransactionMeta for WritableKeysTransaction {
+    fn implicit_read_locks(&self) -> &[solana_pubkey::Pubkey] {
+        &[]
+    }
+
     fn message_hash(&self) -> &solana_hash::Hash {
         unimplemented!("WritableKeysTransaction::message_hash")
     }

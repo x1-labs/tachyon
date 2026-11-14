@@ -55,7 +55,7 @@ use {
         transaction_processor::ExecutionRecordingConfig,
     },
     solana_svm_timings::{ExecuteTimingType, ExecuteTimings, report_execute_timings},
-    solana_svm_transaction::{svm_message::SVMMessage, svm_transaction::SVMTransaction},
+    solana_svm_transaction::svm_message::SVMMessage,
     solana_transaction::{
         TransactionVerificationMode, sanitized::SanitizedTransaction,
         versioned::VersionedTransaction,
@@ -80,7 +80,7 @@ use {
 #[cfg(feature = "dev-context-only-utils")]
 use {qualifier_attr::qualifiers, solana_runtime::bank::HashOverrides};
 
-pub struct TransactionBatchWithIndexes<'a, 'b, Tx: SVMMessage> {
+pub struct TransactionBatchWithIndexes<'a, 'b, Tx: TransactionWithMeta> {
     pub batch: TransactionBatch<'a, 'b, Tx>,
     pub transaction_indexes: Vec<usize>,
 }
@@ -120,7 +120,7 @@ pub enum ChainedBlockIdCheck {
 }
 
 // Includes transaction signature for unit-testing
-fn do_get_first_error<T, Tx: SVMTransaction>(
+fn do_get_first_error<T, Tx: TransactionWithMeta>(
     batch: &TransactionBatch<Tx>,
     results: &[Result<T>],
 ) -> Option<(Result<()>, Signature)> {
@@ -144,7 +144,7 @@ fn do_get_first_error<T, Tx: SVMTransaction>(
     first_err
 }
 
-fn get_first_error<T, Tx: SVMTransaction>(
+fn get_first_error<T, Tx: TransactionWithMeta>(
     batch: &TransactionBatch<Tx>,
     commit_results: &[Result<T>],
 ) -> Result<()> {
