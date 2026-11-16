@@ -946,7 +946,7 @@ fn main() {
 
     let mut measure_total_execution_time = Measure::start("ledger tool");
 
-    let matches = App::new(crate_name!())
+    let matches = App::new("x1-ledger-tool")
         .about(crate_description!())
         .version(solana_version::version!())
         .global_setting(AppSettings::ColoredHelp)

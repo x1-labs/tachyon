@@ -4,7 +4,7 @@
 use {
     agave_feature_set::FEATURE_NAMES,
     base64::{Engine, prelude::BASE64_STANDARD},
-    clap::{App, Arg, ArgMatches, crate_description, crate_name, value_t, value_t_or_exit},
+    clap::{App, Arg, ArgMatches, crate_description, value_t, value_t_or_exit},
     itertools::Itertools,
     solana_account::{Account, AccountSharedData, ReadableAccount, WritableAccount},
     solana_bls_signatures::PubkeyCompressed as BLSPubkeyCompressed,
@@ -357,7 +357,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     let default_cluster_type = "mainnet-beta";
     let default_genesis_archive_unpacked_size = MAX_GENESIS_ARCHIVE_UNPACKED_SIZE.to_string();
 
-    let matches = App::new(crate_name!())
+    let matches = App::new("x1-genesis")
         .about(crate_description!())
         .version(solana_version::version!())
         .arg(
