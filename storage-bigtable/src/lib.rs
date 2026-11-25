@@ -9,6 +9,7 @@ use {
     solana_clock::{Slot, UnixTimestamp},
     solana_message::v0::LoadedAddresses,
     solana_metrics::datapoint_info,
+    solana_packet::PACKET_DATA_SIZE,
     solana_pubkey::Pubkey,
     solana_serde::default_on_eof,
     solana_signature::Signature,
@@ -23,6 +24,7 @@ use {
         TransactionWithStatusMeta, VersionedConfirmedBlock, VersionedConfirmedBlockWithEntries,
         VersionedTransactionWithStatusMeta, extract_and_fmt_memos,
     },
+    solana_vote_interface::instruction::VoteInstruction,
     std::{
         collections::{HashMap, HashSet},
         convert::TryInto,
@@ -96,6 +98,29 @@ fn slot_to_entries_key(slot: Slot) -> String {
 
 fn slot_to_tx_by_addr_key(slot: Slot) -> String {
     slot_to_key(!slot)
+}
+
+/// Returns true if the transaction only submits votes: every instruction calls
+/// the vote program and is a vote submission (`VoteInstruction::is_simple_vote`:
+/// Vote, UpdateVoteState, CompactUpdateVoteState, TowerSync and their Switch
+/// forms). Other vote-program instructions (Withdraw, Authorize,
+/// UpdateCommission, UpdateValidatorIdentity, InitializeAccount, ...) and
+/// transactions that call any other program are not votes, so they stay in the
+/// `tx` and `tx-by-addr` history.
+fn is_vote_transaction(transaction: &VersionedTransaction) -> bool {
+    let account_keys = transaction.message.static_account_keys();
+    let instructions = transaction.message.instructions();
+    !instructions.is_empty()
+        && instructions.iter().all(|instruction| {
+            account_keys
+                .get(instruction.program_id_index as usize)
+                .is_some_and(solana_sdk_ids::vote::check_id)
+                && solana_bincode::limited_deserialize::<VoteInstruction>(
+                    &instruction.data,
+                    PACKET_DATA_SIZE as u64,
+                )
+                .is_ok_and(|vote_instruction| vote_instruction.is_simple_vote())
+        })
 }
 
 // Reverse of `slot_to_key`
@@ -399,6 +424,10 @@ pub struct LedgerStorageConfig {
     pub instance_name: String,
     pub app_profile_id: String,
     pub max_message_size: usize,
+    /// When enabled, vote transactions are excluded from the `tx` and `tx-by-addr`
+    /// tables during upload. The full block (including vote transactions) is still
+    /// stored in the `blocks` table for consensus/historical integrity.
+    pub exclude_vote_transactions: bool,
 }
 
 impl Default for LedgerStorageConfig {
@@ -410,6 +439,7 @@ impl Default for LedgerStorageConfig {
             instance_name: DEFAULT_INSTANCE_NAME.to_string(),
             app_profile_id: DEFAULT_APP_PROFILE_ID.to_string(),
             max_message_size: DEFAULT_MAX_MESSAGE_SIZE,
+            exclude_vote_transactions: false,
         }
     }
 }
@@ -446,6 +476,7 @@ impl LedgerStorageStats {
 pub struct LedgerStorage {
     connection: bigtable::BigTableConnection,
     stats: Arc<LedgerStorageStats>,
+    exclude_vote_transactions: bool,
 }
 
 impl LedgerStorage {
@@ -479,6 +510,7 @@ impl LedgerStorage {
                 LedgerStorageConfig::default().max_message_size,
             )?,
             stats,
+            exclude_vote_transactions: false,
         })
     }
 
@@ -491,6 +523,7 @@ impl LedgerStorage {
             app_profile_id,
             credential_type,
             max_message_size,
+            exclude_vote_transactions,
         } = config;
         let connection = bigtable::BigTableConnection::new(
             instance_name.as_str(),
@@ -501,7 +534,11 @@ impl LedgerStorage {
             max_message_size,
         )
         .await?;
-        Ok(Self { stats, connection })
+        Ok(Self {
+            stats,
+            connection,
+            exclude_vote_transactions,
+        })
     }
 
     pub async fn new_with_stringified_credential(credential: String) -> Result<Self> {
@@ -760,15 +797,13 @@ impl LedgerStorage {
         )>,
     > {
         trace!("LedgerStorage::get_confirmed_signatures_for_address request received: {address:?}");
-        self.stats.increment_num_queries();
-        let mut bigtable = self.connection.client();
-        let address_prefix = format!("{address}/");
-
         // Figure out where to start listing from based on `before_signature`
-        let (first_slot, before_transaction_index) = match before_signature {
-            None => (Slot::MAX, 0),
+        let before_position = match before_signature {
+            None => None,
             Some(before_signature) => {
-                let TransactionInfo { slot, index, .. } = bigtable
+                let TransactionInfo { slot, index, .. } = self
+                    .connection
+                    .client()
                     .get_bincode_cell("tx", before_signature.to_string())
                     .await
                     .map_err(|err| match err {
@@ -776,9 +811,45 @@ impl LedgerStorage {
                         _ => err.into(),
                     })?;
 
-                (slot, index)
+                Some((slot, index))
             }
         };
+        self.get_confirmed_signatures_for_address_before_position(
+            address,
+            before_position,
+            until_signature,
+            limit,
+        )
+        .await
+    }
+
+    /// Get confirmed signatures for the provided address, in descending ledger order,
+    /// starting from a ledger position instead of a signature.
+    ///
+    /// Use this when the `before` cursor is known but has no `tx` row: for example a
+    /// vote transaction that the uploader left out (`exclude_vote_transactions`).
+    ///
+    /// address: address to search for
+    /// before_position: start with the first signature older than this (slot, transaction
+    ///   index); `None` starts with the newest signature
+    /// until_signature: end with the last signature more recent than this one
+    /// limit: stop after this many signatures; if limit==0, all records in the table will be read
+    pub async fn get_confirmed_signatures_for_address_before_position(
+        &self,
+        address: &Pubkey,
+        before_position: Option<(Slot, u32)>,
+        until_signature: Option<&Signature>,
+        limit: usize,
+    ) -> Result<
+        Vec<(
+            ConfirmedTransactionStatusWithSignature,
+            u32, /*slot index*/
+        )>,
+    > {
+        self.stats.increment_num_queries();
+        let mut bigtable = self.connection.client();
+        let address_prefix = format!("{address}/");
+        let (first_slot, before_transaction_index) = before_position.unwrap_or((Slot::MAX, 0));
 
         // Figure out where to end listing from based on `until_signature`
         let (last_slot, until_transaction_index) = match until_signature {
@@ -919,8 +990,17 @@ impl LedgerStorage {
 
         let reserved_account_keys = ReservedAccountKeys::new_all_activated();
         let mut tx_cells = Vec::with_capacity(confirmed_block.transactions.len());
+        let mut num_vote_transactions_excluded = 0u64;
         for (index, transaction_with_meta) in confirmed_block.transactions.iter().enumerate() {
             let VersionedTransactionWithStatusMeta { meta, transaction } = transaction_with_meta;
+
+            // When enabled, skip vote transactions from tx and tx-by-addr tables.
+            // The full block (including vote txs) is still stored in the blocks table.
+            if self.exclude_vote_transactions && is_vote_transaction(transaction) {
+                num_vote_transactions_excluded += 1;
+                continue;
+            }
+
             let err = meta.status.clone().err();
             let index = index as u32;
             let signature = transaction.signatures[0];
@@ -1048,6 +1128,11 @@ impl LedgerStorage {
             "storage-bigtable-upload-block",
             ("slot", slot, i64),
             ("transactions", num_transactions, i64),
+            (
+                "vote_transactions_excluded",
+                num_vote_transactions_excluded,
+                i64
+            ),
             ("entries", num_entries, i64),
             ("bytes", bytes_written, i64),
         );
@@ -1202,5 +1287,82 @@ mod test {
     fn test_slot_to_key() {
         assert_eq!(slot_to_key(0), "0000000000000000");
         assert_eq!(slot_to_key(!0), "ffffffffffffffff");
+    }
+
+    /// Account keys: 0 = payer, 1 = vote program, 2 = system program.
+    /// Each instruction is (program id index, instruction data).
+    fn transaction_with(instructions: Vec<(u8, Vec<u8>)>) -> VersionedTransaction {
+        let message = solana_message::Message::new_with_compiled_instructions(
+            1,
+            0,
+            2,
+            vec![
+                Pubkey::new_unique(),
+                solana_sdk_ids::vote::id(),
+                solana_sdk_ids::system_program::id(),
+            ],
+            solana_hash::Hash::default(),
+            instructions
+                .into_iter()
+                .map(|(program_id_index, data)| {
+                    solana_message::compiled_instruction::CompiledInstruction::new_from_raw_parts(
+                        program_id_index,
+                        data,
+                        vec![0],
+                    )
+                })
+                .collect(),
+        );
+        VersionedTransaction {
+            signatures: vec![solana_signature::Signature::default()],
+            message: solana_message::VersionedMessage::Legacy(message),
+        }
+    }
+
+    fn vote_data(instruction: &VoteInstruction) -> Vec<u8> {
+        bincode::serialize(instruction).unwrap()
+    }
+
+    #[test]
+    fn test_is_vote_transaction() {
+        let tower_sync = vote_data(&VoteInstruction::TowerSync(
+            solana_vote_interface::state::TowerSync::default(),
+        ));
+
+        // A vote submission is a vote.
+        assert!(is_vote_transaction(&transaction_with(vec![(
+            1,
+            tower_sync.clone()
+        )])));
+
+        // Administrative vote-program instructions are not votes: their history
+        // must stay queryable (for example withdraw-authority handovers).
+        for admin in [
+            VoteInstruction::Withdraw(1),
+            VoteInstruction::UpdateCommission(5),
+            VoteInstruction::UpdateValidatorIdentity,
+        ] {
+            assert!(
+                !is_vote_transaction(&transaction_with(vec![(1, vote_data(&admin))])),
+                "{admin:?}"
+            );
+        }
+
+        // A vote mixed with another program, another program alone, undecodable
+        // data, an empty transaction and an out-of-range program index are not votes.
+        assert!(!is_vote_transaction(&transaction_with(vec![
+            (1, tower_sync),
+            (2, vec![2, 0, 0, 0])
+        ])));
+        assert!(!is_vote_transaction(&transaction_with(vec![(
+            2,
+            vec![2, 0, 0, 0]
+        )])));
+        assert!(!is_vote_transaction(&transaction_with(vec![(
+            1,
+            vec![0xff]
+        )])));
+        assert!(!is_vote_transaction(&transaction_with(vec![])));
+        assert!(!is_vote_transaction(&transaction_with(vec![(9, vec![])])));
     }
 }

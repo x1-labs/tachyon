@@ -34,10 +34,13 @@ prost = { workspace = true }
 prost-types = { workspace = true }
 serde = { workspace = true }
 smpl_jwt = { workspace = true }
+solana-bincode = { workspace = true }
 solana-clock = { workspace = true }
 solana-message = { workspace = true }
 solana-metrics = { workspace = true }
+solana-packet = { workspace = true }
 solana-pubkey = { workspace = true }
+solana-sdk-ids = { workspace = true }
 solana-serde = { workspace = true }
 solana-signature = { workspace = true }
 solana-storage-proto = { workspace = true }
@@ -45,6 +48,7 @@ solana-time-utils = { workspace = true }
 solana-transaction = { workspace = true }
 solana-transaction-error = { workspace = true }
 solana-transaction-status = { workspace = true }
+solana-vote-interface = { workspace = true, features = ["bincode"] }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 tonic = { workspace = true, features = ["tls-ring", "transport"] }
