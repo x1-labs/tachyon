@@ -22,6 +22,7 @@ impl FromClapArgMatches for RpcBigtableConfig {
                 .ok()
                 .map(Duration::from_secs),
             max_message_size: value_t!(matches, "rpc_bigtable_max_message_size", usize)?,
+            exclude_vote_transactions: matches.is_present("bigtable_exclude_vote_transactions"),
         })
     }
 }
@@ -33,6 +34,15 @@ pub(crate) fn args<'a, 'b>() -> Vec<Arg<'a, 'b>> {
             .takes_value(false)
             .hidden(hidden_unless_forced())
             .help("Upload new confirmed blocks into a BigTable instance"),
+        Arg::with_name("bigtable_exclude_vote_transactions")
+            .long("bigtable-exclude-vote-transactions")
+            .requires("enable_bigtable_ledger_upload")
+            .takes_value(false)
+            .help(
+                "When uploading to BigTable, exclude vote transactions from the tx and \
+                 tx-by-addr tables. The full block data (including vote transactions) is \
+                 still stored in the blocks table.",
+            ),
         Arg::with_name("rpc_bigtable_instance_name")
             .long("rpc-bigtable-instance-name")
             .takes_value(true)
@@ -229,6 +239,32 @@ mod tests {
                 "--enable-bigtable-ledger-upload",  // required by all rpc_bigtable_config
                 "--rpc-bigtable-max-message-size",
                 "99999",
+            ],
+            expected_args,
+        );
+    }
+
+    #[test]
+    fn verify_args_struct_by_command_run_with_bigtable_exclude_vote_transactions() {
+        let default_run_args = crate::commands::run::args::RunArgs::default();
+        let expected_args = RunArgs {
+            json_rpc_config: JsonRpcConfig {
+                enable_rpc_transaction_history: true,
+                rpc_bigtable_config: Some(RpcBigtableConfig {
+                    enable_bigtable_ledger_upload: true,
+                    exclude_vote_transactions: true,
+                    ..default_rpc_bigtable_config()
+                }),
+                ..default_run_args.json_rpc_config.clone()
+            },
+            ..default_run_args.clone()
+        };
+        verify_args_struct_by_command_run_with_identity_setup(
+            default_run_args,
+            vec![
+                "--enable-rpc-transaction-history", // required by enable-bigtable-ledger-upload
+                "--enable-bigtable-ledger-upload", // required by bigtable-exclude-vote-transactions
+                "--bigtable-exclude-vote-transactions",
             ],
             expected_args,
         );
