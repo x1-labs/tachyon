@@ -220,6 +220,22 @@ pub struct RpcBigtableConfig {
     pub exclude_vote_transactions: bool,
 }
 
+/// Whether `getSignaturesForAddress` must continue in long-term storage after
+/// Blockstore. Not when Blockstore already found `until`: then the results already
+/// reach the lower boundary. Querying anyway would look `until` up in the `tx`
+/// table, which fails with `FilterTransactionNotFound` when `until` has no row there
+/// (for example a vote that the uploader left out with
+/// `--bigtable-exclude-vote-transactions`). Otherwise the rule is unchanged: continue
+/// when the page is short, or when `until` was given and not found yet.
+fn needs_long_term_storage(
+    results_len: usize,
+    limit: usize,
+    until_given: bool,
+    found_until: bool,
+) -> bool {
+    !found_until && (results_len < limit || until_given)
+}
+
 /// Where to continue in long-term storage when the `before` cursor came from
 /// Blockstore but has no `tx` row there. That happens when the cursor is not uploaded
 /// yet, or when the uploader left it out on purpose (vote transactions with
@@ -1905,7 +1921,7 @@ impl JsonRpcRequestProcessor {
                 .collect()
         };
 
-        if results.len() < limit || (until.is_some() && !found_until) {
+        if needs_long_term_storage(results.len(), limit, until.is_some(), found_until) {
             if let Some(bigtable_ledger_storage) = &self.bigtable_ledger_storage {
                 let mut bigtable_before = before;
                 let mut bigtable_before_position = None;
@@ -5153,6 +5169,20 @@ pub mod tests {
         fn leader_pubkey(&self) -> Pubkey {
             *self.working_bank().leader_id()
         }
+    }
+
+    #[test]
+    fn test_needs_long_term_storage() {
+        // Short page without `until`, or with `until` not reached: continue.
+        assert!(needs_long_term_storage(3, 10, false, false));
+        assert!(needs_long_term_storage(3, 10, true, false));
+        // Blockstore already found `until`: the results are complete, short page or not.
+        assert!(!needs_long_term_storage(3, 10, true, true));
+        assert!(!needs_long_term_storage(10, 10, true, true));
+        // Full page without `until`: no.
+        assert!(!needs_long_term_storage(10, 10, false, false));
+        // Full page with `until` not found yet: continue, as before this change.
+        assert!(needs_long_term_storage(10, 10, true, false));
     }
 
     #[test]
