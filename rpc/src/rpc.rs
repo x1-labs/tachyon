@@ -220,6 +220,25 @@ pub struct RpcBigtableConfig {
     pub exclude_vote_transactions: bool,
 }
 
+/// Where to continue in long-term storage when the `before` cursor came from
+/// Blockstore but has no `tx` row there. That happens when the cursor is not uploaded
+/// yet, or when the uploader left it out on purpose (vote transactions with
+/// `--bigtable-exclude-vote-transactions`). Listing from the cursor's ledger position
+/// keeps every result older than the cursor, in descending order.
+///
+/// - With Blockstore results, the oldest one gives the exact (slot, transaction index).
+/// - Without them, the rooted slot of `before`. Blockstore keeps whole slots and found
+///   nothing older than the cursor, so the rest of that slot has nothing for this
+///   address either: transaction index 0 skips the whole slot.
+/// - Otherwise `None`: the cursor is not rooted, so it is newer than everything in
+///   long-term storage, and the listing starts from the newest row.
+fn long_term_storage_resume_position(
+    oldest_blockstore_result: Option<(Slot, u32)>,
+    before_rooted_slot: Option<Slot>,
+) -> Option<(Slot, u32)> {
+    oldest_blockstore_result.or(before_rooted_slot.map(|slot| (slot, 0)))
+}
+
 impl Default for RpcBigtableConfig {
     fn default() -> Self {
         let bigtable_instance_name = solana_storage_bigtable::DEFAULT_INSTANCE_NAME.to_string();
@@ -1889,20 +1908,36 @@ impl JsonRpcRequestProcessor {
         if results.len() < limit || (until.is_some() && !found_until) {
             if let Some(bigtable_ledger_storage) = &self.bigtable_ledger_storage {
                 let mut bigtable_before = before;
+                let mut bigtable_before_position = None;
                 if !results.is_empty() {
                     limit -= results.len();
                     bigtable_before = results.last().map(|x| x.signature);
                 }
 
-                // If the oldest address-signature found in Blockstore has not yet been
-                // uploaded to long-term storage, modify the storage query to return all latest
-                // signatures to prevent erroring on RowNotFound. This can race with upload.
+                // If the oldest address-signature found in Blockstore is not in long-term
+                // storage (not uploaded yet, or a vote the uploader left out), continue from
+                // its ledger position instead, so no row newer than the cursor is returned.
                 if found_before && bigtable_before.is_some() {
                     match bigtable_ledger_storage
                         .get_signature_status(&bigtable_before.unwrap())
                         .await
                     {
                         Err(StorageError::SignatureNotFound(_)) => {
+                            let before_rooted_slot = if results.is_empty() {
+                                bigtable_before.and_then(|signature| {
+                                    self.blockstore
+                                        .get_rooted_transaction_status(signature)
+                                        .ok()
+                                        .flatten()
+                                        .map(|(slot, _)| slot)
+                                })
+                            } else {
+                                None
+                            };
+                            bigtable_before_position = long_term_storage_resume_position(
+                                results.last().map(|x| (x.slot, x.index)),
+                                before_rooted_slot,
+                            );
                             bigtable_before = None;
                         }
                         Err(err) => {
@@ -1913,14 +1948,25 @@ impl JsonRpcRequestProcessor {
                     }
                 }
 
-                let bigtable_results = bigtable_ledger_storage
-                    .get_confirmed_signatures_for_address(
-                        &address,
-                        bigtable_before.as_ref(),
-                        until.as_ref(),
-                        limit,
-                    )
-                    .await;
+                let bigtable_results = if bigtable_before_position.is_some() {
+                    bigtable_ledger_storage
+                        .get_confirmed_signatures_for_address_before_position(
+                            &address,
+                            bigtable_before_position,
+                            until.as_ref(),
+                            limit,
+                        )
+                        .await
+                } else {
+                    bigtable_ledger_storage
+                        .get_confirmed_signatures_for_address(
+                            &address,
+                            bigtable_before.as_ref(),
+                            until.as_ref(),
+                            limit,
+                        )
+                        .await
+                };
                 match bigtable_results {
                     Ok(bigtable_results) => {
                         let results_set: HashSet<_> =
@@ -5109,6 +5155,21 @@ pub mod tests {
         }
     }
 
+    #[test]
+    fn test_long_term_storage_resume_position() {
+        // Blockstore results: resume right after the oldest one, at its exact position.
+        assert_eq!(
+            long_term_storage_resume_position(Some((120, 7)), Some(999)),
+            Some((120, 7))
+        );
+        // No Blockstore results, rooted `before`: skip the rest of its slot.
+        assert_eq!(
+            long_term_storage_resume_position(None, Some(120)),
+            Some((120, 0))
+        );
+        // `before` not rooted: newer than all of long-term storage, start from the newest row.
+        assert_eq!(long_term_storage_resume_position(None, None), None);
+    }
     #[test]
     fn test_rpc_request_processor_new() {
         let bob_pubkey = solana_pubkey::new_rand();

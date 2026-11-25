@@ -797,15 +797,13 @@ impl LedgerStorage {
         )>,
     > {
         trace!("LedgerStorage::get_confirmed_signatures_for_address request received: {address:?}");
-        self.stats.increment_num_queries();
-        let mut bigtable = self.connection.client();
-        let address_prefix = format!("{address}/");
-
         // Figure out where to start listing from based on `before_signature`
-        let (first_slot, before_transaction_index) = match before_signature {
-            None => (Slot::MAX, 0),
+        let before_position = match before_signature {
+            None => None,
             Some(before_signature) => {
-                let TransactionInfo { slot, index, .. } = bigtable
+                let TransactionInfo { slot, index, .. } = self
+                    .connection
+                    .client()
                     .get_bincode_cell("tx", before_signature.to_string())
                     .await
                     .map_err(|err| match err {
@@ -813,9 +811,45 @@ impl LedgerStorage {
                         _ => err.into(),
                     })?;
 
-                (slot, index)
+                Some((slot, index))
             }
         };
+        self.get_confirmed_signatures_for_address_before_position(
+            address,
+            before_position,
+            until_signature,
+            limit,
+        )
+        .await
+    }
+
+    /// Get confirmed signatures for the provided address, in descending ledger order,
+    /// starting from a ledger position instead of a signature.
+    ///
+    /// Use this when the `before` cursor is known but has no `tx` row: for example a
+    /// vote transaction that the uploader left out (`exclude_vote_transactions`).
+    ///
+    /// address: address to search for
+    /// before_position: start with the first signature older than this (slot, transaction
+    ///   index); `None` starts with the newest signature
+    /// until_signature: end with the last signature more recent than this one
+    /// limit: stop after this many signatures; if limit==0, all records in the table will be read
+    pub async fn get_confirmed_signatures_for_address_before_position(
+        &self,
+        address: &Pubkey,
+        before_position: Option<(Slot, u32)>,
+        until_signature: Option<&Signature>,
+        limit: usize,
+    ) -> Result<
+        Vec<(
+            ConfirmedTransactionStatusWithSignature,
+            u32, /*slot index*/
+        )>,
+    > {
+        self.stats.increment_num_queries();
+        let mut bigtable = self.connection.client();
+        let address_prefix = format!("{address}/");
+        let (first_slot, before_transaction_index) = before_position.unwrap_or((Slot::MAX, 0));
 
         // Figure out where to end listing from based on `until_signature`
         let (last_slot, until_transaction_index) = match until_signature {
